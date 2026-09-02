@@ -1,0 +1,42 @@
+{
+  "inbox": {
+    "title": "{count, plural, =0{Kein inbox} one{# inbox} other{# inboxs}}",
+    "subtitle": "Inbox subtitle DE",
+    "action": "Inbox action DE",
+    "hint": "Inbox hint DE",
+    "error": "Inbox error DE",
+    "empty": "Inbox empty DE, {name}"
+  },
+  "thread": {
+    "title": "Thread title DE",
+    "subtitle": "{count, plural, =0{Kein thread} one{# thread} other{# threads}}",
+    "action": "Thread action DE",
+    "hint": "Thread hint DE",
+    "error": "Thread error DE, {name}",
+    "empty": "{state, select, on{Thread empty DE on} off{Thread empty DE off} other{Thread empty DE}}"
+  },
+  "compose": {
+    "title": "Compose title DE",
+    "subtitle": "Compose subtitle DE: {amount, number, currency:EUR}",
+    "action": "{count, plural, =0{Kein compose} one{# compose} other{# composes}}",
+    "hint": "Compose hint DE, {name}",
+    "error": "Compose error DE",
+    "empty": "Compose empty DE on {when, date, yMMMd}"
+  },
+  "attachments": {
+    "title": "Attachments title DE",
+    "subtitle": "Attachments subtitle DE",
+    "action": "Attachments action DE, {name}",
+    "hint": "{count, plural, =0{Kein attachments} one{# attachments} other{# attachmentss}}",
+    "error": "{state, select, on{Attachments error DE on} off{Attachments error DE off} other{Attachments error DE}}",
+    "empty": "Attachments empty DE"
+  },
+  "muted": {
+    "title": "Muted title DE",
+    "subtitle": "Muted subtitle DE, {name}",
+    "action": "Muted action DE: {amount, number, currency:EUR}",
+    "hint": "Muted hint DE",
+    "error": "{count, plural, =0{Kein muted} one{# muted} other{# muteds}}",
+    "empty": "Muted empty DE"
+  }
+}

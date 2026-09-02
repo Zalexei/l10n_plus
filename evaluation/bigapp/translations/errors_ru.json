@@ -1,0 +1,42 @@
+{
+  "network": {
+    "title": "{count, plural, =0{Нет network} one{# network} few{# network} many{# network} other{# network}}",
+    "subtitle": "Network subtitle RU",
+    "action": "Network action RU",
+    "hint": "Network hint RU",
+    "error": "Network error RU",
+    "empty": "Network empty RU, {name}"
+  },
+  "server": {
+    "title": "Server title RU",
+    "subtitle": "{count, plural, =0{Нет server} one{# server} few{# server} many{# server} other{# server}}",
+    "action": "Server action RU",
+    "hint": "Server hint RU",
+    "error": "Server error RU, {name}",
+    "empty": "{state, select, on{Server empty RU on} off{Server empty RU off} other{Server empty RU}}"
+  },
+  "validation": {
+    "title": "Validation title RU",
+    "subtitle": "Validation subtitle RU: {amount, number, currency:EUR}",
+    "action": "{count, plural, =0{Нет validation} one{# validation} few{# validation} many{# validation} other{# validation}}",
+    "hint": "Validation hint RU, {name}",
+    "error": "Validation error RU",
+    "empty": "Validation empty RU on {when, date, yMMMd}"
+  },
+  "auth": {
+    "title": "Auth title RU",
+    "subtitle": "Auth subtitle RU",
+    "action": "Auth action RU, {name}",
+    "hint": "{count, plural, =0{Нет auth} one{# auth} few{# auth} many{# auth} other{# auth}}",
+    "error": "{state, select, on{Auth error RU on} off{Auth error RU off} other{Auth error RU}}",
+    "empty": "Auth empty RU"
+  },
+  "unknown": {
+    "title": "Unknown title RU",
+    "subtitle": "Unknown subtitle RU, {name}",
+    "action": "Unknown action RU: {amount, number, currency:EUR}",
+    "hint": "Unknown hint RU",
+    "error": "{count, plural, =0{Нет unknown} one{# unknown} few{# unknown} many{# unknown} other{# unknown}}",
+    "empty": "Unknown empty RU"
+  }
+}

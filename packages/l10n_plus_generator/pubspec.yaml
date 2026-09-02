@@ -1,0 +1,28 @@
+name: l10n_plus_generator
+description: Parser, validator and Dart code generator for l10n_plus translations.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.9.0
+
+executables:
+  l10n_plus_generator:
+
+dependencies:
+  args: ^2.5.0
+  dart_style: ^3.0.0
+  l10n_plus: ^0.1.0
+  path: ^1.9.0
+  source_span: ^1.10.0
+  yaml: ^3.1.2
+
+dev_dependencies:
+  test: ^1.25.0
+  lints: ^5.0.0
+  # Test only, and never emitted into this package's own imports: the golden
+  # files are analyzed, and analyzing them means resolving the `package:intl`
+  # calls the generator writes. Without it a formatter that does not compile
+  # only surfaces in the example app, if the example happens to use it.
+  intl: ^0.20.0

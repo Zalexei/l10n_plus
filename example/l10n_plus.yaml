@@ -1,0 +1,19 @@
+input_directory: translations
+output_directory: lib/generated
+base_locale: en
+fallback_locale: en
+
+class_name: AppLocalizations
+locale_enum_name: AppLocale
+
+# Render `#` inside a plural with the locale number format (ICU behaviour).
+# Off by default; this app opts in and pays for package:intl.
+format_plural_numbers: true
+
+# One generated file per locale: editing a Russian string rewrites only the
+# Russian file. The import below is unchanged either way.
+file_per_locale: true
+
+flutter:
+  enabled: true
+  context_extension: l10n

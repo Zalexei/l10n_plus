@@ -1,0 +1,46 @@
+{
+  "@@locale": "en",
+
+  "statement.title": "Statement for {month, date, yMMMM}",
+  "@statement.title": {
+    "description": "Header of a monthly account statement",
+    "placeholders": {
+      "month": { "type": "DateTime", "format": "yMMMM" }
+    }
+  },
+
+  "statement.opening": "Opening balance: {amount, number, currency:USD}",
+  "statement.closing": "Closing balance: {amount, number, simpleCurrency:USD}",
+
+  "statement.card": "Card balance: {amount}",
+  "@statement.card": {
+    "description": "Rendered in the account's own currency; each locale pins its own",
+    "placeholders": {
+      "amount": {
+        "type": "double",
+        "format": "currency",
+        "optionalParameters": { "name": "USD", "decimalDigits": 2 }
+      }
+    }
+  },
+
+  "statement.yen": "JPY holdings: {amount, number, currency:JPY}",
+
+  "statement.crypto": "{amount} in the vault",
+  "@statement.crypto": {
+    "description": "Bitcoin, eight fraction digits, symbol not code",
+    "placeholders": {
+      "amount": {
+        "type": "double",
+        "format": "currency",
+        "optionalParameters": { "name": "BTC", "symbol": "₿", "decimalDigits": 8 }
+      }
+    }
+  },
+
+  "statement.txCount": "{count, plural, =0{No transactions} one{# transaction} other{# transactions}}",
+
+  "statement.status": "{state, select, settled{Settled} pending{Pending} reversed{Reversed} other{Unknown}}",
+
+  "statement.feeNote": "A fee of {fee, number, percent} applies after {n, selectordinal, one{#st} two{#nd} few{#rd} other{#th}} withdrawal"
+}

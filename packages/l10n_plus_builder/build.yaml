@@ -1,0 +1,11 @@
+builders:
+  l10n_plus:
+    import: "package:l10n_plus_builder/l10n_plus_builder.dart"
+    builder_factories: ["l10nPlusBuilder"]
+    build_extensions:
+      $package$:
+        - lib/generated/app_localizations.g.dart
+        - lib/generated/app_localizations_flutter.g.dart
+    auto_apply: dependents
+    build_to: source
+    required_inputs: [".json", ".arb"]

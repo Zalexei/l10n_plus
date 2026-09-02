@@ -1,0 +1,12 @@
+{
+  "@@locale": "ru",
+
+  "balance": "Баланс: {amount}",
+  "@balance": {
+    "placeholders": {
+      "amount": {"optionalParameters": {"decimalDigits": 0}}
+    }
+  },
+
+  "cards": "{count, plural, one{{count} карта} few{{count} карты} many{{count} карт} other{{count} карты}}"
+}

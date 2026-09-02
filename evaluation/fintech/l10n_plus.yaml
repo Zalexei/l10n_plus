@@ -1,0 +1,12 @@
+input_directory: translations
+output_directory: lib/l10n
+base_locale: en
+fallback_locale: en
+
+class_name: Statements
+locale_enum_name: StatementLocale
+
+file_pattern: "app_{locale}"
+
+flutter:
+  enabled: false

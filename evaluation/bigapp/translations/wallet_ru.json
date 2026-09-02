@@ -1,0 +1,42 @@
+{
+  "balance": {
+    "title": "{count, plural, =0{Нет balance} one{# balance} few{# balance} many{# balance} other{# balance}}",
+    "subtitle": "Balance subtitle RU",
+    "action": "Balance action RU",
+    "hint": "Balance hint RU",
+    "error": "Balance error RU",
+    "empty": "Balance empty RU, {name}"
+  },
+  "topUp": {
+    "title": "Topup title RU",
+    "subtitle": "{count, plural, =0{Нет topUp} one{# topUp} few{# topUp} many{# topUp} other{# topUp}}",
+    "action": "Topup action RU",
+    "hint": "Topup hint RU",
+    "error": "Topup error RU, {name}",
+    "empty": "{state, select, on{Topup empty RU on} off{Topup empty RU off} other{Topup empty RU}}"
+  },
+  "withdraw": {
+    "title": "Withdraw title RU",
+    "subtitle": "Withdraw subtitle RU: {amount, number, currency:EUR}",
+    "action": "{count, plural, =0{Нет withdraw} one{# withdraw} few{# withdraw} many{# withdraw} other{# withdraw}}",
+    "hint": "Withdraw hint RU, {name}",
+    "error": "Withdraw error RU",
+    "empty": "Withdraw empty RU on {when, date, yMMMd}"
+  },
+  "history": {
+    "title": "History title RU",
+    "subtitle": "History subtitle RU",
+    "action": "History action RU, {name}",
+    "hint": "{count, plural, =0{Нет history} one{# history} few{# history} many{# history} other{# history}}",
+    "error": "{state, select, on{History error RU on} off{History error RU off} other{History error RU}}",
+    "empty": "History empty RU"
+  },
+  "limits": {
+    "title": "Limits title RU",
+    "subtitle": "Limits subtitle RU, {name}",
+    "action": "Limits action RU: {amount, number, currency:EUR}",
+    "hint": "Limits hint RU",
+    "error": "{count, plural, =0{Нет limits} one{# limits} few{# limits} many{# limits} other{# limits}}",
+    "empty": "Limits empty RU"
+  }
+}

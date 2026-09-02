@@ -1,0 +1,30 @@
+{
+  "@@locale": "ru",
+
+  "auth.login.title": "Войти",
+  "auth.login.subtitle": "С возвращением, {name}",
+  "wallet.balance": "Баланс: {amount}",
+  "wallet.transactions": "{count, plural, =0{Нет транзакций} one{{count} транзакция} few{{count} транзакции} many{{count} транзакций} other{{count} транзакции}}",
+  "wallet.summary": "У вас привязано {count, plural, one{# карта} few{# карты} many{# карт} other{# карты}}",
+  "wallet.total": "Итого: {amount, number}",
+  "wallet.rounded": "Округлённо: {amount, number, integer}",
+  "wallet.statement": "Выписка от {from, date, yMMMd}",
+  "wallet.price": "Цена: {amount, number, currency:USD}",
+  "@wallet.price": {
+    "description": "Dollars are disambiguated from roubles in Russian copy",
+    "placeholders": {
+      "amount": {"optionalParameters": {"symbol": "US$"}}
+    }
+  },
+  "wallet.localPrice": "Местная цена: {amount, number, currency}",
+  "@wallet.localPrice": {
+    "description": "Roubles are quoted without kopecks",
+    "placeholders": {
+      "amount": {"optionalParameters": {"decimalDigits": 0}}
+    }
+  },
+  "wallet.symbolPrice": "Цена символом: {amount, number, simpleCurrency:USD}",
+  "wallet.rank": "{place, selectordinal, other{#-й}} по величине",
+  "wallet.likes": "{count, plural, offset:1 =0{Никому не нравится} =1{Вам нравится} one{Вам и ещё # человеку нравится} few{Вам и ещё # людям нравится} many{Вам и ещё # людям нравится} other{Вам и ещё # людям нравится}}",
+  "profile.greeting": "{gender, select, male{Добро пожаловать, {name}} female{Добро пожаловать, {name}} other{Добро пожаловать, {name}}}"
+}

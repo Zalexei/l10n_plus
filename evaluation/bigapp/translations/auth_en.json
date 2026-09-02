@@ -1,0 +1,42 @@
+{
+  "login": {
+    "title": "{count, plural, =0{No login} one{# login} other{# logins}}",
+    "subtitle": "Login subtitle",
+    "action": "Login action",
+    "hint": "Login hint",
+    "error": "Login error",
+    "empty": "Login empty, {name}"
+  },
+  "signup": {
+    "title": "Signup title",
+    "subtitle": "{count, plural, =0{No signup} one{# signup} other{# signups}}",
+    "action": "Signup action",
+    "hint": "Signup hint",
+    "error": "Signup error, {name}",
+    "empty": "{state, select, on{Signup empty on} off{Signup empty off} other{Signup empty}}"
+  },
+  "password": {
+    "title": "Password title",
+    "subtitle": "Password subtitle: {amount, number, currency:EUR}",
+    "action": "{count, plural, =0{No password} one{# password} other{# passwords}}",
+    "hint": "Password hint, {name}",
+    "error": "Password error",
+    "empty": "Password empty on {when, date, yMMMd}"
+  },
+  "twoFactor": {
+    "title": "Twofactor title",
+    "subtitle": "Twofactor subtitle",
+    "action": "Twofactor action, {name}",
+    "hint": "{count, plural, =0{No twoFactor} one{# twoFactor} other{# twoFactors}}",
+    "error": "{state, select, on{Twofactor error on} off{Twofactor error off} other{Twofactor error}}",
+    "empty": "Twofactor empty"
+  },
+  "session": {
+    "title": "Session title",
+    "subtitle": "Session subtitle, {name}",
+    "action": "Session action: {amount, number, currency:EUR}",
+    "hint": "Session hint",
+    "error": "{count, plural, =0{No session} one{# session} other{# sessions}}",
+    "empty": "Session empty"
+  }
+}

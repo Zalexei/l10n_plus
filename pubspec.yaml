@@ -1,0 +1,12 @@
+name: l10n_plus_workspace
+publish_to: none
+
+environment:
+  sdk: ^3.9.0
+
+workspace:
+  - packages/l10n_plus
+  - packages/l10n_plus_generator
+  - packages/l10n_plus_builder
+  - packages/l10n_plus_flutter
+  - example

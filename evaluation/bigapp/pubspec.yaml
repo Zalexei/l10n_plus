@@ -1,0 +1,31 @@
+name: bigapp
+description: A large Flutter app - many feature namespaces, one file per feature per locale.
+publish_to: none
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  l10n_plus: ^0.1.0
+  l10n_plus_flutter: ^0.1.0
+  intl: ^0.20.0
+  # Adding a locale means Flutter's own Material strings too; nothing in
+  # l10n_plus.yaml hints at this.
+  flutter_localizations:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  l10n_plus_generator: ^0.1.0
+  flutter_lints: ^5.0.0
+
+dependency_overrides:
+  l10n_plus:
+    path: ../../packages/l10n_plus
+  l10n_plus_flutter:
+    path: ../../packages/l10n_plus_flutter
+  l10n_plus_generator:
+    path: ../../packages/l10n_plus_generator

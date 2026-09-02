@@ -1,0 +1,42 @@
+{
+  "cart": {
+    "title": "{count, plural, =0{No cart} one{# cart} other{# carts}}",
+    "subtitle": "Cart subtitle",
+    "action": "Cart action",
+    "hint": "Cart hint",
+    "error": "Cart error",
+    "empty": "Cart empty, {name}"
+  },
+  "shipping": {
+    "title": "Shipping title",
+    "subtitle": "{count, plural, =0{No shipping} one{# shipping} other{# shippings}}",
+    "action": "Shipping action",
+    "hint": "Shipping hint",
+    "error": "Shipping error, {name}",
+    "empty": "{state, select, on{Shipping empty on} off{Shipping empty off} other{Shipping empty}}"
+  },
+  "payment": {
+    "title": "Payment title",
+    "subtitle": "Payment subtitle: {amount, number, currency:EUR}",
+    "action": "{count, plural, =0{No payment} one{# payment} other{# payments}}",
+    "hint": "Payment hint, {name}",
+    "error": "Payment error",
+    "empty": "Payment empty on {when, date, yMMMd}"
+  },
+  "review": {
+    "title": "Review title",
+    "subtitle": "Review subtitle",
+    "action": "Review action, {name}",
+    "hint": "{count, plural, =0{No review} one{# review} other{# reviews}}",
+    "error": "{state, select, on{Review error on} off{Review error off} other{Review error}}",
+    "empty": "Review empty"
+  },
+  "receipt": {
+    "title": "Receipt title",
+    "subtitle": "Receipt subtitle, {name}",
+    "action": "Receipt action: {amount, number, currency:EUR}",
+    "hint": "Receipt hint",
+    "error": "{count, plural, =0{No receipt} one{# receipt} other{# receipts}}",
+    "empty": "Receipt empty"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "@@locale": "ja",
+
+  "statement.title": "{month, date, yMMMM}の明細",
+
+  "statement.opening": "期首残高: {amount, number, currency:USD}",
+  "statement.closing": "期末残高: {amount, number, simpleCurrency:USD}",
+
+  "statement.card": "カード残高: {amount}",
+  "@statement.card": {
+    "placeholders": {
+      "amount": {
+        "format": "simpleCurrency",
+        "optionalParameters": { "decimalDigits": 0 }
+      }
+    }
+  },
+
+  "statement.yen": "円建て資産: {amount, number, currency:JPY}",
+
+  "statement.crypto": "保管中 {amount}",
+
+  "statement.txCount": "{count, plural, =0{取引はありません} other{# 件の取引}}",
+
+  "statement.status": "{state, select, settled{決済済み} pending{処理中} reversed{取消済み} other{不明}}",
+
+  "statement.feeNote": "{n, selectordinal, other{#回目}}の出金から{fee, number, percent}の手数料がかかります"
+}

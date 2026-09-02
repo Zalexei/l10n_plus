@@ -1,0 +1,26 @@
+{
+  "auth": {
+    "login": {
+      "title": "Log in",
+      "subtitle": "Welcome back, {name}"
+    }
+  },
+
+  "wallet": {
+    "balance": "Balance: {amount}",
+    "transactions": "{count, plural, =0{No transactions} one{1 transaction} other{{count} transactions}}",
+    "summary": "You have {count, plural, one{# card} other{# cards}} linked",
+    "total": "Total: {amount, number}",
+    "rounded": "Rounded: {amount, number, integer}",
+    "statement": "Statement from {from, date, yMMMd}",
+    "price": "Price: {amount, number, currency:USD}",
+    "localPrice": "Local price: {amount, number, currency}",
+    "symbolPrice": "Symbol price: {amount, number, simpleCurrency:USD}",
+    "rank": "{place, selectordinal, one{#st} two{#nd} few{#rd} other{#th}} largest",
+    "likes": "{count, plural, offset:1 =0{Nobody likes this} =1{You like this} one{You and # other like this} other{You and # others like this}}"
+  },
+
+  "profile": {
+    "greeting": "{gender, select, male{Welcome, Mr. {name}} female{Welcome, Ms. {name}} other{Welcome, {name}}}"
+  }
+}

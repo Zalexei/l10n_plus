@@ -1,0 +1,13 @@
+input_directory: translations
+output_directory: lib/l10n
+base_locale: en
+fallback_locale: en
+
+class_name: Catalog
+locale_enum_name: CatalogLocale
+
+# The catalogue counts things constantly, so ICU `#` should be grouped.
+format_plural_numbers: true
+
+flutter:
+  enabled: false

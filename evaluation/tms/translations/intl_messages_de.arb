@@ -1,0 +1,20 @@
+{
+  "@@locale": "de",
+  "@@last_modified": "2026-03-04T11:22:00.000Z",
+
+  "billing.invoice.title": "Rechnung {number}",
+  "billing.invoice.total": "Fälliger Betrag {amount}",
+  "@billing.invoice.total": {
+    "placeholders": {
+      "amount": {
+        "format": "simpleCurrency",
+        "optionalParameters": { "decimalDigits": 2 }
+      }
+    }
+  },
+  "billing.invoice.dueOn": "Fällig am {date}",
+  "billing.invoice.lines": "{count, plural, =0{Keine Positionen} one{{count} Position} other{{count} Positionen}}",
+  "billing.reminder.subject": "{tone, select, gentle{Eine kleine Erinnerung} firm{Zahlung überfällig} legal{Letzte Mahnung} other{Erinnerung}}",
+  "account.profile.greeting": "Hallo, {name}",
+  "account.plan.renews": "Verlängert sich am {when} für {price}"
+}

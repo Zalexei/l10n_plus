@@ -1,0 +1,27 @@
+{
+  "@@locale": "ru",
+
+  "statement.title": "Выписка за {month, date, yMMMM}",
+
+  "statement.opening": "Входящий остаток: {amount, number, currency:USD}",
+  "statement.closing": "Исходящий остаток: {amount, number, simpleCurrency:USD}",
+
+  "statement.card": "Баланс карты: {amount}",
+  "@statement.card": {
+    "placeholders": {
+      "amount": {
+        "format": "simpleCurrency"
+      }
+    }
+  },
+
+  "statement.yen": "Активы в иенах: {amount, number, currency:JPY}",
+
+  "statement.crypto": "{amount} в хранилище",
+
+  "statement.txCount": "{count, plural, =0{Нет операций} one{# операция} few{# операции} many{# операций} other{# операции}}",
+
+  "statement.status": "{state, select, settled{Проведено} pending{В обработке} reversed{Отменено} other{Неизвестно}}",
+
+  "statement.feeNote": "После {n, selectordinal, other{#-го}} снятия удерживается комиссия {fee, number, percent}"
+}

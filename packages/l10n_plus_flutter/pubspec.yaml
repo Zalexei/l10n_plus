@@ -1,0 +1,19 @@
+name: l10n_plus_flutter
+description: Flutter integration for l10n_plus, with a locale controller, a scope widget and a BuildContext extension.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.9.0
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  l10n_plus: ^0.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0

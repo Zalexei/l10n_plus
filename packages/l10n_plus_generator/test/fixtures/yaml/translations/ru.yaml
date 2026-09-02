@@ -1,0 +1,14 @@
+auth:
+  login:
+    title: 'Войти'
+    subtitle: 'С возвращением, {name}'
+wallet:
+  balance: 'Баланс: {amount}'
+  transactions: '{count, plural, =0{Нет транзакций} one{{count} транзакция} few{{count} транзакции} many{{count} транзакций} other{{count} транзакции}}'
+  summary: 'У вас привязано {count, plural, one{# карта} few{# карты} many{# карт} other{# карты}}'
+  rank: '{place, selectordinal, other{#-й}} по величине'
+  likes: '{count, plural, offset:1 =0{Никто} one{Вы и ещё #} few{Вы и ещё #} many{Вы и ещё #} other{Вы и ещё #}}'
+profile:
+  greeting: '{gender, select, male{Добро пожаловать, {name}} female{Добро пожаловать, {name}} other{Добро пожаловать, {name}}}'
+  quoted_key: 'Это ''{''литеральная скобка''}'''
+  sorting: '{sort, select, values{По значению} index{По индексу} other{По умолчанию}}'

@@ -1,0 +1,42 @@
+{
+  "network": {
+    "title": "{count, plural, =0{Kein network} one{# network} other{# networks}}",
+    "subtitle": "Network subtitle DE",
+    "action": "Network action DE",
+    "hint": "Network hint DE",
+    "error": "Network error DE",
+    "empty": "Network empty DE, {name}"
+  },
+  "server": {
+    "title": "Server title DE",
+    "subtitle": "{count, plural, =0{Kein server} one{# server} other{# servers}}",
+    "action": "Server action DE",
+    "hint": "Server hint DE",
+    "error": "Server error DE, {name}",
+    "empty": "{state, select, on{Server empty DE on} off{Server empty DE off} other{Server empty DE}}"
+  },
+  "validation": {
+    "title": "Validation title DE",
+    "subtitle": "Validation subtitle DE: {amount, number, currency:EUR}",
+    "action": "{count, plural, =0{Kein validation} one{# validation} other{# validations}}",
+    "hint": "Validation hint DE, {name}",
+    "error": "Validation error DE",
+    "empty": "Validation empty DE on {when, date, yMMMd}"
+  },
+  "auth": {
+    "title": "Auth title DE",
+    "subtitle": "Auth subtitle DE",
+    "action": "Auth action DE, {name}",
+    "hint": "{count, plural, =0{Kein auth} one{# auth} other{# auths}}",
+    "error": "{state, select, on{Auth error DE on} off{Auth error DE off} other{Auth error DE}}",
+    "empty": "Auth empty DE"
+  },
+  "unknown": {
+    "title": "Unknown title DE",
+    "subtitle": "Unknown subtitle DE, {name}",
+    "action": "Unknown action DE: {amount, number, currency:EUR}",
+    "hint": "Unknown hint DE",
+    "error": "{count, plural, =0{Kein unknown} one{# unknown} other{# unknowns}}",
+    "empty": "Unknown empty DE"
+  }
+}

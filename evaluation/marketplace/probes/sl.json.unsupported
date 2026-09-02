@@ -1,0 +1,24 @@
+{
+  "search": {
+    "results": "{count, plural, =0{Ni zadetkov za \"{query}\"} one{# zadetek za \"{query}\"} two{# zadetka za \"{query}\"} few{# zadetki za \"{query}\"} other{# zadetkov za \"{query}\"}}",
+    "reviews": "{count, plural, =0{Ni mnenj} one{# mnenje} two{# mnenji} few{# mnenja} other{# mnenj}}",
+    "inStock": "{count, plural, =0{Ni na zalogi} other{Na zalogi #}}",
+    "viewers": "{count, number, compact} ljudi si to ogleduje",
+    "sold": "Prodanih {count, number, compactLong}"
+  },
+  "cart": {
+    "summary": "{count, plural, =0{Košarica je prazna} other{# izdelkov, {total, number, currency:EUR}}}",
+    "shipping": "{kind, select, standard{Standardna dostava} express{Hitra dostava} pickup{Prevzem v trgovini} other{Dostava}}: {days, plural, =0{danes} other{# dni}}",
+    "promo": "{applied, select, yes{Prihranili ste {amount, number, currency:EUR}} no{Ni promocije} other{}}"
+  },
+  "order": {
+    "placed": "Naročeno {when, date, yMMMd} ob {when, time, jm}",
+    "eta": "Prispe {when, date, MMMd}",
+    "rank": "Vaše {n, selectordinal, other{#.}} naročilo",
+    "items": "{count, plural, offset:1 =0{Nič} =1{Samo {first}} other{{first} in # drugih}}"
+  },
+  "seller": {
+    "rating": "{stars, number} zvezdic od {count, plural, other{# kupcev}}",
+    "badge": "{tier, select, gold{Najboljši prodajalec} silver{Zaupanja vreden prodajalec} new{Nov prodajalec} other{Prodajalec}}"
+  }
+}

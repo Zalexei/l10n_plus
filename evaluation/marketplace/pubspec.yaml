@@ -1,0 +1,21 @@
+name: marketplace
+description: Plural/select heavy catalogue, four languages with very different plural systems.
+publish_to: none
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  l10n_plus: ^0.1.0
+  intl: ^0.20.0
+
+dev_dependencies:
+  l10n_plus_generator: ^0.1.0
+  test: ^1.25.0
+  lints: ^5.0.0
+
+dependency_overrides:
+  l10n_plus:
+    path: ../../packages/l10n_plus
+  l10n_plus_generator:
+    path: ../../packages/l10n_plus_generator

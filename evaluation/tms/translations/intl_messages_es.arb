@@ -1,0 +1,8 @@
+{
+  "@@locale": "es",
+  "@@last_modified": "2026-03-05T08:00:00.000Z",
+
+  "billing.invoice.title": "Factura {number}",
+  "billing.invoice.total": "Importe pendiente {amount}",
+  "billing.invoice.lines": "{count, plural, =0{Sin líneas} one{{count} línea} many{{count} de líneas} other{{count} líneas}}"
+}

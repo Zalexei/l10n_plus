@@ -1,0 +1,17 @@
+input_directory: translations
+output_directory: lib/generated
+base_locale: en
+fallback_locale: en
+class_name: AppLocalizations
+locale_enum_name: AppLocale
+
+# One directory per locale, and each file name is the namespace its keys go
+# under: `en/wallet.arb` holding "balance" generates `t.wallet.balance`.
+file_pattern: "{locale}/{namespace}"
+
+# ... and one generated file per locale, so editing one language rewrites one
+# file. The import an application writes is the same either way.
+file_per_locale: true
+
+flutter:
+  enabled: false

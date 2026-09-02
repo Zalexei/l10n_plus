@@ -1,0 +1,42 @@
+{
+  "identity": {
+    "title": "{count, plural, =0{Kein identity} one{# identity} other{# identitys}}",
+    "subtitle": "Identity subtitle DE",
+    "action": "Identity action DE",
+    "hint": "Identity hint DE",
+    "error": "Identity error DE",
+    "empty": "Identity empty DE, {name}"
+  },
+  "contact": {
+    "title": "Contact title DE",
+    "subtitle": "{count, plural, =0{Kein contact} one{# contact} other{# contacts}}",
+    "action": "Contact action DE",
+    "hint": "Contact hint DE",
+    "error": "Contact error DE, {name}",
+    "empty": "{state, select, on{Contact empty DE on} off{Contact empty DE off} other{Contact empty DE}}"
+  },
+  "privacy": {
+    "title": "Privacy title DE",
+    "subtitle": "Privacy subtitle DE: {amount, number, currency:EUR}",
+    "action": "{count, plural, =0{Kein privacy} one{# privacy} other{# privacys}}",
+    "hint": "Privacy hint DE, {name}",
+    "error": "Privacy error DE",
+    "empty": "Privacy empty DE on {when, date, yMMMd}"
+  },
+  "devices": {
+    "title": "Devices title DE",
+    "subtitle": "Devices subtitle DE",
+    "action": "Devices action DE, {name}",
+    "hint": "{count, plural, =0{Kein devices} one{# devices} other{# devicess}}",
+    "error": "{state, select, on{Devices error DE on} off{Devices error DE off} other{Devices error DE}}",
+    "empty": "Devices empty DE"
+  },
+  "danger": {
+    "title": "Danger title DE",
+    "subtitle": "Danger subtitle DE, {name}",
+    "action": "Danger action DE: {amount, number, currency:EUR}",
+    "hint": "Danger hint DE",
+    "error": "{count, plural, =0{Kein danger} one{# danger} other{# dangers}}",
+    "empty": "Danger empty DE"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "identity": {
+    "title": "{count, plural, =0{Нет identity} one{# identity} few{# identity} many{# identity} other{# identity}}",
+    "subtitle": "Identity subtitle RU",
+    "action": "Identity action RU",
+    "hint": "Identity hint RU",
+    "error": "Identity error RU",
+    "empty": "Identity empty RU, {name}"
+  },
+  "contact": {
+    "title": "Contact title RU",
+    "subtitle": "{count, plural, =0{Нет contact} one{# contact} few{# contact} many{# contact} other{# contact}}",
+    "action": "Contact action RU",
+    "hint": "Contact hint RU",
+    "error": "Contact error RU, {name}",
+    "empty": "{state, select, on{Contact empty RU on} off{Contact empty RU off} other{Contact empty RU}}"
+  },
+  "privacy": {
+    "title": "Privacy title RU",
+    "subtitle": "Privacy subtitle RU: {amount, number, currency:EUR}",
+    "action": "{count, plural, =0{Нет privacy} one{# privacy} few{# privacy} many{# privacy} other{# privacy}}",
+    "hint": "Privacy hint RU, {name}",
+    "error": "Privacy error RU",
+    "empty": "Privacy empty RU on {when, date, yMMMd}"
+  },
+  "devices": {
+    "title": "Devices title RU",
+    "subtitle": "Devices subtitle RU",
+    "action": "Devices action RU, {name}",
+    "hint": "{count, plural, =0{Нет devices} one{# devices} few{# devices} many{# devices} other{# devices}}",
+    "error": "{state, select, on{Devices error RU on} off{Devices error RU off} other{Devices error RU}}",
+    "empty": "Devices empty RU"
+  },
+  "danger": {
+    "title": "Danger title RU",
+    "subtitle": "Danger subtitle RU, {name}",
+    "action": "Danger action RU: {amount, number, currency:EUR}",
+    "hint": "Danger hint RU",
+    "error": "{count, plural, =0{Нет danger} one{# danger} few{# danger} many{# danger} other{# danger}}",
+    "empty": "Danger empty RU"
+  }
+}

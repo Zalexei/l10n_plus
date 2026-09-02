@@ -1,0 +1,23 @@
+input_directory: translations
+output_directory: lib/l10n
+base_locale: en
+fallback_locale: en
+
+class_name: AppL10n
+locale_enum_name: AppLocale
+
+# Every team owns <feature>_<locale>.json, and the file name is the namespace,
+# so no key repeats the feature it belongs to.
+file_pattern: "{namespace}_{locale}"
+
+# Nine features and three locales in one file would make every translation
+# change rewrite everything.
+file_per_locale: true
+
+fill_missing_from_base: true
+
+format_plural_numbers: true
+
+flutter:
+  enabled: true
+  context_extension: l10n

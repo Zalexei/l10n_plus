@@ -1,0 +1,24 @@
+{
+  "search": {
+    "results": "{count, plural, =0{「{query}」の結果はありません} other{「{query}」の結果 #件}}",
+    "reviews": "{count, plural, =0{レビューなし} other{レビュー #件}}",
+    "inStock": "{count, plural, =0{在庫切れ} other{残り #点}}",
+    "viewers": "{count, number, compact}人が閲覧中",
+    "sold": "{count, number, compactLong}個販売"
+  },
+  "cart": {
+    "summary": "{count, plural, =0{カートは空です} other{#点、{total, number, currency:EUR}}}",
+    "shipping": "{kind, select, standard{通常配送} express{お急ぎ便} pickup{店舗受け取り} other{配送}}: {days, plural, =0{本日} other{#日}}",
+    "promo": "{applied, select, yes{{amount, number, currency:EUR}お得} no{クーポンなし} other{}}"
+  },
+  "order": {
+    "placed": "{when, date, yMMMd} {when, time, jm} に注文",
+    "eta": "{when, date, MMMd} に到着",
+    "rank": "{n, selectordinal, other{#}}回目のご注文",
+    "items": "{count, plural, offset:1 =0{なし} =1{{first} のみ} other{{first} ほか #点}}"
+  },
+  "seller": {
+    "rating": "{stars, number} つ星、{count, plural, other{購入者 #人}}",
+    "badge": "{tier, select, gold{人気の出品者} silver{信頼できる出品者} new{新規出品者} other{出品者}}"
+  }
+}

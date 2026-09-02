@@ -1,0 +1,13 @@
+input_directory: translations
+output_directory: lib/generated
+base_locale: en
+fallback_locale: en
+class_name: AppLocalizations
+locale_enum_name: AppLocale
+
+# Translations arrive after the code. An untranslated key is a warning, and
+# renders exactly as the base locale renders it.
+fill_missing_from_base: true
+
+flutter:
+  enabled: false

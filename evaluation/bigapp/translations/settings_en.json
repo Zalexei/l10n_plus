@@ -1,0 +1,42 @@
+{
+  "general": {
+    "title": "{count, plural, =0{No general} one{# general} other{# generals}}",
+    "subtitle": "General subtitle",
+    "action": "General action",
+    "hint": "General hint",
+    "error": "General error",
+    "empty": "General empty, {name}"
+  },
+  "notifications": {
+    "title": "Notifications title",
+    "subtitle": "{count, plural, =0{No notifications} one{# notifications} other{# notificationss}}",
+    "action": "Notifications action",
+    "hint": "Notifications hint",
+    "error": "Notifications error, {name}",
+    "empty": "{state, select, on{Notifications empty on} off{Notifications empty off} other{Notifications empty}}"
+  },
+  "appearance": {
+    "title": "Appearance title",
+    "subtitle": "Appearance subtitle: {amount, number, currency:EUR}",
+    "action": "{count, plural, =0{No appearance} one{# appearance} other{# appearances}}",
+    "hint": "Appearance hint, {name}",
+    "error": "Appearance error",
+    "empty": "Appearance empty on {when, date, yMMMd}"
+  },
+  "language": {
+    "title": "Language title",
+    "subtitle": "Language subtitle",
+    "action": "Language action, {name}",
+    "hint": "{count, plural, =0{No language} one{# language} other{# languages}}",
+    "error": "{state, select, on{Language error on} off{Language error off} other{Language error}}",
+    "empty": "Language empty"
+  },
+  "about": {
+    "title": "About title",
+    "subtitle": "About subtitle, {name}",
+    "action": "About action: {amount, number, currency:EUR}",
+    "hint": "About hint",
+    "error": "{count, plural, =0{No about} one{# about} other{# abouts}}",
+    "empty": "About empty"
+  }
+}

@@ -1,0 +1,237 @@
+
+######## 1. ICU: unclosed brace ########
+evaluation/probes/workspace/translations/en.json:1:14
+a
+error[icu_unclosed_argument]: Unclosed argument "{name".
+  Add the missing "}".
+  ╷
+1 │ {"a": "Hello {name"}
+  │              ^^^^^
+  ╵
+
+1 error(s), 0 warning(s).
+exit=1
+
+######## 2. ICU: plural without an other branch ########
+evaluation/probes/workspace/translations/en.json:1:8
+a
+error[icu_missing_other_branch]: plural "n" is missing the required "other" branch.
+  Every plural must define other{...} as its fallback.
+  ╷
+1 │ {"a": "{n, plural, one{# thing}}"}
+  │        ^^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+
+1 error(s), 0 warning(s).
+exit=1
+
+######## 3. ICU: unknown number style ########
+evaluation/probes/workspace/translations/en.json:1:20
+a
+error[icu_invalid_style]: Unknown number style "moneyish".
+  Supported number styles: compact, compactLong, currency, decimal, integer, percent, scientific, simpleCurrency.
+  ╷
+1 │ {"a": "{n, number, moneyish}"}
+  │                    ^^^^^^^^
+  ╵
+
+1 error(s), 0 warning(s).
+exit=1
+
+######## 4. arguments disagree between locales ########
+evaluation/probes/workspace/translations/ru.json:1:8
+a
+error[missing_placeholder]: Argument "name" is missing.
+  Base locale en:
+    argument: name
+    type: placeholder
+  ru locale:
+    argument is missing
+  ╷
+1 │ {"a": "Привет, {userName}"}
+  │        ^^^^^^^^^^^^^^^^^^
+  ╵
+
+evaluation/probes/workspace/translations/ru.json:1:16
+a
+error[extra_placeholder]: Argument "userName" does not exist in the base locale.
+  Base locale en declares: name
+  ╷
+1 │ {"a": "Привет, {userName}"}
+  │                ^^^^^^^^^^
+  ╵
+
+2 error(s), 0 warning(s).
+exit=1
+
+######## 5. plural in one locale, select in another ########
+evaluation/probes/workspace/translations/ru.json:1:8
+a
+error[argument_kind_mismatch]: Argument "n" has a different type.
+  Base locale en:
+    argument: n
+    type: plural
+  ru locale:
+    argument: n
+    type: select
+  ╷
+1 │ {"a": "{n, select, a{A} other{B}}"}
+  │        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+
+1 error(s), 0 warning(s).
+exit=1
+
+######## 6. a key here, a group there ########
+evaluation/probes/workspace/translations/ru.json:1:2
+wallet
+error[key_kind_mismatch]: "wallet" is a message in en but a group here.
+  ╷
+1 │ {"wallet": {"a": "A"}}
+  │  ^^^^^^^^
+  ╵
+
+1 error(s), 0 warning(s).
+exit=1
+
+######## 7. a plain number where the base has a plural ########
+evaluation/probes/workspace/translations/ru.json:1:8
+a
+error[plural_type_mismatch]: Argument "n" is a plain number here but a plural in the base locale.
+  Cardinal and ordinal plurals select on different CLDR rules and mean different things: "3 items" versus "3rd".
+  ╷
+1 │ {"a": "{n, number} штук"}
+  │        ^^^^^^^^^^^
+  ╵
+
+1 error(s), 0 warning(s).
+exit=1
+
+######## 8. forgot package:intl ########
+warning[missing_intl_dependency]: Generated code formats numbers or dates, so it imports package:intl, but this project does not depend on it.
+  Add it to pubspec.yaml:
+    dependencies:
+      intl: any
+
+wrote lib/l10n/app_localizations.g.dart
+exit=0
+
+######## 9. a file whose name is not a locale ########
+warning[unrecognized_file_name]: Skipping "strings.json": ".json" has nowhere to declare a locale, and the path does not match the file pattern.
+  Pattern: {locale}
+  Rename the file to match it, or set "file_pattern".
+
+wrote lib/l10n/app_localizations.g.dart
+exit=0
+
+######## 10. @@locale disagrees with the path ########
+warning[locale_pattern_mismatch]: File "app_ru.arb" declares locale "de" but its path says "ru".
+  Pattern: app_{locale}
+  The declaration wins; rename the file to agree with it.
+
+wrote lib/l10n/app_localizations.g.dart
+exit=0
+
+######## 11. no file for the base locale ########
+error[missing_base_locale]: No translation file for the base locale "en".
+  Found:
+    de.json -> de
+    ru.json -> ru
+  Name a file after the locale, or say where the locale sits with "file_pattern".
+
+1 error(s), 0 warning(s).
+exit=1
+
+######## 12. two files of one locale define the same key ########
+evaluation/probes/workspace/translations/auth_en.yaml:1:2
+auth.title
+error[duplicate_key]: Key "auth.title" is defined twice for locale "en".
+  Also defined in auth_en.json.
+  Files of one locale are merged, so a key may appear in only one of them.
+  ╷
+1 │ {"title": "B"}
+  │  ^^^^^^^
+  ╵
+
+1 error(s), 0 warning(s).
+exit=1
+
+######## 13. select branches named after what an enum already has ########
+wrote lib/l10n/app_localizations.g.dart
+exit=0
+-- and the result analyzes:
+Analyzing lib...
+No issues found!
+
+######## 14. keys that collide once normalized ########
+evaluation/probes/workspace/translations/en.json:1:2
+appLocale
+error[identifier_collision]: Key "appLocale" collides with the generated locale accessor.
+  The generated class already declares "appLocale". Rename the key, or nest it under a namespace.
+  ╷
+1 │ {"appLocale": {"a": "A"}, "user_name": "x", "userName": "y"}
+  │  ^^^^^^^^^^^
+  ╵
+
+evaluation/probes/workspace/translations/en.json:1:45
+userName
+error[identifier_collision]: Keys "user_name" and "userName" both become the Dart identifier "userName".
+  Keys are normalized to lower camel case, so "user_name" and "userName" collide. Rename one of them.
+  ╷
+1 │ {"appLocale": {"a": "A"}, "user_name": "x", "userName": "y"}
+  │                                             ^^^^^^^^^^
+  ╵
+
+2 error(s), 0 warning(s).
+exit=1
+
+######## 15. a typo and a bad value in the config ########
+l10n_plus.yaml:5:17
+warning[unknown_config_key]: Unknown configuration key "file_per_local".
+  Known keys: base_locale, class_name, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, input_directory, locale_enum_name, output_directory.
+  ╷
+5 │ file_per_local: true
+  │                 ^^^^
+  ╵
+
+l10n_plus.yaml:6:24
+error[invalid_config]: "format_plural_numbers" must be true or false.
+  ╷
+6 │ format_plural_numbers: "yes please"
+  │                        ^^^^^^^^^^^^
+  ╵
+
+1 error(s), 1 warning(s).
+exit=1
+-- analyze, the CI command:
+l10n_plus.yaml:5:17
+warning[unknown_config_key]: Unknown configuration key "file_per_local".
+  Known keys: base_locale, class_name, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, input_directory, locale_enum_name, output_directory.
+  ╷
+5 │ file_per_local: true
+  │                 ^^^^
+  ╵
+
+l10n_plus.yaml:6:24
+error[invalid_config]: "format_plural_numbers" must be true or false.
+  ╷
+6 │ format_plural_numbers: "yes please"
+  │                        ^^^^^^^^^^^^
+  ╵
+
+1 error(s), 1 warning(s).
+exit=1
+
+######## 16. a language with no CLDR rules in the table ########
+evaluation/probes/workspace/translations/cy.json:1:8
+a
+error[unknown_plural_language]: No CLDR plural rules are known for language "cy".
+  plural messages cannot be generated for this locale.
+  Supported languages: af, am, ar, az, be, bg, bn, bs, ca, cs, da, de, el, en, es, et, eu, fa, fi, fil, fr, gl, gu, he, hi, hr, hu, hy, id, is, it, ja, ka, kk, km, kn, ko, ky, lo, lt, lv, mk, ml, mn, mr, ms, my, nb, ne, nl, no, or, pl, ps, pt, ro, ru, si, sk, sl, sq, sr, sv, sw, ta, te, th, tr, uk, ur, uz, vi, zh, zu.
+  ╷
+1 │ {"a": "{n, plural, other{# eitem}}"}
+  │        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+
+1 error(s), 0 warning(s).
+exit=1

@@ -1,0 +1,12 @@
+{
+  "auth": {
+    "title": "Log in",
+    "subtitle": "Welcome back, {name}"
+  },
+
+  "wallet": {
+    "cards": "{count, plural, one{# card} other{# cards}}",
+    "total": "Total: {amount, number}",
+    "kind": "{sort, select, debit{Debit} other{Credit}}"
+  }
+}

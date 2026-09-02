@@ -1,0 +1,42 @@
+{
+  "welcome": {
+    "title": "{count, plural, =0{No welcome} one{# welcome} other{# welcomes}}",
+    "subtitle": "Welcome subtitle",
+    "action": "Welcome action",
+    "hint": "Welcome hint",
+    "error": "Welcome error",
+    "empty": "Welcome empty, {name}"
+  },
+  "permissions": {
+    "title": "Permissions title",
+    "subtitle": "{count, plural, =0{No permissions} one{# permissions} other{# permissionss}}",
+    "action": "Permissions action",
+    "hint": "Permissions hint",
+    "error": "Permissions error, {name}",
+    "empty": "{state, select, on{Permissions empty on} off{Permissions empty off} other{Permissions empty}}"
+  },
+  "tour": {
+    "title": "Tour title",
+    "subtitle": "Tour subtitle: {amount, number, currency:EUR}",
+    "action": "{count, plural, =0{No tour} one{# tour} other{# tours}}",
+    "hint": "Tour hint, {name}",
+    "error": "Tour error",
+    "empty": "Tour empty on {when, date, yMMMd}"
+  },
+  "finish": {
+    "title": "Finish title",
+    "subtitle": "Finish subtitle",
+    "action": "Finish action, {name}",
+    "hint": "{count, plural, =0{No finish} one{# finish} other{# finishs}}",
+    "error": "{state, select, on{Finish error on} off{Finish error off} other{Finish error}}",
+    "empty": "Finish empty"
+  },
+  "skip": {
+    "title": "Skip title",
+    "subtitle": "Skip subtitle, {name}",
+    "action": "Skip action: {amount, number, currency:EUR}",
+    "hint": "Skip hint",
+    "error": "{count, plural, =0{No skip} one{# skip} other{# skips}}",
+    "empty": "Skip empty"
+  }
+}

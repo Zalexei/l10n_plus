@@ -1,0 +1,42 @@
+{
+  "welcome": {
+    "title": "{count, plural, =0{Нет welcome} one{# welcome} few{# welcome} many{# welcome} other{# welcome}}",
+    "subtitle": "Welcome subtitle RU",
+    "action": "Welcome action RU",
+    "hint": "Welcome hint RU",
+    "error": "Welcome error RU",
+    "empty": "Welcome empty RU, {name}"
+  },
+  "permissions": {
+    "title": "Permissions title RU",
+    "subtitle": "{count, plural, =0{Нет permissions} one{# permissions} few{# permissions} many{# permissions} other{# permissions}}",
+    "action": "Permissions action RU",
+    "hint": "Permissions hint RU",
+    "error": "Permissions error RU, {name}",
+    "empty": "{state, select, on{Permissions empty RU on} off{Permissions empty RU off} other{Permissions empty RU}}"
+  },
+  "tour": {
+    "title": "Tour title RU",
+    "subtitle": "Tour subtitle RU: {amount, number, currency:EUR}",
+    "action": "{count, plural, =0{Нет tour} one{# tour} few{# tour} many{# tour} other{# tour}}",
+    "hint": "Tour hint RU, {name}",
+    "error": "Tour error RU",
+    "empty": "Tour empty RU on {when, date, yMMMd}"
+  },
+  "finish": {
+    "title": "Finish title RU",
+    "subtitle": "Finish subtitle RU",
+    "action": "Finish action RU, {name}",
+    "hint": "{count, plural, =0{Нет finish} one{# finish} few{# finish} many{# finish} other{# finish}}",
+    "error": "{state, select, on{Finish error RU on} off{Finish error RU off} other{Finish error RU}}",
+    "empty": "Finish empty RU"
+  },
+  "skip": {
+    "title": "Skip title RU",
+    "subtitle": "Skip subtitle RU, {name}",
+    "action": "Skip action RU: {amount, number, currency:EUR}",
+    "hint": "Skip hint RU",
+    "error": "{count, plural, =0{Нет skip} one{# skip} few{# skip} many{# skip} other{# skip}}",
+    "empty": "Skip empty RU"
+  }
+}

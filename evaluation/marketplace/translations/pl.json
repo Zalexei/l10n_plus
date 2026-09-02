@@ -1,0 +1,24 @@
+{
+  "search": {
+    "results": "{count, plural, =0{Brak wyników dla \"{query}\"} one{# wynik dla \"{query}\"} few{# wyniki dla \"{query}\"} many{# wyników dla \"{query}\"} other{# wyniku dla \"{query}\"}}",
+    "reviews": "{count, plural, =0{Brak opinii} one{# opinia} few{# opinie} many{# opinii} other{# opinii}}",
+    "inStock": "{count, plural, =0{Brak w magazynie} one{Została # sztuka} few{Zostały # sztuki} many{Zostało # sztuk} other{Zostało # sztuki}}",
+    "viewers": "{count, number, compact} osób ogląda ten produkt",
+    "sold": "Sprzedano {count, number, compactLong}"
+  },
+  "cart": {
+    "summary": "{count, plural, =0{Koszyk jest pusty} one{# produkt, {total, number, currency:EUR}} few{# produkty, {total, number, currency:EUR}} many{# produktów, {total, number, currency:EUR}} other{# produktu, {total, number, currency:EUR}}}",
+    "shipping": "{kind, select, standard{Dostawa standardowa} express{Dostawa ekspresowa} pickup{Odbiór w sklepie} other{Dostawa}}: {days, plural, =0{dzisiaj} one{# dzień} few{# dni} many{# dni} other{# dnia}}",
+    "promo": "{applied, select, yes{Oszczędzasz {amount, number, currency:EUR}} no{Brak promocji} other{}}"
+  },
+  "order": {
+    "placed": "Zamówiono {when, date, yMMMd} o {when, time, jm}",
+    "eta": "Dotrze {when, date, MMMd}",
+    "rank": "Twoje {n, selectordinal, other{#.}} zamówienie",
+    "items": "{count, plural, offset:1 =0{Nic} =1{Tylko {first}} one{{first} i # inny} few{{first} i # inne} many{{first} i # innych} other{{first} i # innego}}"
+  },
+  "seller": {
+    "rating": "{stars, number} gwiazdek od {count, plural, one{# kupującego} few{# kupujących} many{# kupujących} other{# kupującego}}",
+    "badge": "{tier, select, gold{Najlepszy sprzedawca} silver{Zaufany sprzedawca} new{Nowy sprzedawca} other{Sprzedawca}}"
+  }
+}

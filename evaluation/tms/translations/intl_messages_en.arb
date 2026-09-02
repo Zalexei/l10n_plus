@@ -1,0 +1,57 @@
+{
+  "@@locale": "en",
+  "@@last_modified": "2026-03-01T09:00:00.000Z",
+
+  "billing.invoice.title": "Invoice {number}",
+  "@billing.invoice.title": {
+    "description": "Header of a single invoice",
+    "placeholders": {
+      "number": { "type": "String", "example": "INV-2026-0042" }
+    }
+  },
+
+  "billing.invoice.total": "Total due {amount}",
+  "@billing.invoice.total": {
+    "description": "The amount owed, in the invoice currency",
+    "placeholders": {
+      "amount": {
+        "type": "double",
+        "format": "currency",
+        "optionalParameters": { "name": "USD", "decimalDigits": 2 }
+      }
+    }
+  },
+
+  "billing.invoice.dueOn": "Due on {date}",
+  "@billing.invoice.dueOn": {
+    "placeholders": { "date": { "type": "DateTime", "format": "yMMMd" } }
+  },
+
+  "billing.invoice.lines": "{count, plural, =0{No line items} one{{count} line item} other{{count} line items}}",
+  "@billing.invoice.lines": {
+    "description": "Count of line items on the invoice",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "billing.reminder.subject": "{tone, select, gentle{A small reminder} firm{Payment overdue} legal{Final notice} other{Reminder}}",
+  "@billing.reminder.subject": {
+    "placeholders": { "tone": { "type": "String" } }
+  },
+
+  "account.profile.greeting": "Hello, {name}",
+  "@account.profile.greeting": {
+    "placeholders": { "name": { "type": "String", "example": "Alex" } }
+  },
+
+  "account.plan.renews": "Renews {when} for {price}",
+  "@account.plan.renews": {
+    "placeholders": {
+      "when": { "type": "DateTime", "format": "yMMMd" },
+      "price": {
+        "type": "double",
+        "format": "simpleCurrency",
+        "optionalParameters": { "name": "USD" }
+      }
+    }
+  }
+}

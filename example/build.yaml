@@ -1,0 +1,23 @@
+targets:
+  $default:
+    # build_runner only tracks lib/, bin/, test/ and friends by default, so the
+    # translation directory and the config file must be declared explicitly.
+    sources:
+      - "lib/**"
+      - "test/**"
+      - "translations/**"
+      - "l10n_plus.yaml"
+      - "pubspec.yaml"
+      - "$package$"
+    builders:
+      l10n_plus_builder:l10n_plus:
+        options:
+          # build_runner declares outputs statically, but the locales are only
+          # known once the translations are read. With `file_per_locale` the
+          # list has to be written out; the builder names any file it wanted
+          # to write and could not.
+          outputs:
+            - "lib/generated/app_localizations.g.dart"
+            - "lib/generated/app_localizations_en.g.dart"
+            - "lib/generated/app_localizations_ru.g.dart"
+            - "lib/generated/app_localizations_flutter.g.dart"

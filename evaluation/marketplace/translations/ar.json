@@ -1,0 +1,24 @@
+{
+  "search": {
+    "results": "{count, plural, =0{لا نتائج لـ \"{query}\"} zero{لا نتائج لـ \"{query}\"} one{نتيجة واحدة لـ \"{query}\"} two{نتيجتان لـ \"{query}\"} few{# نتائج لـ \"{query}\"} many{# نتيجة لـ \"{query}\"} other{# نتيجة لـ \"{query}\"}}",
+    "reviews": "{count, plural, zero{لا مراجعات} one{مراجعة واحدة} two{مراجعتان} few{# مراجعات} many{# مراجعة} other{# مراجعة}}",
+    "inStock": "{count, plural, zero{نفدت الكمية} one{بقيت قطعة واحدة} two{بقيت قطعتان} few{بقي # قطع} many{بقيت # قطعة} other{بقي # قطعة}}",
+    "viewers": "{count, number, compact} شخص يشاهدون هذا",
+    "sold": "تم بيع {count, number, compactLong}"
+  },
+  "cart": {
+    "summary": "{count, plural, =0{سلتك فارغة} zero{سلتك فارغة} one{قطعة واحدة، {total, number, currency:EUR}} two{قطعتان، {total, number, currency:EUR}} few{# قطع، {total, number, currency:EUR}} many{# قطعة، {total, number, currency:EUR}} other{# قطعة، {total, number, currency:EUR}}}",
+    "shipping": "{kind, select, standard{شحن عادي} express{شحن سريع} pickup{استلام من المتجر} other{توصيل}}: {days, plural, =0{اليوم} zero{اليوم} one{يوم واحد} two{يومان} few{# أيام} many{# يومًا} other{# يوم}}",
+    "promo": "{applied, select, yes{وفرت {amount, number, currency:EUR}} no{لا يوجد عرض} other{}}"
+  },
+  "order": {
+    "placed": "تم الطلب في {when, date, yMMMd} الساعة {when, time, jm}",
+    "eta": "يصل {when, date, MMMd}",
+    "rank": "طلبك {n, selectordinal, other{#}}",
+    "items": "{count, plural, offset:1 =0{لا شيء} =1{{first} فقط} zero{{first}} one{{first} و# آخر} two{{first} و# آخران} few{{first} و# آخرين} many{{first} و# آخرًا} other{{first} و# آخر}}"
+  },
+  "seller": {
+    "rating": "{stars, number} نجوم من {count, plural, zero{# مشتر} one{مشتر واحد} two{مشتريان} few{# مشترين} many{# مشتريًا} other{# مشتر}}",
+    "badge": "{tier, select, gold{بائع مميز} silver{بائع موثوق} new{بائع جديد} other{بائع}}"
+  }
+}

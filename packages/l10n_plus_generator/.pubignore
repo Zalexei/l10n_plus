@@ -1,0 +1,5 @@
+# Tests are not shipped. The goldens are generated Flutter code, so they
+# import `flutter` and `l10n_plus_flutter`, which this package deliberately
+# does not depend on — publishing them makes pub report imports it cannot
+# resolve. They stay in the repository, where `dart analyze` type checks them.
+test/

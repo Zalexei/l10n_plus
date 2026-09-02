@@ -1,0 +1,14 @@
+{
+  "@@locale": "en",
+
+  "balance": "Balance: {amount}",
+  "@balance": {
+    "description": "Shown at the top of the wallet screen",
+    "placeholders": {
+      "amount": {"type": "double", "format": "currency",
+                 "optionalParameters": {"name": "USD"}}
+    }
+  },
+
+  "cards": "You have {count, plural, one{1 card} other{{count} cards}}"
+}

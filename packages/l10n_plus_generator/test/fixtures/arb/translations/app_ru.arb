@@ -1,0 +1,23 @@
+{
+  "@@locale": "ru",
+
+  "auth.login.title": "Войти",
+  "auth.login.subtitle": "С возвращением, {name}",
+  "wallet.statement": "Выписка от {from} на {amount}",
+  "wallet.price": "Цена: {amount}",
+  "@wallet.price": {
+    "placeholders": {
+      "amount": {"optionalParameters": {"decimalDigits": 0}}
+    }
+  },
+  "wallet.rounded": "Округлённо: {amount}",
+  "@wallet.rounded": {
+    "description": "Same currency as the base locale, rendered by ISO code",
+    "placeholders": {
+      "amount": {"format": "currency"}
+    }
+  },
+  "wallet.tip": "Чаевые: {amount, number, currency:EUR}",
+  "wallet.cards": "У вас привязано {count, plural, one{# карта} few{# карты} many{# карт} other{# карты}}",
+  "wallet.transactions": "{count, plural, =0{Нет транзакций} one{{count} транзакция} few{{count} транзакции} many{{count} транзакций} other{{count} транзакции}}"
+}

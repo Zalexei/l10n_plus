@@ -1,0 +1,26 @@
+name: l10n_plus_example
+description: Demo app for l10n_plus.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+  l10n_plus: ^0.1.0
+  l10n_plus_flutter: ^0.1.0
+
+dev_dependencies:
+  benchmark_harness: ^2.3.1
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.4.0
+  l10n_plus_builder: ^0.1.0
+  l10n_plus_generator: ^0.1.0

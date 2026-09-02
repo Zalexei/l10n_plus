@@ -1,0 +1,12 @@
+.dart_tool/
+.packages
+build/
+pubspec.lock
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Evaluation projects resolve against the local packages, not pub.dev.
+evaluation/*/.dart_tool/
+evaluation/probes/workspace/lib/

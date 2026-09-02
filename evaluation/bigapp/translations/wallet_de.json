@@ -1,0 +1,42 @@
+{
+  "balance": {
+    "title": "{count, plural, =0{Kein balance} one{# balance} other{# balances}}",
+    "subtitle": "Balance subtitle DE",
+    "action": "Balance action DE",
+    "hint": "Balance hint DE",
+    "error": "Balance error DE",
+    "empty": "Balance empty DE, {name}"
+  },
+  "topUp": {
+    "title": "Topup title DE",
+    "subtitle": "{count, plural, =0{Kein topUp} one{# topUp} other{# topUps}}",
+    "action": "Topup action DE",
+    "hint": "Topup hint DE",
+    "error": "Topup error DE, {name}",
+    "empty": "{state, select, on{Topup empty DE on} off{Topup empty DE off} other{Topup empty DE}}"
+  },
+  "withdraw": {
+    "title": "Withdraw title DE",
+    "subtitle": "Withdraw subtitle DE: {amount, number, currency:EUR}",
+    "action": "{count, plural, =0{Kein withdraw} one{# withdraw} other{# withdraws}}",
+    "hint": "Withdraw hint DE, {name}",
+    "error": "Withdraw error DE",
+    "empty": "Withdraw empty DE on {when, date, yMMMd}"
+  },
+  "history": {
+    "title": "History title DE",
+    "subtitle": "History subtitle DE",
+    "action": "History action DE, {name}",
+    "hint": "{count, plural, =0{Kein history} one{# history} other{# historys}}",
+    "error": "{state, select, on{History error DE on} off{History error DE off} other{History error DE}}",
+    "empty": "History empty DE"
+  },
+  "limits": {
+    "title": "Limits title DE",
+    "subtitle": "Limits subtitle DE, {name}",
+    "action": "Limits action DE: {amount, number, currency:EUR}",
+    "hint": "Limits hint DE",
+    "error": "{count, plural, =0{Kein limits} one{# limits} other{# limitss}}",
+    "empty": "Limits empty DE"
+  }
+}

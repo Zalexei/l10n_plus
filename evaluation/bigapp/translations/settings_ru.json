@@ -1,0 +1,42 @@
+{
+  "general": {
+    "title": "{count, plural, =0{Нет general} one{# general} few{# general} many{# general} other{# general}}",
+    "subtitle": "General subtitle RU",
+    "action": "General action RU",
+    "hint": "General hint RU",
+    "error": "General error RU",
+    "empty": "General empty RU, {name}"
+  },
+  "notifications": {
+    "title": "Notifications title RU",
+    "subtitle": "{count, plural, =0{Нет notifications} one{# notifications} few{# notifications} many{# notifications} other{# notifications}}",
+    "action": "Notifications action RU",
+    "hint": "Notifications hint RU",
+    "error": "Notifications error RU, {name}",
+    "empty": "{state, select, on{Notifications empty RU on} off{Notifications empty RU off} other{Notifications empty RU}}"
+  },
+  "appearance": {
+    "title": "Appearance title RU",
+    "subtitle": "Appearance subtitle RU: {amount, number, currency:EUR}",
+    "action": "{count, plural, =0{Нет appearance} one{# appearance} few{# appearance} many{# appearance} other{# appearance}}",
+    "hint": "Appearance hint RU, {name}",
+    "error": "Appearance error RU",
+    "empty": "Appearance empty RU on {when, date, yMMMd}"
+  },
+  "language": {
+    "title": "Language title RU",
+    "subtitle": "Language subtitle RU",
+    "action": "Language action RU, {name}",
+    "hint": "{count, plural, =0{Нет language} one{# language} few{# language} many{# language} other{# language}}",
+    "error": "{state, select, on{Language error RU on} off{Language error RU off} other{Language error RU}}",
+    "empty": "Language empty RU"
+  },
+  "about": {
+    "title": "About title RU",
+    "subtitle": "About subtitle RU, {name}",
+    "action": "About action RU: {amount, number, currency:EUR}",
+    "hint": "About hint RU",
+    "error": "{count, plural, =0{Нет about} one{# about} few{# about} many{# about} other{# about}}",
+    "empty": "About empty RU"
+  }
+}
