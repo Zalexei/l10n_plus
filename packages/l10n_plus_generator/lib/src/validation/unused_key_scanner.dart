@@ -10,15 +10,22 @@ final class TranslationKey {
   /// Creates a key reference.
   const TranslationKey({
     required this.path,
-    required this.dartName,
+    required this.dartPath,
     required this.keySpan,
   });
 
   /// Dotted translation key, e.g. `auth.login.title`.
   final String path;
 
+  /// Every generated member name from the root, e.g. `[auth, login, title]`.
+  ///
+  /// The whole chain, not only the leaf: reaching a message means naming each
+  /// namespace on the way to it, so a namespace nobody names is a message
+  /// nobody can reach.
+  final List<String> dartPath;
+
   /// The generated member name, e.g. `title`.
-  final String dartName;
+  String get dartName => dartPath.last;
 
   /// Where the key is in the base locale file.
   final SourceSpan keySpan;
@@ -36,17 +43,46 @@ final class DartSource {
   final String content;
 }
 
+/// What one `unused` run found.
+///
+/// Two numbers, because they answer different questions: the diagnostics are
+/// what a person reads, and [keyCount] is what CI counts. A namespace nobody
+/// enters is one diagnostic and thirty unused messages.
+final class UnusedKeyReport {
+  /// Creates a report.
+  const UnusedKeyReport({required this.diagnostics, required this.keyCount});
+
+  /// One per unreachable message, or per unreachable namespace.
+  final List<Diagnostic> diagnostics;
+
+  /// How many messages those diagnostics cover in total.
+  final int keyCount;
+
+  /// Whether anything was found.
+  bool get isEmpty => diagnostics.isEmpty;
+}
+
 /// Finds translations that no Dart source refers to.
 ///
-/// The generated API is a chain of getters, so a message is used exactly when
-/// its member name appears after a dot somewhere. That is what this looks for:
-/// every `.name` and `..name` in every source, as text.
+/// The generated API is a chain of getters, and there is no way to reach
+/// `t.wallet.limits.title` without the text `.wallet`, `.limits` and `.title`
+/// each appearing somewhere — in one expression, or spread across locals,
+/// parameters and helpers. So a message counts as used only when **every**
+/// name on its path appears, and a namespace nobody names takes everything
+/// under it with it.
 ///
-/// **It over-approximates use, on purpose.** Two keys ending in `title` are
-/// indistinguishable to it, so if one is used both count as used. The error it
-/// refuses to make is the expensive one — calling a live translation dead and
-/// having someone delete it. Everything it does report is a key whose name
-/// appears nowhere in the scanned code.
+/// Matching the leaf alone was the first rule here, and it does not survive
+/// contact with a real application: a project that calls its messages
+/// `title`, `subtitle` and `action` under forty namespaces uses each of those
+/// six words somewhere within the first screen, after which every key in the
+/// project is "used" and the command reports nothing, forever. Requiring the
+/// whole path costs nothing in safety, because each step still has to be
+/// named to be taken.
+///
+/// **It still over-approximates use, on purpose.** Two keys called
+/// `auth.title` and `auth.subtitle` are indistinguishable once `auth` and
+/// both leaf names appear. The error it refuses to make is the expensive one
+/// — calling a live translation dead and having someone delete it.
 ///
 /// The alternative is resolving the project with `package:analyzer`, which
 /// would be exact. It would also make a dev dependency of every consumer out
@@ -73,28 +109,67 @@ abstract final class UnusedKeyScanner {
     r'\.\.?\s*([a-zA-Z_$][a-zA-Z0-9_$]*)',
   );
 
-  /// Diagnostics for every key of [keys] whose name is used nowhere.
-  static List<Diagnostic> scan({
+  /// Every message of [keys] that no name in [sources] can reach.
+  static UnusedKeyReport scan({
     required Iterable<TranslationKey> keys,
     required Iterable<DartSource> sources,
   }) {
     final used = referencedNames(sources);
     final scanned = sources.length;
-    return [
-      for (final key in keys)
-        if (!used.contains(key.dartName))
-          Diagnostic.warning(
-            code: 'unused_key',
-            message: 'Nothing refers to "${key.path}".',
-            span: key.keySpan,
-            translationKey: key.path,
-            details:
-                'No Dart file uses ".${key.dartName}" '
-                '($scanned file(s) searched).\n'
-                'Names are matched as text, so a key is only reported when '
-                'its member name appears nowhere at all. Delete the key, or '
-                'add the file that uses it to the search.',
-          ),
-    ];
+
+    // Group by the shallowest name nobody writes. Every message under an
+    // unreachable namespace is unreachable for the same reason and is fixed
+    // by the same edit, so they are one finding, not thirty.
+    final blocked = <String, List<TranslationKey>>{};
+    for (final key in keys) {
+      final at = key.dartPath.indexWhere((name) => !used.contains(name));
+      if (at == -1) continue;
+      final segments = key.path.split('.');
+      blocked.putIfAbsent(segments.take(at + 1).join('.'), () => []).add(key);
+    }
+
+    return UnusedKeyReport(
+      diagnostics: [
+        for (final entry in blocked.entries)
+          _report(entry.key, entry.value, used: used, scanned: scanned),
+      ],
+      keyCount: blocked.values.fold(0, (total, keys) => total + keys.length),
+    );
+  }
+
+  static Diagnostic _report(
+    String path,
+    List<TranslationKey> covered, {
+    required Set<String> used,
+    required int scanned,
+  }) {
+    final first = covered.first;
+    final at = first.dartPath.indexWhere((name) => !used.contains(name));
+    final name = first.dartPath[at];
+    final isNamespace = at != first.dartPath.length - 1;
+    return Diagnostic.warning(
+      code: 'unused_key',
+      message: isNamespace
+          ? 'Nothing refers to anything under "$path".'
+          : 'Nothing refers to "$path".',
+      span: first.keySpan,
+      translationKey: path,
+      details:
+          'No Dart file uses ".$name" ($scanned file(s) searched).\n'
+          '${isNamespace ? 'Nothing reaches into "$name", so the '
+                    '${covered.length} message(s) under it are unreachable:\n'
+                    '  ${_list(covered)}\n' : ''}'
+          'Names are matched as text, so a key is reported only when a name '
+          'on its path appears nowhere at all. Delete it, or add the file '
+          'that uses it to the search.',
+    );
+  }
+
+  /// The covered keys, truncated: naming three hundred of them helps nobody.
+  static String _list(List<TranslationKey> covered) {
+    const limit = 6;
+    final shown = covered.take(limit).map((key) => key.path).join('\n  ');
+    if (covered.length <= limit) return shown;
+    return '$shown\n  … and ${covered.length - limit} more';
   }
 }

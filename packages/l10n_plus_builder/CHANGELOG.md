@@ -1,18 +1,13 @@
 # Changelog
 
-## 0.2.0
-
-* **Fixed: editing a `.yaml` or `.yml` translation did not trigger a rebuild.**
-  `required_inputs` listed only `.json` and `.arb`, so `build_runner` did not
-  know YAML translations were inputs.
-
 ## 0.1.0
 
 First release. A `build_runner` adapter over the same generator API the CLI
 uses; both produce byte-identical output.
 
 * Reads every translation file through `BuildStep`, so `build_runner` treats
-  them as tracked inputs and rebuilds when one changes.
+  them as tracked inputs and rebuilds when one changes. `.json`, `.arb`,
+  `.yaml` and `.yml` are all declared as required inputs.
 * Finds translations in subdirectories, for projects that split a locale
   across several files.
 * Outputs are declared in `build.yaml`, which is `build_runner`'s rule rather

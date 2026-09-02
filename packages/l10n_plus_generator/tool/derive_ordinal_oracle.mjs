@@ -29,20 +29,34 @@ if (languages.length === 0) {
 
 const locales = {};
 const categories = {};
+const aliased = {};
 for (const language of languages) {
   const rules = new Intl.PluralRules(language, {type: 'ordinal'});
   const resolved = rules.resolvedOptions();
   // ICU answers for *something* whatever you ask; an unknown tag comes back
-  // as the runtime default. Refuse rather than vendor en-US under its name.
-  if (new Intl.Locale(resolved.locale).language !== language) {
-    console.error(
-      `ICU has no ordinal data for "${language}": it resolved to ` +
-      `"${resolved.locale}". Remove it or vendor its rules another way.`,
-    );
-    process.exit(1);
+  // as the runtime default. Vendoring en-US under another name would be an
+  // oracle that agrees with anything, so those are recorded and skipped
+  // rather than written out.
+  //
+  // The case that actually happens is a deprecated code CLDR still publishes
+  // and ICU folds away: `mo` is Moldovan, and ICU resolves it to `ro`. The
+  // rules in the table are right — they are CLDR's own — but ICU cannot give
+  // a second opinion on a name it does not keep, so this file says so
+  // instead of pretending to cover it.
+  const resolvedLanguage = new Intl.Locale(resolved.locale).language;
+  if (resolvedLanguage !== language) {
+    aliased[language] = resolvedLanguage;
+    continue;
   }
   locales[language] = samples.map((n) => LEGEND[rules.select(n)]).join('');
   categories[language] = resolved.pluralCategories.slice().sort();
+}
+if (Object.keys(aliased).length > 0) {
+  console.error(
+    `ICU folds ${Object.keys(aliased).length} language(s) onto another and ` +
+    `cannot answer for them: ` +
+    Object.entries(aliased).map(([a, b]) => `${a}->${b}`).join(', '),
+  );
 }
 
 process.stdout.write(JSON.stringify({
@@ -52,6 +66,7 @@ process.stdout.write(JSON.stringify({
   legend: Object.fromEntries(
       Object.entries(LEGEND).map(([name, code]) => [code, name])),
   samples,
+  aliased,
   categories,
   locales,
 }, null, 2) + '\n');

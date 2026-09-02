@@ -17,7 +17,7 @@ flutter:
 ///
 /// [dart] is keyed by path relative to the project root, so a test can put a
 /// file inside `lib/generated` and check that it is not mistaken for a use.
-({List<Diagnostic> unused, GenerationResult result}) _scan({
+({UnusedKeyReport unused, GenerationResult result}) _scan({
   required Map<String, String> translations,
   required Map<String, String> dart,
 }) {
@@ -57,7 +57,7 @@ List<String> _unusedKeys({
 }) => _scan(
   translations: translations,
   dart: dart,
-).unused.map((d) => d.translationKey!).toList();
+).unused.diagnostics.map((d) => d.translationKey!).toList();
 
 const Map<String, String> _twoKeys = {
   'en.json': '{"auth": {"title": "Log in"}, "wallet": {"balance": "Balance"}}',
@@ -71,7 +71,7 @@ void main() {
           translations: _twoKeys,
           dart: {'lib/main.dart': 'void main() { print(t.auth.title); }'},
         ),
-        ['wallet.balance'],
+        ['wallet'],
       );
     });
 
@@ -136,10 +136,11 @@ void main() {
       );
     });
 
-    test('two keys with the same member name share a fate', () {
-      // The documented over-approximation: `title` is used once, and both
-      // keys called `title` count as used. Reporting the other one would risk
-      // someone deleting a live translation.
+    test('a shared leaf name does not rescue an unreachable namespace', () {
+      // `title` is used, but nothing writes `.wallet`, so nothing can reach
+      // `wallet.title`. Matching the leaf alone used to call this used, which
+      // is how a project whose messages are all `title`/`subtitle`/`action`
+      // ends up with a command that reports nothing.
       expect(
         _unusedKeys(
           translations: {
@@ -148,7 +149,58 @@ void main() {
           },
           dart: {'lib/a.dart': 'final a = t.auth.title;'},
         ),
+        ['wallet'],
+      );
+    });
+
+    test('a shared leaf name still shelters a reachable sibling', () {
+      // Both namespaces are named and both leaves are named, so neither key
+      // can be told apart from the other. Reporting one would risk deleting a
+      // live translation, which is the error this refuses to make.
+      expect(
+        _unusedKeys(
+          translations: {
+            'en.json':
+                '{"auth": {"title": "A", "hint": "B"}, '
+                '"wallet": {"title": "C", "hint": "D"}}',
+          },
+          dart: {
+            'lib/a.dart': 'final a = t.auth.title; final b = t.wallet.hint;',
+          },
+        ),
         isEmpty,
+      );
+    });
+
+    test('a namespace held in a local is still named', () {
+      // The chain is split across statements, and every step is written
+      // somewhere, so nothing is reported. This is the case that makes
+      // requiring the whole path safe.
+      expect(
+        _unusedKeys(
+          translations: {'en.json': '{"auth": {"login": {"title": "A"}}}'},
+          dart: {
+            'lib/a.dart':
+                'void f() { final l = t.auth.login; print(l.title); }',
+          },
+        ),
+        isEmpty,
+      );
+    });
+
+    test('a deep namespace nobody enters takes its subtree with it', () {
+      expect(
+        _unusedKeys(
+          translations: {
+            'en.json':
+                '{"auth": {"login": {"title": "A"}, '
+                '"legacy": {"title": "B", "hint": "C"}}}',
+          },
+          dart: {
+            'lib/a.dart': 'final a = t.auth.login.title; final h = x.hint;',
+          },
+        ),
+        ['auth.legacy'],
       );
     });
 
@@ -177,7 +229,7 @@ void main() {
           'lib/main.dart': 'final a = t.auth.title;',
         },
       );
-      expect(unused, ['wallet.balance']);
+      expect(unused, ['wallet']);
     });
 
     test('.dart_tool and build are skipped', () {
@@ -189,7 +241,7 @@ void main() {
           'lib/main.dart': 'final a = t.auth.title;',
         },
       );
-      expect(unused, ['wallet.balance']);
+      expect(unused, ['wallet']);
     });
 
     test('tests and bin count, because they use the API too', () {
@@ -206,10 +258,31 @@ void main() {
     });
 
     test('a project with no Dart at all reports everything', () {
-      expect(_unusedKeys(translations: _twoKeys, dart: const {}), [
-        'auth.title',
-        'wallet.balance',
+      // Both namespaces are unreachable, so both collapse to one finding
+      // each; the count of messages is separate.
+      final scan = _scan(translations: _twoKeys, dart: const {});
+      expect(scan.unused.diagnostics.map((d) => d.translationKey), [
+        'auth',
+        'wallet',
       ]);
+      expect(scan.unused.keyCount, 2);
+    });
+
+    test('the report separates findings from messages', () {
+      final scan = _scan(
+        translations: {
+          'en.json':
+              '{"auth": {"a": "1", "b": "2", "c": "3"}, "used": {"x": "9"}}',
+        },
+        dart: {'lib/main.dart': 'final v = t.used.x;'},
+      );
+      expect(scan.unused.diagnostics, hasLength(1));
+      expect(scan.unused.keyCount, 3);
+      expect(
+        scan.unused.diagnostics.single.details,
+        contains('3 message(s) under it'),
+      );
+      expect(scan.unused.diagnostics.single.details, contains('auth.a'));
     });
   });
 
@@ -219,13 +292,31 @@ void main() {
         translations: _twoKeys,
         dart: {'lib/main.dart': 'final a = t.auth.title;'},
       );
-      final diagnostic = scan.unused.single;
+      final diagnostic = scan.unused.diagnostics.single;
       expect(diagnostic.code, 'unused_key');
       expect(diagnostic.severity, Severity.warning);
       expect(diagnostic.span!.text, '"balance"');
-      expect(diagnostic.details, contains('".balance"'));
+      // The shallowest name nobody writes, which here is the namespace: the
+      // useful fact is that nothing reaches into `wallet` at all.
+      expect(diagnostic.details, contains('".wallet"'));
+      expect(diagnostic.details, contains('message(s) under it'));
       expect(diagnostic.details, contains('file(s) searched'));
     });
+
+    test(
+      'names the leaf when the namespace is reached but the message is not',
+      () {
+        final scan = _scan(
+          translations: {
+            'en.json': '{"wallet": {"balance": "A", "deadKey": "B"}}',
+          },
+          dart: {'lib/main.dart': 'final a = t.wallet.balance;'},
+        );
+        final diagnostic = scan.unused.diagnostics.single;
+        expect(diagnostic.details, contains('".deadKey"'));
+        expect(diagnostic.details, isNot(contains('message(s) under it')));
+      },
+    );
 
     test('every key of the base locale is checked', () {
       final scan = _scan(

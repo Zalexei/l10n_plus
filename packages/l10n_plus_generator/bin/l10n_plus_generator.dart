@@ -89,13 +89,14 @@ Future<void> main(List<String> arguments) async {
 
   if (command == 'unused') {
     final unused = generator.findUnusedKeys(result);
-    _report(unused, highlight: highlight);
+    _report(unused.diagnostics, highlight: highlight);
     if (unused.isEmpty) {
       stdout.writeln('No unused keys. ${result.keys.length} checked.');
       exit(0);
     }
     stderr.writeln(
-      '${unused.length} of ${result.keys.length} key(s) appear unused.',
+      '${unused.keyCount} of ${result.keys.length} key(s) appear unused, '
+      'in ${unused.diagnostics.length} place(s).',
     );
     exit(_exitCodeDiagnostics);
   }

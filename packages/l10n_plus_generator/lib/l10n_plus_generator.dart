@@ -10,4 +10,4 @@ export 'src/pipeline.dart'
     show GeneratedFile, GenerationResult, L10nPlusGenerator, TranslationInput;
 export 'src/source/source_parser.dart' show TranslationSourceParser;
 export 'src/validation/unused_key_scanner.dart'
-    show DartSource, TranslationKey, UnusedKeyScanner;
+    show DartSource, TranslationKey, UnusedKeyReport, UnusedKeyScanner;

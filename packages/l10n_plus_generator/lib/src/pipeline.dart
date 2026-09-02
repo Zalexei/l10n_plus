@@ -204,21 +204,25 @@ final class L10nPlusGenerator {
   }
 
   /// Every base locale message the last generation produced, flattened.
-  static List<TranslationKey> _keysOf(NamespaceModel namespace) => [
+  static List<TranslationKey> _keysOf(
+    NamespaceModel namespace, [
+    List<String> prefix = const [],
+  ]) => [
     for (final message in namespace.messages)
       TranslationKey(
         path: message.path,
-        dartName: message.dartName,
+        dartPath: [...prefix, message.dartName],
         keySpan: message.keySpan,
       ),
-    for (final child in namespace.children) ..._keysOf(child),
+    for (final child in namespace.children)
+      ..._keysOf(child, [...prefix, child.dartName]),
   ];
 
   /// Reads the project's Dart sources and reports translations nothing uses.
   ///
   /// The output directory is skipped: what the generator wrote is not a use.
   /// So are `.dart_tool` and `build`, which hold copies of it.
-  List<Diagnostic> findUnusedKeys(GenerationResult result) =>
+  UnusedKeyReport findUnusedKeys(GenerationResult result) =>
       UnusedKeyScanner.scan(keys: result.keys, sources: _readDartSources());
 
   List<DartSource> _readDartSources() {
