@@ -12,23 +12,68 @@ enum AppLocale implements AppLocaleBase {
   /// `af`
   af(L10nLocale('af')),
 
+  /// `ak`
+  ak(L10nLocale('ak')),
+
   /// `am`
   am(L10nLocale('am')),
+
+  /// `an`
+  an(L10nLocale('an')),
 
   /// `ar`
   ar(L10nLocale('ar')),
 
+  /// `ars`
+  ars(L10nLocale('ars')),
+
+  /// `as`
+  as(L10nLocale('as')),
+
+  /// `asa`
+  asa(L10nLocale('asa')),
+
+  /// `ast`
+  ast(L10nLocale('ast')),
+
   /// `az`
   az(L10nLocale('az')),
+
+  /// `bal`
+  bal(L10nLocale('bal')),
 
   /// `be`
   be(L10nLocale('be')),
 
+  /// `bem`
+  bem(L10nLocale('bem')),
+
+  /// `bez`
+  bez(L10nLocale('bez')),
+
   /// `bg`
   bg(L10nLocale('bg')),
 
+  /// `bho`
+  bho(L10nLocale('bho')),
+
+  /// `blo`
+  blo(L10nLocale('blo')),
+
+  /// `bm`
+  bm(L10nLocale('bm')),
+
   /// `bn`
   bn(L10nLocale('bn')),
+
+  /// `bo`
+  bo(L10nLocale('bo')),
+
+  /// `br`
+  br(L10nLocale('br')),
+
+  /// `brx`
+  brx(L10nLocale('brx')),
 
   /// `bs`
   bs(L10nLocale('bs')),
@@ -36,8 +81,32 @@ enum AppLocale implements AppLocaleBase {
   /// `ca`
   ca(L10nLocale('ca')),
 
+  /// `ce`
+  ce(L10nLocale('ce')),
+
+  /// `ceb`
+  ceb(L10nLocale('ceb')),
+
+  /// `cgg`
+  cgg(L10nLocale('cgg')),
+
+  /// `chr`
+  chr(L10nLocale('chr')),
+
+  /// `ckb`
+  ckb(L10nLocale('ckb')),
+
   /// `cs`
   cs(L10nLocale('cs')),
+
+  /// `csw`
+  csw(L10nLocale('csw')),
+
+  /// `cv`
+  cv(L10nLocale('cv')),
+
+  /// `cy`
+  cy(L10nLocale('cy')),
 
   /// `da`
   da(L10nLocale('da')),
@@ -45,11 +114,29 @@ enum AppLocale implements AppLocaleBase {
   /// `de`
   de(L10nLocale('de')),
 
+  /// `doi`
+  doi(L10nLocale('doi')),
+
+  /// `dsb`
+  dsb(L10nLocale('dsb')),
+
+  /// `dv`
+  dv(L10nLocale('dv')),
+
+  /// `dz`
+  dz(L10nLocale('dz')),
+
+  /// `ee`
+  ee(L10nLocale('ee')),
+
   /// `el`
   el(L10nLocale('el')),
 
   /// `en`
   en(L10nLocale('en')),
+
+  /// `eo`
+  eo(L10nLocale('eo')),
 
   /// `es`
   es(L10nLocale('es')),
@@ -63,20 +150,53 @@ enum AppLocale implements AppLocaleBase {
   /// `fa`
   fa(L10nLocale('fa')),
 
+  /// `ff`
+  ff(L10nLocale('ff')),
+
   /// `fi`
   fi(L10nLocale('fi')),
 
   /// `fil`
   fil(L10nLocale('fil')),
 
+  /// `fo`
+  fo(L10nLocale('fo')),
+
   /// `fr`
   fr(L10nLocale('fr')),
+
+  /// `fur`
+  fur(L10nLocale('fur')),
+
+  /// `fy`
+  fy(L10nLocale('fy')),
+
+  /// `ga`
+  ga(L10nLocale('ga')),
+
+  /// `gd`
+  gd(L10nLocale('gd')),
 
   /// `gl`
   gl(L10nLocale('gl')),
 
+  /// `gsw`
+  gsw(L10nLocale('gsw')),
+
   /// `gu`
   gu(L10nLocale('gu')),
+
+  /// `guw`
+  guw(L10nLocale('guw')),
+
+  /// `gv`
+  gv(L10nLocale('gv')),
+
+  /// `ha`
+  ha(L10nLocale('ha')),
+
+  /// `haw`
+  haw(L10nLocale('haw')),
 
   /// `he`
   he(L10nLocale('he')),
@@ -84,8 +204,14 @@ enum AppLocale implements AppLocaleBase {
   /// `hi`
   hi(L10nLocale('hi')),
 
+  /// `hnj`
+  hnj(L10nLocale('hnj')),
+
   /// `hr`
   hr(L10nLocale('hr')),
+
+  /// `hsb`
+  hsb(L10nLocale('hsb')),
 
   /// `hu`
   hu(L10nLocale('hu')),
@@ -93,8 +219,23 @@ enum AppLocale implements AppLocaleBase {
   /// `hy`
   hy(L10nLocale('hy')),
 
+  /// `ia`
+  ia(L10nLocale('ia')),
+
   /// `id`
   id(L10nLocale('id')),
+
+  /// `ie`
+  ie(L10nLocale('ie')),
+
+  /// `ig`
+  ig(L10nLocale('ig')),
+
+  /// `ii`
+  ii(L10nLocale('ii')),
+
+  /// `io`
+  io(L10nLocale('io')),
 
   /// `is`
   is$(L10nLocale('is')),
@@ -102,14 +243,53 @@ enum AppLocale implements AppLocaleBase {
   /// `it`
   it(L10nLocale('it')),
 
+  /// `iu`
+  iu(L10nLocale('iu')),
+
   /// `ja`
   ja(L10nLocale('ja')),
+
+  /// `jbo`
+  jbo(L10nLocale('jbo')),
+
+  /// `jgo`
+  jgo(L10nLocale('jgo')),
+
+  /// `jmc`
+  jmc(L10nLocale('jmc')),
+
+  /// `jv`
+  jv(L10nLocale('jv')),
+
+  /// `jw`
+  jw(L10nLocale('jw')),
 
   /// `ka`
   ka(L10nLocale('ka')),
 
+  /// `kab`
+  kab(L10nLocale('kab')),
+
+  /// `kaj`
+  kaj(L10nLocale('kaj')),
+
+  /// `kcg`
+  kcg(L10nLocale('kcg')),
+
+  /// `kde`
+  kde(L10nLocale('kde')),
+
+  /// `kea`
+  kea(L10nLocale('kea')),
+
   /// `kk`
   kk(L10nLocale('kk')),
+
+  /// `kkj`
+  kkj(L10nLocale('kkj')),
+
+  /// `kl`
+  kl(L10nLocale('kl')),
 
   /// `km`
   km(L10nLocale('km')),
@@ -120,8 +300,47 @@ enum AppLocale implements AppLocaleBase {
   /// `ko`
   ko(L10nLocale('ko')),
 
+  /// `kok`
+  kok(L10nLocale('kok')),
+
+  /// `ks`
+  ks(L10nLocale('ks')),
+
+  /// `ksb`
+  ksb(L10nLocale('ksb')),
+
+  /// `ksh`
+  ksh(L10nLocale('ksh')),
+
+  /// `ku`
+  ku(L10nLocale('ku')),
+
+  /// `kw`
+  kw(L10nLocale('kw')),
+
   /// `ky`
   ky(L10nLocale('ky')),
+
+  /// `lag`
+  lag(L10nLocale('lag')),
+
+  /// `lb`
+  lb(L10nLocale('lb')),
+
+  /// `lg`
+  lg(L10nLocale('lg')),
+
+  /// `lij`
+  lij(L10nLocale('lij')),
+
+  /// `lkt`
+  lkt(L10nLocale('lkt')),
+
+  /// `lld`
+  lld(L10nLocale('lld')),
+
+  /// `ln`
+  ln(L10nLocale('ln')),
 
   /// `lo`
   lo(L10nLocale('lo')),
@@ -132,6 +351,15 @@ enum AppLocale implements AppLocaleBase {
   /// `lv`
   lv(L10nLocale('lv')),
 
+  /// `mas`
+  mas(L10nLocale('mas')),
+
+  /// `mg`
+  mg(L10nLocale('mg')),
+
+  /// `mgo`
+  mgo(L10nLocale('mgo')),
+
   /// `mk`
   mk(L10nLocale('mk')),
 
@@ -141,17 +369,32 @@ enum AppLocale implements AppLocaleBase {
   /// `mn`
   mn(L10nLocale('mn')),
 
+  /// `mo`
+  mo(L10nLocale('mo')),
+
   /// `mr`
   mr(L10nLocale('mr')),
 
   /// `ms`
   ms(L10nLocale('ms')),
 
+  /// `mt`
+  mt(L10nLocale('mt')),
+
   /// `my`
   my(L10nLocale('my')),
 
+  /// `nah`
+  nah(L10nLocale('nah')),
+
+  /// `naq`
+  naq(L10nLocale('naq')),
+
   /// `nb`
   nb(L10nLocale('nb')),
+
+  /// `nd`
+  nd(L10nLocale('nd')),
 
   /// `ne`
   ne(L10nLocale('ne')),
@@ -159,14 +402,56 @@ enum AppLocale implements AppLocaleBase {
   /// `nl`
   nl(L10nLocale('nl')),
 
+  /// `nn`
+  nn(L10nLocale('nn')),
+
+  /// `nnh`
+  nnh(L10nLocale('nnh')),
+
   /// `no`
   no(L10nLocale('no')),
+
+  /// `nqo`
+  nqo(L10nLocale('nqo')),
+
+  /// `nr`
+  nr(L10nLocale('nr')),
+
+  /// `nso`
+  nso(L10nLocale('nso')),
+
+  /// `ny`
+  ny(L10nLocale('ny')),
+
+  /// `nyn`
+  nyn(L10nLocale('nyn')),
+
+  /// `om`
+  om(L10nLocale('om')),
 
   /// `or`
   or(L10nLocale('or')),
 
+  /// `os`
+  os(L10nLocale('os')),
+
+  /// `osa`
+  osa(L10nLocale('osa')),
+
+  /// `pa`
+  pa(L10nLocale('pa')),
+
+  /// `pap`
+  pap(L10nLocale('pap')),
+
+  /// `pcm`
+  pcm(L10nLocale('pcm')),
+
   /// `pl`
   pl(L10nLocale('pl')),
+
+  /// `prg`
+  prg(L10nLocale('prg')),
 
   /// `ps`
   ps(L10nLocale('ps')),
@@ -174,11 +459,62 @@ enum AppLocale implements AppLocaleBase {
   /// `pt`
   pt(L10nLocale('pt')),
 
+  /// `rm`
+  rm(L10nLocale('rm')),
+
   /// `ro`
   ro(L10nLocale('ro')),
 
+  /// `rof`
+  rof(L10nLocale('rof')),
+
   /// `ru`
   ru(L10nLocale('ru')),
+
+  /// `rwk`
+  rwk(L10nLocale('rwk')),
+
+  /// `sah`
+  sah(L10nLocale('sah')),
+
+  /// `saq`
+  saq(L10nLocale('saq')),
+
+  /// `sat`
+  sat(L10nLocale('sat')),
+
+  /// `sc`
+  sc(L10nLocale('sc')),
+
+  /// `scn`
+  scn(L10nLocale('scn')),
+
+  /// `sd`
+  sd(L10nLocale('sd')),
+
+  /// `sdh`
+  sdh(L10nLocale('sdh')),
+
+  /// `se`
+  se(L10nLocale('se')),
+
+  /// `seh`
+  seh(L10nLocale('seh')),
+
+  /// `ses`
+  ses(L10nLocale('ses')),
+
+  /// `sg`
+  sg(L10nLocale('sg')),
+
+  /// `sgs`
+  sgs(L10nLocale('sgs')),
+
+  /// `sh`
+  sh(L10nLocale('sh')),
+
+  /// `shi`
+  shi(L10nLocale('shi')),
 
   /// `si`
   si(L10nLocale('si')),
@@ -189,11 +525,44 @@ enum AppLocale implements AppLocaleBase {
   /// `sl`
   sl(L10nLocale('sl')),
 
+  /// `sma`
+  sma(L10nLocale('sma')),
+
+  /// `smi`
+  smi(L10nLocale('smi')),
+
+  /// `smj`
+  smj(L10nLocale('smj')),
+
+  /// `smn`
+  smn(L10nLocale('smn')),
+
+  /// `sms`
+  sms(L10nLocale('sms')),
+
+  /// `sn`
+  sn(L10nLocale('sn')),
+
+  /// `so`
+  so(L10nLocale('so')),
+
   /// `sq`
   sq(L10nLocale('sq')),
 
   /// `sr`
   sr(L10nLocale('sr')),
+
+  /// `ss`
+  ss(L10nLocale('ss')),
+
+  /// `ssy`
+  ssy(L10nLocale('ssy')),
+
+  /// `st`
+  st(L10nLocale('st')),
+
+  /// `su`
+  su(L10nLocale('su')),
 
   /// `sv`
   sv(L10nLocale('sv')),
@@ -201,20 +570,59 @@ enum AppLocale implements AppLocaleBase {
   /// `sw`
   sw(L10nLocale('sw')),
 
+  /// `syr`
+  syr(L10nLocale('syr')),
+
   /// `ta`
   ta(L10nLocale('ta')),
 
   /// `te`
   te(L10nLocale('te')),
 
+  /// `teo`
+  teo(L10nLocale('teo')),
+
   /// `th`
   th(L10nLocale('th')),
+
+  /// `ti`
+  ti(L10nLocale('ti')),
+
+  /// `tig`
+  tig(L10nLocale('tig')),
+
+  /// `tk`
+  tk(L10nLocale('tk')),
+
+  /// `tl`
+  tl(L10nLocale('tl')),
+
+  /// `tn`
+  tn(L10nLocale('tn')),
+
+  /// `to`
+  to(L10nLocale('to')),
+
+  /// `tpi`
+  tpi(L10nLocale('tpi')),
 
   /// `tr`
   tr(L10nLocale('tr')),
 
+  /// `ts`
+  ts(L10nLocale('ts')),
+
+  /// `tzm`
+  tzm(L10nLocale('tzm')),
+
+  /// `ug`
+  ug(L10nLocale('ug')),
+
   /// `uk`
   uk(L10nLocale('uk')),
+
+  /// `und`
+  und(L10nLocale('und')),
 
   /// `ur`
   ur(L10nLocale('ur')),
@@ -222,8 +630,44 @@ enum AppLocale implements AppLocaleBase {
   /// `uz`
   uz(L10nLocale('uz')),
 
+  /// `ve`
+  ve(L10nLocale('ve')),
+
+  /// `vec`
+  vec(L10nLocale('vec')),
+
   /// `vi`
   vi(L10nLocale('vi')),
+
+  /// `vo`
+  vo(L10nLocale('vo')),
+
+  /// `vun`
+  vun(L10nLocale('vun')),
+
+  /// `wa`
+  wa(L10nLocale('wa')),
+
+  /// `wae`
+  wae(L10nLocale('wae')),
+
+  /// `wo`
+  wo(L10nLocale('wo')),
+
+  /// `xh`
+  xh(L10nLocale('xh')),
+
+  /// `xog`
+  xog(L10nLocale('xog')),
+
+  /// `yi`
+  yi(L10nLocale('yi')),
+
+  /// `yo`
+  yo(L10nLocale('yo')),
+
+  /// `yue`
+  yue(L10nLocale('yue')),
 
   /// `zh`
   zh(L10nLocale('zh')),
@@ -239,77 +683,225 @@ enum AppLocale implements AppLocaleBase {
   /// The translations of this locale.
   AppLocalizations get translations => switch (this) {
     AppLocale.af => const AppLocalizationsAf(),
+    AppLocale.ak => const AppLocalizationsAk(),
     AppLocale.am => const AppLocalizationsAm(),
+    AppLocale.an => const AppLocalizationsAn(),
     AppLocale.ar => const AppLocalizationsAr(),
+    AppLocale.ars => const AppLocalizationsArs(),
+    AppLocale.as => const AppLocalizationsAs(),
+    AppLocale.asa => const AppLocalizationsAsa(),
+    AppLocale.ast => const AppLocalizationsAst(),
     AppLocale.az => const AppLocalizationsAz(),
+    AppLocale.bal => const AppLocalizationsBal(),
     AppLocale.be => const AppLocalizationsBe(),
+    AppLocale.bem => const AppLocalizationsBem(),
+    AppLocale.bez => const AppLocalizationsBez(),
     AppLocale.bg => const AppLocalizationsBg(),
+    AppLocale.bho => const AppLocalizationsBho(),
+    AppLocale.blo => const AppLocalizationsBlo(),
+    AppLocale.bm => const AppLocalizationsBm(),
     AppLocale.bn => const AppLocalizationsBn(),
+    AppLocale.bo => const AppLocalizationsBo(),
+    AppLocale.br => const AppLocalizationsBr(),
+    AppLocale.brx => const AppLocalizationsBrx(),
     AppLocale.bs => const AppLocalizationsBs(),
     AppLocale.ca => const AppLocalizationsCa(),
+    AppLocale.ce => const AppLocalizationsCe(),
+    AppLocale.ceb => const AppLocalizationsCeb(),
+    AppLocale.cgg => const AppLocalizationsCgg(),
+    AppLocale.chr => const AppLocalizationsChr(),
+    AppLocale.ckb => const AppLocalizationsCkb(),
     AppLocale.cs => const AppLocalizationsCs(),
+    AppLocale.csw => const AppLocalizationsCsw(),
+    AppLocale.cv => const AppLocalizationsCv(),
+    AppLocale.cy => const AppLocalizationsCy(),
     AppLocale.da => const AppLocalizationsDa(),
     AppLocale.de => const AppLocalizationsDe(),
+    AppLocale.doi => const AppLocalizationsDoi(),
+    AppLocale.dsb => const AppLocalizationsDsb(),
+    AppLocale.dv => const AppLocalizationsDv(),
+    AppLocale.dz => const AppLocalizationsDz(),
+    AppLocale.ee => const AppLocalizationsEe(),
     AppLocale.el => const AppLocalizationsEl(),
     AppLocale.en => const AppLocalizationsEn(),
+    AppLocale.eo => const AppLocalizationsEo(),
     AppLocale.es => const AppLocalizationsEs(),
     AppLocale.et => const AppLocalizationsEt(),
     AppLocale.eu => const AppLocalizationsEu(),
     AppLocale.fa => const AppLocalizationsFa(),
+    AppLocale.ff => const AppLocalizationsFf(),
     AppLocale.fi => const AppLocalizationsFi(),
     AppLocale.fil => const AppLocalizationsFil(),
+    AppLocale.fo => const AppLocalizationsFo(),
     AppLocale.fr => const AppLocalizationsFr(),
+    AppLocale.fur => const AppLocalizationsFur(),
+    AppLocale.fy => const AppLocalizationsFy(),
+    AppLocale.ga => const AppLocalizationsGa(),
+    AppLocale.gd => const AppLocalizationsGd(),
     AppLocale.gl => const AppLocalizationsGl(),
+    AppLocale.gsw => const AppLocalizationsGsw(),
     AppLocale.gu => const AppLocalizationsGu(),
+    AppLocale.guw => const AppLocalizationsGuw(),
+    AppLocale.gv => const AppLocalizationsGv(),
+    AppLocale.ha => const AppLocalizationsHa(),
+    AppLocale.haw => const AppLocalizationsHaw(),
     AppLocale.he => const AppLocalizationsHe(),
     AppLocale.hi => const AppLocalizationsHi(),
+    AppLocale.hnj => const AppLocalizationsHnj(),
     AppLocale.hr => const AppLocalizationsHr(),
+    AppLocale.hsb => const AppLocalizationsHsb(),
     AppLocale.hu => const AppLocalizationsHu(),
     AppLocale.hy => const AppLocalizationsHy(),
+    AppLocale.ia => const AppLocalizationsIa(),
     AppLocale.id => const AppLocalizationsId(),
+    AppLocale.ie => const AppLocalizationsIe(),
+    AppLocale.ig => const AppLocalizationsIg(),
+    AppLocale.ii => const AppLocalizationsIi(),
+    AppLocale.io => const AppLocalizationsIo(),
     AppLocale.is$ => const AppLocalizationsIs$(),
     AppLocale.it => const AppLocalizationsIt(),
+    AppLocale.iu => const AppLocalizationsIu(),
     AppLocale.ja => const AppLocalizationsJa(),
+    AppLocale.jbo => const AppLocalizationsJbo(),
+    AppLocale.jgo => const AppLocalizationsJgo(),
+    AppLocale.jmc => const AppLocalizationsJmc(),
+    AppLocale.jv => const AppLocalizationsJv(),
+    AppLocale.jw => const AppLocalizationsJw(),
     AppLocale.ka => const AppLocalizationsKa(),
+    AppLocale.kab => const AppLocalizationsKab(),
+    AppLocale.kaj => const AppLocalizationsKaj(),
+    AppLocale.kcg => const AppLocalizationsKcg(),
+    AppLocale.kde => const AppLocalizationsKde(),
+    AppLocale.kea => const AppLocalizationsKea(),
     AppLocale.kk => const AppLocalizationsKk(),
+    AppLocale.kkj => const AppLocalizationsKkj(),
+    AppLocale.kl => const AppLocalizationsKl(),
     AppLocale.km => const AppLocalizationsKm(),
     AppLocale.kn => const AppLocalizationsKn(),
     AppLocale.ko => const AppLocalizationsKo(),
+    AppLocale.kok => const AppLocalizationsKok(),
+    AppLocale.ks => const AppLocalizationsKs(),
+    AppLocale.ksb => const AppLocalizationsKsb(),
+    AppLocale.ksh => const AppLocalizationsKsh(),
+    AppLocale.ku => const AppLocalizationsKu(),
+    AppLocale.kw => const AppLocalizationsKw(),
     AppLocale.ky => const AppLocalizationsKy(),
+    AppLocale.lag => const AppLocalizationsLag(),
+    AppLocale.lb => const AppLocalizationsLb(),
+    AppLocale.lg => const AppLocalizationsLg(),
+    AppLocale.lij => const AppLocalizationsLij(),
+    AppLocale.lkt => const AppLocalizationsLkt(),
+    AppLocale.lld => const AppLocalizationsLld(),
+    AppLocale.ln => const AppLocalizationsLn(),
     AppLocale.lo => const AppLocalizationsLo(),
     AppLocale.lt => const AppLocalizationsLt(),
     AppLocale.lv => const AppLocalizationsLv(),
+    AppLocale.mas => const AppLocalizationsMas(),
+    AppLocale.mg => const AppLocalizationsMg(),
+    AppLocale.mgo => const AppLocalizationsMgo(),
     AppLocale.mk => const AppLocalizationsMk(),
     AppLocale.ml => const AppLocalizationsMl(),
     AppLocale.mn => const AppLocalizationsMn(),
+    AppLocale.mo => const AppLocalizationsMo(),
     AppLocale.mr => const AppLocalizationsMr(),
     AppLocale.ms => const AppLocalizationsMs(),
+    AppLocale.mt => const AppLocalizationsMt(),
     AppLocale.my => const AppLocalizationsMy(),
+    AppLocale.nah => const AppLocalizationsNah(),
+    AppLocale.naq => const AppLocalizationsNaq(),
     AppLocale.nb => const AppLocalizationsNb(),
+    AppLocale.nd => const AppLocalizationsNd(),
     AppLocale.ne => const AppLocalizationsNe(),
     AppLocale.nl => const AppLocalizationsNl(),
+    AppLocale.nn => const AppLocalizationsNn(),
+    AppLocale.nnh => const AppLocalizationsNnh(),
     AppLocale.no => const AppLocalizationsNo(),
+    AppLocale.nqo => const AppLocalizationsNqo(),
+    AppLocale.nr => const AppLocalizationsNr(),
+    AppLocale.nso => const AppLocalizationsNso(),
+    AppLocale.ny => const AppLocalizationsNy(),
+    AppLocale.nyn => const AppLocalizationsNyn(),
+    AppLocale.om => const AppLocalizationsOm(),
     AppLocale.or => const AppLocalizationsOr(),
+    AppLocale.os => const AppLocalizationsOs(),
+    AppLocale.osa => const AppLocalizationsOsa(),
+    AppLocale.pa => const AppLocalizationsPa(),
+    AppLocale.pap => const AppLocalizationsPap(),
+    AppLocale.pcm => const AppLocalizationsPcm(),
     AppLocale.pl => const AppLocalizationsPl(),
+    AppLocale.prg => const AppLocalizationsPrg(),
     AppLocale.ps => const AppLocalizationsPs(),
     AppLocale.pt => const AppLocalizationsPt(),
+    AppLocale.rm => const AppLocalizationsRm(),
     AppLocale.ro => const AppLocalizationsRo(),
+    AppLocale.rof => const AppLocalizationsRof(),
     AppLocale.ru => const AppLocalizationsRu(),
+    AppLocale.rwk => const AppLocalizationsRwk(),
+    AppLocale.sah => const AppLocalizationsSah(),
+    AppLocale.saq => const AppLocalizationsSaq(),
+    AppLocale.sat => const AppLocalizationsSat(),
+    AppLocale.sc => const AppLocalizationsSc(),
+    AppLocale.scn => const AppLocalizationsScn(),
+    AppLocale.sd => const AppLocalizationsSd(),
+    AppLocale.sdh => const AppLocalizationsSdh(),
+    AppLocale.se => const AppLocalizationsSe(),
+    AppLocale.seh => const AppLocalizationsSeh(),
+    AppLocale.ses => const AppLocalizationsSes(),
+    AppLocale.sg => const AppLocalizationsSg(),
+    AppLocale.sgs => const AppLocalizationsSgs(),
+    AppLocale.sh => const AppLocalizationsSh(),
+    AppLocale.shi => const AppLocalizationsShi(),
     AppLocale.si => const AppLocalizationsSi(),
     AppLocale.sk => const AppLocalizationsSk(),
     AppLocale.sl => const AppLocalizationsSl(),
+    AppLocale.sma => const AppLocalizationsSma(),
+    AppLocale.smi => const AppLocalizationsSmi(),
+    AppLocale.smj => const AppLocalizationsSmj(),
+    AppLocale.smn => const AppLocalizationsSmn(),
+    AppLocale.sms => const AppLocalizationsSms(),
+    AppLocale.sn => const AppLocalizationsSn(),
+    AppLocale.so => const AppLocalizationsSo(),
     AppLocale.sq => const AppLocalizationsSq(),
     AppLocale.sr => const AppLocalizationsSr(),
+    AppLocale.ss => const AppLocalizationsSs(),
+    AppLocale.ssy => const AppLocalizationsSsy(),
+    AppLocale.st => const AppLocalizationsSt(),
+    AppLocale.su => const AppLocalizationsSu(),
     AppLocale.sv => const AppLocalizationsSv(),
     AppLocale.sw => const AppLocalizationsSw(),
+    AppLocale.syr => const AppLocalizationsSyr(),
     AppLocale.ta => const AppLocalizationsTa(),
     AppLocale.te => const AppLocalizationsTe(),
+    AppLocale.teo => const AppLocalizationsTeo(),
     AppLocale.th => const AppLocalizationsTh(),
+    AppLocale.ti => const AppLocalizationsTi(),
+    AppLocale.tig => const AppLocalizationsTig(),
+    AppLocale.tk => const AppLocalizationsTk(),
+    AppLocale.tl => const AppLocalizationsTl(),
+    AppLocale.tn => const AppLocalizationsTn(),
+    AppLocale.to => const AppLocalizationsTo(),
+    AppLocale.tpi => const AppLocalizationsTpi(),
     AppLocale.tr => const AppLocalizationsTr(),
+    AppLocale.ts => const AppLocalizationsTs(),
+    AppLocale.tzm => const AppLocalizationsTzm(),
+    AppLocale.ug => const AppLocalizationsUg(),
     AppLocale.uk => const AppLocalizationsUk(),
+    AppLocale.und => const AppLocalizationsUnd(),
     AppLocale.ur => const AppLocalizationsUr(),
     AppLocale.uz => const AppLocalizationsUz(),
+    AppLocale.ve => const AppLocalizationsVe(),
+    AppLocale.vec => const AppLocalizationsVec(),
     AppLocale.vi => const AppLocalizationsVi(),
+    AppLocale.vo => const AppLocalizationsVo(),
+    AppLocale.vun => const AppLocalizationsVun(),
+    AppLocale.wa => const AppLocalizationsWa(),
+    AppLocale.wae => const AppLocalizationsWae(),
+    AppLocale.wo => const AppLocalizationsWo(),
+    AppLocale.xh => const AppLocalizationsXh(),
+    AppLocale.xog => const AppLocalizationsXog(),
+    AppLocale.yi => const AppLocalizationsYi(),
+    AppLocale.yo => const AppLocalizationsYo(),
+    AppLocale.yue => const AppLocalizationsYue(),
     AppLocale.zh => const AppLocalizationsZh(),
     AppLocale.zu => const AppLocalizationsZu(),
   };
@@ -381,6 +973,27 @@ class AppLocalizationsAf implements AppLocalizations {
   }
 }
 
+/// `ak` translations.
+class AppLocalizationsAk implements AppLocalizations {
+  /// Creates the ak translations.
+  const AppLocalizationsAk();
+
+  @override
+  AppLocale get appLocale => AppLocale.ak;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ak');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == $operands.i && $operands.n >= 0 && $operands.n <= 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
 /// `am` translations.
 class AppLocalizationsAm implements AppLocalizations {
   /// Creates the am translations.
@@ -396,6 +1009,27 @@ class AppLocalizationsAm implements AppLocalizations {
   String cat({required num count}) {
     final $operands = PluralOperands(count);
     if ($operands.i == 0 || $operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `an` translations.
+class AppLocalizationsAn implements AppLocalizations {
+  /// Creates the an translations.
+  const AppLocalizationsAn();
+
+  @override
+  AppLocale get appLocale => AppLocale.an;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('an');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
       return 'one';
     }
     return 'other';
@@ -425,13 +1059,115 @@ class AppLocalizationsAr implements AppLocalizations {
     if ($operands.n == 2) {
       return 'two';
     }
-    if ($operands.v == 0 && $operands.n % 100 >= 3 && $operands.n % 100 <= 10) {
+    if ($operands.n == $operands.i &&
+        $operands.n % 100 >= 3 &&
+        $operands.n % 100 <= 10) {
       return 'few';
     }
-    if ($operands.v == 0 &&
+    if ($operands.n == $operands.i &&
         $operands.n % 100 >= 11 &&
         $operands.n % 100 <= 99) {
       return 'many';
+    }
+    return 'other';
+  }
+}
+
+/// `ars` translations.
+class AppLocalizationsArs implements AppLocalizations {
+  /// Creates the ars translations.
+  const AppLocalizationsArs();
+
+  @override
+  AppLocale get appLocale => AppLocale.ars;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ars');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 0) {
+      return 'zero';
+    }
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    if ($operands.n == 2) {
+      return 'two';
+    }
+    if ($operands.n == $operands.i &&
+        $operands.n % 100 >= 3 &&
+        $operands.n % 100 <= 10) {
+      return 'few';
+    }
+    if ($operands.n == $operands.i &&
+        $operands.n % 100 >= 11 &&
+        $operands.n % 100 <= 99) {
+      return 'many';
+    }
+    return 'other';
+  }
+}
+
+/// `as` translations.
+class AppLocalizationsAs implements AppLocalizations {
+  /// Creates the as translations.
+  const AppLocalizationsAs();
+
+  @override
+  AppLocale get appLocale => AppLocale.as;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('as');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.i == 0 || $operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `asa` translations.
+class AppLocalizationsAsa implements AppLocalizations {
+  /// Creates the asa translations.
+  const AppLocalizationsAsa();
+
+  @override
+  AppLocale get appLocale => AppLocale.asa;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('asa');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `ast` translations.
+class AppLocalizationsAst implements AppLocalizations {
+  /// Creates the ast translations.
+  const AppLocalizationsAst();
+
+  @override
+  AppLocale get appLocale => AppLocale.ast;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ast');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.i == 1 && $operands.v == 0) {
+      return 'one';
     }
     return 'other';
   }
@@ -458,6 +1194,27 @@ class AppLocalizationsAz implements AppLocalizations {
   }
 }
 
+/// `bal` translations.
+class AppLocalizationsBal implements AppLocalizations {
+  /// Creates the bal translations.
+  const AppLocalizationsBal();
+
+  @override
+  AppLocale get appLocale => AppLocale.bal;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('bal');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
 /// `be` translations.
 class AppLocalizationsBe implements AppLocalizations {
   /// Creates the be translations.
@@ -472,21 +1229,67 @@ class AppLocalizationsBe implements AppLocalizations {
   @override
   String cat({required num count}) {
     final $operands = PluralOperands(count);
-    if ($operands.v == 0 && $operands.n % 10 == 1 && $operands.n % 100 != 11) {
+    if ($operands.n % 10 == 1 && $operands.n % 100 != 11) {
       return 'one';
     }
-    if ($operands.v == 0 &&
+    if ($operands.n == $operands.i &&
         $operands.n % 10 >= 2 &&
         $operands.n % 10 <= 4 &&
-        !($operands.n % 100 >= 12 && $operands.n % 100 <= 14)) {
+        !($operands.n == $operands.i &&
+            $operands.n % 100 >= 12 &&
+            $operands.n % 100 <= 14)) {
       return 'few';
     }
-    if ($operands.v == 0 && $operands.n % 10 == 0 ||
-        $operands.v == 0 && $operands.n % 10 >= 5 && $operands.n % 10 <= 9 ||
-        $operands.v == 0 &&
+    if ($operands.n % 10 == 0 ||
+        $operands.n == $operands.i &&
+            $operands.n % 10 >= 5 &&
+            $operands.n % 10 <= 9 ||
+        $operands.n == $operands.i &&
             $operands.n % 100 >= 11 &&
             $operands.n % 100 <= 14) {
       return 'many';
+    }
+    return 'other';
+  }
+}
+
+/// `bem` translations.
+class AppLocalizationsBem implements AppLocalizations {
+  /// Creates the bem translations.
+  const AppLocalizationsBem();
+
+  @override
+  AppLocale get appLocale => AppLocale.bem;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('bem');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `bez` translations.
+class AppLocalizationsBez implements AppLocalizations {
+  /// Creates the bez translations.
+  const AppLocalizationsBez();
+
+  @override
+  AppLocale get appLocale => AppLocale.bez;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('bez');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
     }
     return 'other';
   }
@@ -513,6 +1316,68 @@ class AppLocalizationsBg implements AppLocalizations {
   }
 }
 
+/// `bho` translations.
+class AppLocalizationsBho implements AppLocalizations {
+  /// Creates the bho translations.
+  const AppLocalizationsBho();
+
+  @override
+  AppLocale get appLocale => AppLocale.bho;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('bho');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == $operands.i && $operands.n >= 0 && $operands.n <= 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `blo` translations.
+class AppLocalizationsBlo implements AppLocalizations {
+  /// Creates the blo translations.
+  const AppLocalizationsBlo();
+
+  @override
+  AppLocale get appLocale => AppLocale.blo;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('blo');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 0) {
+      return 'zero';
+    }
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `bm` translations.
+class AppLocalizationsBm implements AppLocalizations {
+  /// Creates the bm translations.
+  const AppLocalizationsBm();
+
+  @override
+  AppLocale get appLocale => AppLocale.bm;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('bm');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
 /// `bn` translations.
 class AppLocalizationsBn implements AppLocalizations {
   /// Creates the bn translations.
@@ -528,6 +1393,92 @@ class AppLocalizationsBn implements AppLocalizations {
   String cat({required num count}) {
     final $operands = PluralOperands(count);
     if ($operands.i == 0 || $operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `bo` translations.
+class AppLocalizationsBo implements AppLocalizations {
+  /// Creates the bo translations.
+  const AppLocalizationsBo();
+
+  @override
+  AppLocale get appLocale => AppLocale.bo;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('bo');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
+/// `br` translations.
+class AppLocalizationsBr implements AppLocalizations {
+  /// Creates the br translations.
+  const AppLocalizationsBr();
+
+  @override
+  AppLocale get appLocale => AppLocale.br;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('br');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n % 10 == 1 &&
+        $operands.n % 100 != 11 &&
+        $operands.n % 100 != 71 &&
+        $operands.n % 100 != 91) {
+      return 'one';
+    }
+    if ($operands.n % 10 == 2 &&
+        $operands.n % 100 != 12 &&
+        $operands.n % 100 != 72 &&
+        $operands.n % 100 != 92) {
+      return 'two';
+    }
+    if (($operands.n == $operands.i &&
+                $operands.n % 10 >= 3 &&
+                $operands.n % 10 <= 4 ||
+            $operands.n % 10 == 9) &&
+        !($operands.n == $operands.i &&
+                $operands.n % 100 >= 10 &&
+                $operands.n % 100 <= 19 ||
+            $operands.n == $operands.i &&
+                $operands.n % 100 >= 70 &&
+                $operands.n % 100 <= 79 ||
+            $operands.n == $operands.i &&
+                $operands.n % 100 >= 90 &&
+                $operands.n % 100 <= 99)) {
+      return 'few';
+    }
+    if ($operands.n != 0 && $operands.n % 1000000 == 0) {
+      return 'many';
+    }
+    return 'other';
+  }
+}
+
+/// `brx` translations.
+class AppLocalizationsBrx implements AppLocalizations {
+  /// Creates the brx translations.
+  const AppLocalizationsBrx();
+
+  @override
+  AppLocale get appLocale => AppLocale.brx;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('brx');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
       return 'one';
     }
     return 'other';
@@ -589,6 +1540,120 @@ class AppLocalizationsCa implements AppLocalizations {
   }
 }
 
+/// `ce` translations.
+class AppLocalizationsCe implements AppLocalizations {
+  /// Creates the ce translations.
+  const AppLocalizationsCe();
+
+  @override
+  AppLocale get appLocale => AppLocale.ce;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ce');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `ceb` translations.
+class AppLocalizationsCeb implements AppLocalizations {
+  /// Creates the ceb translations.
+  const AppLocalizationsCeb();
+
+  @override
+  AppLocale get appLocale => AppLocale.ceb;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ceb');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.v == 0 &&
+            ($operands.i == 1 || $operands.i == 2 || $operands.i == 3) ||
+        $operands.v == 0 &&
+            $operands.i % 10 != 4 &&
+            $operands.i % 10 != 6 &&
+            $operands.i % 10 != 9 ||
+        $operands.v != 0 &&
+            $operands.f % 10 != 4 &&
+            $operands.f % 10 != 6 &&
+            $operands.f % 10 != 9) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `cgg` translations.
+class AppLocalizationsCgg implements AppLocalizations {
+  /// Creates the cgg translations.
+  const AppLocalizationsCgg();
+
+  @override
+  AppLocale get appLocale => AppLocale.cgg;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('cgg');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `chr` translations.
+class AppLocalizationsChr implements AppLocalizations {
+  /// Creates the chr translations.
+  const AppLocalizationsChr();
+
+  @override
+  AppLocale get appLocale => AppLocale.chr;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('chr');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `ckb` translations.
+class AppLocalizationsCkb implements AppLocalizations {
+  /// Creates the ckb translations.
+  const AppLocalizationsCkb();
+
+  @override
+  AppLocale get appLocale => AppLocale.ckb;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ckb');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
 /// `cs` translations.
 class AppLocalizationsCs implements AppLocalizations {
   /// Creates the cs translations.
@@ -610,6 +1675,84 @@ class AppLocalizationsCs implements AppLocalizations {
       return 'few';
     }
     if ($operands.v != 0) {
+      return 'many';
+    }
+    return 'other';
+  }
+}
+
+/// `csw` translations.
+class AppLocalizationsCsw implements AppLocalizations {
+  /// Creates the csw translations.
+  const AppLocalizationsCsw();
+
+  @override
+  AppLocale get appLocale => AppLocale.csw;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('csw');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == $operands.i && $operands.n >= 0 && $operands.n <= 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `cv` translations.
+class AppLocalizationsCv implements AppLocalizations {
+  /// Creates the cv translations.
+  const AppLocalizationsCv();
+
+  @override
+  AppLocale get appLocale => AppLocale.cv;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('cv');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 0) {
+      return 'zero';
+    }
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `cy` translations.
+class AppLocalizationsCy implements AppLocalizations {
+  /// Creates the cy translations.
+  const AppLocalizationsCy();
+
+  @override
+  AppLocale get appLocale => AppLocale.cy;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('cy');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 0) {
+      return 'zero';
+    }
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    if ($operands.n == 2) {
+      return 'two';
+    }
+    if ($operands.n == 3) {
+      return 'few';
+    }
+    if ($operands.n == 6) {
       return 'many';
     }
     return 'other';
@@ -659,6 +1802,114 @@ class AppLocalizationsDe implements AppLocalizations {
   }
 }
 
+/// `doi` translations.
+class AppLocalizationsDoi implements AppLocalizations {
+  /// Creates the doi translations.
+  const AppLocalizationsDoi();
+
+  @override
+  AppLocale get appLocale => AppLocale.doi;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('doi');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.i == 0 || $operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `dsb` translations.
+class AppLocalizationsDsb implements AppLocalizations {
+  /// Creates the dsb translations.
+  const AppLocalizationsDsb();
+
+  @override
+  AppLocale get appLocale => AppLocale.dsb;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('dsb');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.v == 0 && $operands.i % 100 == 1 || $operands.f % 100 == 1) {
+      return 'one';
+    }
+    if ($operands.v == 0 && $operands.i % 100 == 2 || $operands.f % 100 == 2) {
+      return 'two';
+    }
+    if ($operands.v == 0 && $operands.i % 100 >= 3 && $operands.i % 100 <= 4 ||
+        $operands.f % 100 >= 3 && $operands.f % 100 <= 4) {
+      return 'few';
+    }
+    return 'other';
+  }
+}
+
+/// `dv` translations.
+class AppLocalizationsDv implements AppLocalizations {
+  /// Creates the dv translations.
+  const AppLocalizationsDv();
+
+  @override
+  AppLocale get appLocale => AppLocale.dv;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('dv');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `dz` translations.
+class AppLocalizationsDz implements AppLocalizations {
+  /// Creates the dz translations.
+  const AppLocalizationsDz();
+
+  @override
+  AppLocale get appLocale => AppLocale.dz;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('dz');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
+/// `ee` translations.
+class AppLocalizationsEe implements AppLocalizations {
+  /// Creates the ee translations.
+  const AppLocalizationsEe();
+
+  @override
+  AppLocale get appLocale => AppLocale.ee;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ee');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
 /// `el` translations.
 class AppLocalizationsEl implements AppLocalizations {
   /// Creates the el translations.
@@ -695,6 +1946,27 @@ class AppLocalizationsEn implements AppLocalizations {
   String cat({required num count}) {
     final $operands = PluralOperands(count);
     if ($operands.i == 1 && $operands.v == 0) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `eo` translations.
+class AppLocalizationsEo implements AppLocalizations {
+  /// Creates the eo translations.
+  const AppLocalizationsEo();
+
+  @override
+  AppLocale get appLocale => AppLocale.eo;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('eo');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
       return 'one';
     }
     return 'other';
@@ -788,6 +2060,27 @@ class AppLocalizationsFa implements AppLocalizations {
   }
 }
 
+/// `ff` translations.
+class AppLocalizationsFf implements AppLocalizations {
+  /// Creates the ff translations.
+  const AppLocalizationsFf();
+
+  @override
+  AppLocale get appLocale => AppLocale.ff;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ff');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if (($operands.i == 0 || $operands.i == 1)) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
 /// `fi` translations.
 class AppLocalizationsFi implements AppLocalizations {
   /// Creates the fi translations.
@@ -839,6 +2132,27 @@ class AppLocalizationsFil implements AppLocalizations {
   }
 }
 
+/// `fo` translations.
+class AppLocalizationsFo implements AppLocalizations {
+  /// Creates the fo translations.
+  const AppLocalizationsFo();
+
+  @override
+  AppLocale get appLocale => AppLocale.fo;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('fo');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
 /// `fr` translations.
 class AppLocalizationsFr implements AppLocalizations {
   /// Creates the fr translations.
@@ -853,11 +2167,111 @@ class AppLocalizationsFr implements AppLocalizations {
   @override
   String cat({required num count}) {
     final $operands = PluralOperands(count);
-    if ($operands.i == 0 || $operands.i == 1) {
+    if (($operands.i == 0 || $operands.i == 1)) {
       return 'one';
     }
     if ($operands.i != 0 && $operands.i % 1000000 == 0 && $operands.v == 0) {
       return 'many';
+    }
+    return 'other';
+  }
+}
+
+/// `fur` translations.
+class AppLocalizationsFur implements AppLocalizations {
+  /// Creates the fur translations.
+  const AppLocalizationsFur();
+
+  @override
+  AppLocale get appLocale => AppLocale.fur;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('fur');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `fy` translations.
+class AppLocalizationsFy implements AppLocalizations {
+  /// Creates the fy translations.
+  const AppLocalizationsFy();
+
+  @override
+  AppLocale get appLocale => AppLocale.fy;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('fy');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.i == 1 && $operands.v == 0) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `ga` translations.
+class AppLocalizationsGa implements AppLocalizations {
+  /// Creates the ga translations.
+  const AppLocalizationsGa();
+
+  @override
+  AppLocale get appLocale => AppLocale.ga;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ga');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    if ($operands.n == 2) {
+      return 'two';
+    }
+    if ($operands.n == $operands.i && $operands.n >= 3 && $operands.n <= 6) {
+      return 'few';
+    }
+    if ($operands.n == $operands.i && $operands.n >= 7 && $operands.n <= 10) {
+      return 'many';
+    }
+    return 'other';
+  }
+}
+
+/// `gd` translations.
+class AppLocalizationsGd implements AppLocalizations {
+  /// Creates the gd translations.
+  const AppLocalizationsGd();
+
+  @override
+  AppLocale get appLocale => AppLocale.gd;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('gd');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if (($operands.n == 1 || $operands.n == 11)) {
+      return 'one';
+    }
+    if (($operands.n == 2 || $operands.n == 12)) {
+      return 'two';
+    }
+    if (($operands.n == $operands.i && $operands.n >= 3 && $operands.n <= 10 ||
+        $operands.n == $operands.i && $operands.n >= 13 && $operands.n <= 19)) {
+      return 'few';
     }
     return 'other';
   }
@@ -884,6 +2298,27 @@ class AppLocalizationsGl implements AppLocalizations {
   }
 }
 
+/// `gsw` translations.
+class AppLocalizationsGsw implements AppLocalizations {
+  /// Creates the gsw translations.
+  const AppLocalizationsGsw();
+
+  @override
+  AppLocale get appLocale => AppLocale.gsw;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('gsw');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
 /// `gu` translations.
 class AppLocalizationsGu implements AppLocalizations {
   /// Creates the gu translations.
@@ -899,6 +2334,104 @@ class AppLocalizationsGu implements AppLocalizations {
   String cat({required num count}) {
     final $operands = PluralOperands(count);
     if ($operands.i == 0 || $operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `guw` translations.
+class AppLocalizationsGuw implements AppLocalizations {
+  /// Creates the guw translations.
+  const AppLocalizationsGuw();
+
+  @override
+  AppLocale get appLocale => AppLocale.guw;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('guw');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == $operands.i && $operands.n >= 0 && $operands.n <= 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `gv` translations.
+class AppLocalizationsGv implements AppLocalizations {
+  /// Creates the gv translations.
+  const AppLocalizationsGv();
+
+  @override
+  AppLocale get appLocale => AppLocale.gv;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('gv');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.v == 0 && $operands.i % 10 == 1) {
+      return 'one';
+    }
+    if ($operands.v == 0 && $operands.i % 10 == 2) {
+      return 'two';
+    }
+    if ($operands.v == 0 &&
+        ($operands.i % 100 == 0 ||
+            $operands.i % 100 == 20 ||
+            $operands.i % 100 == 40 ||
+            $operands.i % 100 == 60 ||
+            $operands.i % 100 == 80)) {
+      return 'few';
+    }
+    if ($operands.v != 0) {
+      return 'many';
+    }
+    return 'other';
+  }
+}
+
+/// `ha` translations.
+class AppLocalizationsHa implements AppLocalizations {
+  /// Creates the ha translations.
+  const AppLocalizationsHa();
+
+  @override
+  AppLocale get appLocale => AppLocale.ha;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ha');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `haw` translations.
+class AppLocalizationsHaw implements AppLocalizations {
+  /// Creates the haw translations.
+  const AppLocalizationsHaw();
+
+  @override
+  AppLocale get appLocale => AppLocale.haw;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('haw');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
       return 'one';
     }
     return 'other';
@@ -951,6 +2484,23 @@ class AppLocalizationsHi implements AppLocalizations {
   }
 }
 
+/// `hnj` translations.
+class AppLocalizationsHnj implements AppLocalizations {
+  /// Creates the hnj translations.
+  const AppLocalizationsHnj();
+
+  @override
+  AppLocale get appLocale => AppLocale.hnj;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('hnj');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
 /// `hr` translations.
 class AppLocalizationsHr implements AppLocalizations {
   /// Creates the hr translations.
@@ -976,6 +2526,34 @@ class AppLocalizationsHr implements AppLocalizations {
         $operands.f % 10 >= 2 &&
             $operands.f % 10 <= 4 &&
             !($operands.f % 100 >= 12 && $operands.f % 100 <= 14)) {
+      return 'few';
+    }
+    return 'other';
+  }
+}
+
+/// `hsb` translations.
+class AppLocalizationsHsb implements AppLocalizations {
+  /// Creates the hsb translations.
+  const AppLocalizationsHsb();
+
+  @override
+  AppLocale get appLocale => AppLocale.hsb;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('hsb');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.v == 0 && $operands.i % 100 == 1 || $operands.f % 100 == 1) {
+      return 'one';
+    }
+    if ($operands.v == 0 && $operands.i % 100 == 2 || $operands.f % 100 == 2) {
+      return 'two';
+    }
+    if ($operands.v == 0 && $operands.i % 100 >= 3 && $operands.i % 100 <= 4 ||
+        $operands.f % 100 >= 3 && $operands.f % 100 <= 4) {
       return 'few';
     }
     return 'other';
@@ -1017,7 +2595,28 @@ class AppLocalizationsHy implements AppLocalizations {
   @override
   String cat({required num count}) {
     final $operands = PluralOperands(count);
-    if ($operands.i == 0 || $operands.i == 1) {
+    if (($operands.i == 0 || $operands.i == 1)) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `ia` translations.
+class AppLocalizationsIa implements AppLocalizations {
+  /// Creates the ia translations.
+  const AppLocalizationsIa();
+
+  @override
+  AppLocale get appLocale => AppLocale.ia;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ia');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.i == 1 && $operands.v == 0) {
       return 'one';
     }
     return 'other';
@@ -1037,6 +2636,82 @@ class AppLocalizationsId implements AppLocalizations {
 
   @override
   String cat({required num count}) {
+    return 'other';
+  }
+}
+
+/// `ie` translations.
+class AppLocalizationsIe implements AppLocalizations {
+  /// Creates the ie translations.
+  const AppLocalizationsIe();
+
+  @override
+  AppLocale get appLocale => AppLocale.ie;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ie');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.i == 1 && $operands.v == 0) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `ig` translations.
+class AppLocalizationsIg implements AppLocalizations {
+  /// Creates the ig translations.
+  const AppLocalizationsIg();
+
+  @override
+  AppLocale get appLocale => AppLocale.ig;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ig');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
+/// `ii` translations.
+class AppLocalizationsIi implements AppLocalizations {
+  /// Creates the ii translations.
+  const AppLocalizationsIi();
+
+  @override
+  AppLocale get appLocale => AppLocale.ii;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ii');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
+/// `io` translations.
+class AppLocalizationsIo implements AppLocalizations {
+  /// Creates the io translations.
+  const AppLocalizationsIo();
+
+  @override
+  AppLocale get appLocale => AppLocale.io;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('io');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.i == 1 && $operands.v == 0) {
+      return 'one';
+    }
     return 'other';
   }
 }
@@ -1087,6 +2762,30 @@ class AppLocalizationsIt implements AppLocalizations {
   }
 }
 
+/// `iu` translations.
+class AppLocalizationsIu implements AppLocalizations {
+  /// Creates the iu translations.
+  const AppLocalizationsIu();
+
+  @override
+  AppLocale get appLocale => AppLocale.iu;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('iu');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    if ($operands.n == 2) {
+      return 'two';
+    }
+    return 'other';
+  }
+}
+
 /// `ja` translations.
 class AppLocalizationsJa implements AppLocalizations {
   /// Creates the ja translations.
@@ -1097,6 +2796,99 @@ class AppLocalizationsJa implements AppLocalizations {
 
   @override
   L10nLocale get l10nLocale => const L10nLocale('ja');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
+/// `jbo` translations.
+class AppLocalizationsJbo implements AppLocalizations {
+  /// Creates the jbo translations.
+  const AppLocalizationsJbo();
+
+  @override
+  AppLocale get appLocale => AppLocale.jbo;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('jbo');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
+/// `jgo` translations.
+class AppLocalizationsJgo implements AppLocalizations {
+  /// Creates the jgo translations.
+  const AppLocalizationsJgo();
+
+  @override
+  AppLocale get appLocale => AppLocale.jgo;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('jgo');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `jmc` translations.
+class AppLocalizationsJmc implements AppLocalizations {
+  /// Creates the jmc translations.
+  const AppLocalizationsJmc();
+
+  @override
+  AppLocale get appLocale => AppLocale.jmc;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('jmc');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `jv` translations.
+class AppLocalizationsJv implements AppLocalizations {
+  /// Creates the jv translations.
+  const AppLocalizationsJv();
+
+  @override
+  AppLocale get appLocale => AppLocale.jv;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('jv');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
+/// `jw` translations.
+class AppLocalizationsJw implements AppLocalizations {
+  /// Creates the jw translations.
+  const AppLocalizationsJw();
+
+  @override
+  AppLocale get appLocale => AppLocale.jw;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('jw');
 
   @override
   String cat({required num count}) {
@@ -1125,6 +2917,103 @@ class AppLocalizationsKa implements AppLocalizations {
   }
 }
 
+/// `kab` translations.
+class AppLocalizationsKab implements AppLocalizations {
+  /// Creates the kab translations.
+  const AppLocalizationsKab();
+
+  @override
+  AppLocale get appLocale => AppLocale.kab;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('kab');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if (($operands.i == 0 || $operands.i == 1)) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `kaj` translations.
+class AppLocalizationsKaj implements AppLocalizations {
+  /// Creates the kaj translations.
+  const AppLocalizationsKaj();
+
+  @override
+  AppLocale get appLocale => AppLocale.kaj;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('kaj');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `kcg` translations.
+class AppLocalizationsKcg implements AppLocalizations {
+  /// Creates the kcg translations.
+  const AppLocalizationsKcg();
+
+  @override
+  AppLocale get appLocale => AppLocale.kcg;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('kcg');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `kde` translations.
+class AppLocalizationsKde implements AppLocalizations {
+  /// Creates the kde translations.
+  const AppLocalizationsKde();
+
+  @override
+  AppLocale get appLocale => AppLocale.kde;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('kde');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
+/// `kea` translations.
+class AppLocalizationsKea implements AppLocalizations {
+  /// Creates the kea translations.
+  const AppLocalizationsKea();
+
+  @override
+  AppLocale get appLocale => AppLocale.kea;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('kea');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
 /// `kk` translations.
 class AppLocalizationsKk implements AppLocalizations {
   /// Creates the kk translations.
@@ -1135,6 +3024,48 @@ class AppLocalizationsKk implements AppLocalizations {
 
   @override
   L10nLocale get l10nLocale => const L10nLocale('kk');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `kkj` translations.
+class AppLocalizationsKkj implements AppLocalizations {
+  /// Creates the kkj translations.
+  const AppLocalizationsKkj();
+
+  @override
+  AppLocale get appLocale => AppLocale.kkj;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('kkj');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `kl` translations.
+class AppLocalizationsKl implements AppLocalizations {
+  /// Creates the kl translations.
+  const AppLocalizationsKl();
+
+  @override
+  AppLocale get appLocale => AppLocale.kl;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('kl');
 
   @override
   String cat({required num count}) {
@@ -1201,6 +3132,168 @@ class AppLocalizationsKo implements AppLocalizations {
   }
 }
 
+/// `kok` translations.
+class AppLocalizationsKok implements AppLocalizations {
+  /// Creates the kok translations.
+  const AppLocalizationsKok();
+
+  @override
+  AppLocale get appLocale => AppLocale.kok;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('kok');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.i == 0 || $operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `ks` translations.
+class AppLocalizationsKs implements AppLocalizations {
+  /// Creates the ks translations.
+  const AppLocalizationsKs();
+
+  @override
+  AppLocale get appLocale => AppLocale.ks;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ks');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `ksb` translations.
+class AppLocalizationsKsb implements AppLocalizations {
+  /// Creates the ksb translations.
+  const AppLocalizationsKsb();
+
+  @override
+  AppLocale get appLocale => AppLocale.ksb;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ksb');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `ksh` translations.
+class AppLocalizationsKsh implements AppLocalizations {
+  /// Creates the ksh translations.
+  const AppLocalizationsKsh();
+
+  @override
+  AppLocale get appLocale => AppLocale.ksh;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ksh');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 0) {
+      return 'zero';
+    }
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `ku` translations.
+class AppLocalizationsKu implements AppLocalizations {
+  /// Creates the ku translations.
+  const AppLocalizationsKu();
+
+  @override
+  AppLocale get appLocale => AppLocale.ku;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ku');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `kw` translations.
+class AppLocalizationsKw implements AppLocalizations {
+  /// Creates the kw translations.
+  const AppLocalizationsKw();
+
+  @override
+  AppLocale get appLocale => AppLocale.kw;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('kw');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 0) {
+      return 'zero';
+    }
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    if (($operands.n % 100 == 2 ||
+            $operands.n % 100 == 22 ||
+            $operands.n % 100 == 42 ||
+            $operands.n % 100 == 62 ||
+            $operands.n % 100 == 82) ||
+        $operands.n % 1000 == 0 &&
+            ($operands.n == $operands.i &&
+                    $operands.n % 100000 >= 1000 &&
+                    $operands.n % 100000 <= 20000 ||
+                $operands.n % 100000 == 40000 ||
+                $operands.n % 100000 == 60000 ||
+                $operands.n % 100000 == 80000) ||
+        $operands.n != 0 && $operands.n % 1000000 == 100000) {
+      return 'two';
+    }
+    if (($operands.n % 100 == 3 ||
+        $operands.n % 100 == 23 ||
+        $operands.n % 100 == 43 ||
+        $operands.n % 100 == 63 ||
+        $operands.n % 100 == 83)) {
+      return 'few';
+    }
+    if ($operands.n != 1 &&
+        ($operands.n % 100 == 1 ||
+            $operands.n % 100 == 21 ||
+            $operands.n % 100 == 41 ||
+            $operands.n % 100 == 61 ||
+            $operands.n % 100 == 81)) {
+      return 'many';
+    }
+    return 'other';
+  }
+}
+
 /// `ky` translations.
 class AppLocalizationsKy implements AppLocalizations {
   /// Creates the ky translations.
@@ -1216,6 +3309,155 @@ class AppLocalizationsKy implements AppLocalizations {
   String cat({required num count}) {
     final $operands = PluralOperands(count);
     if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `lag` translations.
+class AppLocalizationsLag implements AppLocalizations {
+  /// Creates the lag translations.
+  const AppLocalizationsLag();
+
+  @override
+  AppLocale get appLocale => AppLocale.lag;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('lag');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 0) {
+      return 'zero';
+    }
+    if (($operands.i == 0 || $operands.i == 1) && $operands.n != 0) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `lb` translations.
+class AppLocalizationsLb implements AppLocalizations {
+  /// Creates the lb translations.
+  const AppLocalizationsLb();
+
+  @override
+  AppLocale get appLocale => AppLocale.lb;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('lb');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `lg` translations.
+class AppLocalizationsLg implements AppLocalizations {
+  /// Creates the lg translations.
+  const AppLocalizationsLg();
+
+  @override
+  AppLocale get appLocale => AppLocale.lg;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('lg');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `lij` translations.
+class AppLocalizationsLij implements AppLocalizations {
+  /// Creates the lij translations.
+  const AppLocalizationsLij();
+
+  @override
+  AppLocale get appLocale => AppLocale.lij;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('lij');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.i == 1 && $operands.v == 0) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `lkt` translations.
+class AppLocalizationsLkt implements AppLocalizations {
+  /// Creates the lkt translations.
+  const AppLocalizationsLkt();
+
+  @override
+  AppLocale get appLocale => AppLocale.lkt;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('lkt');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
+/// `lld` translations.
+class AppLocalizationsLld implements AppLocalizations {
+  /// Creates the lld translations.
+  const AppLocalizationsLld();
+
+  @override
+  AppLocale get appLocale => AppLocale.lld;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('lld');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.i == 1 && $operands.v == 0) {
+      return 'one';
+    }
+    if ($operands.i != 0 && $operands.i % 1000000 == 0 && $operands.v == 0) {
+      return 'many';
+    }
+    return 'other';
+  }
+}
+
+/// `ln` translations.
+class AppLocalizationsLn implements AppLocalizations {
+  /// Creates the ln translations.
+  const AppLocalizationsLn();
+
+  @override
+  AppLocale get appLocale => AppLocale.ln;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ln');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == $operands.i && $operands.n >= 0 && $operands.n <= 1) {
       return 'one';
     }
     return 'other';
@@ -1254,14 +3496,17 @@ class AppLocalizationsLt implements AppLocalizations {
   String cat({required num count}) {
     final $operands = PluralOperands(count);
     if ($operands.n % 10 == 1 &&
-        !($operands.n % 100 >= 11 && $operands.n % 100 <= 19) &&
-        $operands.v == 0) {
+        !($operands.n == $operands.i &&
+            $operands.n % 100 >= 11 &&
+            $operands.n % 100 <= 19)) {
       return 'one';
     }
-    if ($operands.n % 10 >= 2 &&
+    if ($operands.n == $operands.i &&
+        $operands.n % 10 >= 2 &&
         $operands.n % 10 <= 9 &&
-        !($operands.n % 100 >= 11 && $operands.n % 100 <= 19) &&
-        $operands.v == 0) {
+        !($operands.n == $operands.i &&
+            $operands.n % 100 >= 11 &&
+            $operands.n % 100 <= 19)) {
       return 'few';
     }
     if ($operands.f != 0) {
@@ -1285,8 +3530,8 @@ class AppLocalizationsLv implements AppLocalizations {
   @override
   String cat({required num count}) {
     final $operands = PluralOperands(count);
-    if ($operands.v == 0 && $operands.n % 10 == 0 ||
-        $operands.v == 0 &&
+    if ($operands.n % 10 == 0 ||
+        $operands.n == $operands.i &&
             $operands.n % 100 >= 11 &&
             $operands.n % 100 <= 19 ||
         $operands.v == 2 &&
@@ -1294,9 +3539,72 @@ class AppLocalizationsLv implements AppLocalizations {
             $operands.f % 100 <= 19) {
       return 'zero';
     }
-    if ($operands.v == 0 && $operands.n % 10 == 1 && $operands.n % 100 != 11 ||
+    if ($operands.n % 10 == 1 && $operands.n % 100 != 11 ||
         $operands.v == 2 && $operands.f % 10 == 1 && $operands.f % 100 != 11 ||
         $operands.v != 2 && $operands.f % 10 == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `mas` translations.
+class AppLocalizationsMas implements AppLocalizations {
+  /// Creates the mas translations.
+  const AppLocalizationsMas();
+
+  @override
+  AppLocale get appLocale => AppLocale.mas;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('mas');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `mg` translations.
+class AppLocalizationsMg implements AppLocalizations {
+  /// Creates the mg translations.
+  const AppLocalizationsMg();
+
+  @override
+  AppLocale get appLocale => AppLocale.mg;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('mg');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == $operands.i && $operands.n >= 0 && $operands.n <= 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `mgo` translations.
+class AppLocalizationsMgo implements AppLocalizations {
+  /// Creates the mgo translations.
+  const AppLocalizationsMgo();
+
+  @override
+  AppLocale get appLocale => AppLocale.mgo;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('mgo');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
       return 'one';
     }
     return 'other';
@@ -1367,6 +3675,35 @@ class AppLocalizationsMn implements AppLocalizations {
   }
 }
 
+/// `mo` translations.
+class AppLocalizationsMo implements AppLocalizations {
+  /// Creates the mo translations.
+  const AppLocalizationsMo();
+
+  @override
+  AppLocale get appLocale => AppLocale.mo;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('mo');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.i == 1 && $operands.v == 0) {
+      return 'one';
+    }
+    if ($operands.v != 0 ||
+        $operands.n == 0 ||
+        $operands.n != 1 &&
+            $operands.n == $operands.i &&
+            $operands.n % 100 >= 1 &&
+            $operands.n % 100 <= 19) {
+      return 'few';
+    }
+    return 'other';
+  }
+}
+
 /// `mr` translations.
 class AppLocalizationsMr implements AppLocalizations {
   /// Creates the mr translations.
@@ -1405,6 +3742,41 @@ class AppLocalizationsMs implements AppLocalizations {
   }
 }
 
+/// `mt` translations.
+class AppLocalizationsMt implements AppLocalizations {
+  /// Creates the mt translations.
+  const AppLocalizationsMt();
+
+  @override
+  AppLocale get appLocale => AppLocale.mt;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('mt');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    if ($operands.n == 2) {
+      return 'two';
+    }
+    if ($operands.n == 0 ||
+        $operands.n == $operands.i &&
+            $operands.n % 100 >= 3 &&
+            $operands.n % 100 <= 10) {
+      return 'few';
+    }
+    if ($operands.n == $operands.i &&
+        $operands.n % 100 >= 11 &&
+        $operands.n % 100 <= 19) {
+      return 'many';
+    }
+    return 'other';
+  }
+}
+
 /// `my` translations.
 class AppLocalizationsMy implements AppLocalizations {
   /// Creates the my translations.
@@ -1422,6 +3794,51 @@ class AppLocalizationsMy implements AppLocalizations {
   }
 }
 
+/// `nah` translations.
+class AppLocalizationsNah implements AppLocalizations {
+  /// Creates the nah translations.
+  const AppLocalizationsNah();
+
+  @override
+  AppLocale get appLocale => AppLocale.nah;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('nah');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `naq` translations.
+class AppLocalizationsNaq implements AppLocalizations {
+  /// Creates the naq translations.
+  const AppLocalizationsNaq();
+
+  @override
+  AppLocale get appLocale => AppLocale.naq;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('naq');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    if ($operands.n == 2) {
+      return 'two';
+    }
+    return 'other';
+  }
+}
+
 /// `nb` translations.
 class AppLocalizationsNb implements AppLocalizations {
   /// Creates the nb translations.
@@ -1432,6 +3849,27 @@ class AppLocalizationsNb implements AppLocalizations {
 
   @override
   L10nLocale get l10nLocale => const L10nLocale('nb');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `nd` translations.
+class AppLocalizationsNd implements AppLocalizations {
+  /// Creates the nd translations.
+  const AppLocalizationsNd();
+
+  @override
+  AppLocale get appLocale => AppLocale.nd;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('nd');
 
   @override
   String cat({required num count}) {
@@ -1485,6 +3923,48 @@ class AppLocalizationsNl implements AppLocalizations {
   }
 }
 
+/// `nn` translations.
+class AppLocalizationsNn implements AppLocalizations {
+  /// Creates the nn translations.
+  const AppLocalizationsNn();
+
+  @override
+  AppLocale get appLocale => AppLocale.nn;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('nn');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `nnh` translations.
+class AppLocalizationsNnh implements AppLocalizations {
+  /// Creates the nnh translations.
+  const AppLocalizationsNnh();
+
+  @override
+  AppLocale get appLocale => AppLocale.nnh;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('nnh');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
 /// `no` translations.
 class AppLocalizationsNo implements AppLocalizations {
   /// Creates the no translations.
@@ -1495,6 +3975,128 @@ class AppLocalizationsNo implements AppLocalizations {
 
   @override
   L10nLocale get l10nLocale => const L10nLocale('no');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `nqo` translations.
+class AppLocalizationsNqo implements AppLocalizations {
+  /// Creates the nqo translations.
+  const AppLocalizationsNqo();
+
+  @override
+  AppLocale get appLocale => AppLocale.nqo;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('nqo');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
+/// `nr` translations.
+class AppLocalizationsNr implements AppLocalizations {
+  /// Creates the nr translations.
+  const AppLocalizationsNr();
+
+  @override
+  AppLocale get appLocale => AppLocale.nr;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('nr');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `nso` translations.
+class AppLocalizationsNso implements AppLocalizations {
+  /// Creates the nso translations.
+  const AppLocalizationsNso();
+
+  @override
+  AppLocale get appLocale => AppLocale.nso;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('nso');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == $operands.i && $operands.n >= 0 && $operands.n <= 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `ny` translations.
+class AppLocalizationsNy implements AppLocalizations {
+  /// Creates the ny translations.
+  const AppLocalizationsNy();
+
+  @override
+  AppLocale get appLocale => AppLocale.ny;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ny');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `nyn` translations.
+class AppLocalizationsNyn implements AppLocalizations {
+  /// Creates the nyn translations.
+  const AppLocalizationsNyn();
+
+  @override
+  AppLocale get appLocale => AppLocale.nyn;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('nyn');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `om` translations.
+class AppLocalizationsOm implements AppLocalizations {
+  /// Creates the om translations.
+  const AppLocalizationsOm();
+
+  @override
+  AppLocale get appLocale => AppLocale.om;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('om');
 
   @override
   String cat({required num count}) {
@@ -1521,6 +4123,107 @@ class AppLocalizationsOr implements AppLocalizations {
   String cat({required num count}) {
     final $operands = PluralOperands(count);
     if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `os` translations.
+class AppLocalizationsOs implements AppLocalizations {
+  /// Creates the os translations.
+  const AppLocalizationsOs();
+
+  @override
+  AppLocale get appLocale => AppLocale.os;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('os');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `osa` translations.
+class AppLocalizationsOsa implements AppLocalizations {
+  /// Creates the osa translations.
+  const AppLocalizationsOsa();
+
+  @override
+  AppLocale get appLocale => AppLocale.osa;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('osa');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
+/// `pa` translations.
+class AppLocalizationsPa implements AppLocalizations {
+  /// Creates the pa translations.
+  const AppLocalizationsPa();
+
+  @override
+  AppLocale get appLocale => AppLocale.pa;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('pa');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == $operands.i && $operands.n >= 0 && $operands.n <= 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `pap` translations.
+class AppLocalizationsPap implements AppLocalizations {
+  /// Creates the pap translations.
+  const AppLocalizationsPap();
+
+  @override
+  AppLocale get appLocale => AppLocale.pap;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('pap');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `pcm` translations.
+class AppLocalizationsPcm implements AppLocalizations {
+  /// Creates the pcm translations.
+  const AppLocalizationsPcm();
+
+  @override
+  AppLocale get appLocale => AppLocale.pcm;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('pcm');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.i == 0 || $operands.n == 1) {
       return 'one';
     }
     return 'other';
@@ -1559,6 +4262,38 @@ class AppLocalizationsPl implements AppLocalizations {
             $operands.i % 100 >= 12 &&
             $operands.i % 100 <= 14) {
       return 'many';
+    }
+    return 'other';
+  }
+}
+
+/// `prg` translations.
+class AppLocalizationsPrg implements AppLocalizations {
+  /// Creates the prg translations.
+  const AppLocalizationsPrg();
+
+  @override
+  AppLocale get appLocale => AppLocale.prg;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('prg');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n % 10 == 0 ||
+        $operands.n == $operands.i &&
+            $operands.n % 100 >= 11 &&
+            $operands.n % 100 <= 19 ||
+        $operands.v == 2 &&
+            $operands.f % 100 >= 11 &&
+            $operands.f % 100 <= 19) {
+      return 'zero';
+    }
+    if ($operands.n % 10 == 1 && $operands.n % 100 != 11 ||
+        $operands.v == 2 && $operands.f % 10 == 1 && $operands.f % 100 != 11 ||
+        $operands.v != 2 && $operands.f % 10 == 1) {
+      return 'one';
     }
     return 'other';
   }
@@ -1609,6 +4344,27 @@ class AppLocalizationsPt implements AppLocalizations {
   }
 }
 
+/// `rm` translations.
+class AppLocalizationsRm implements AppLocalizations {
+  /// Creates the rm translations.
+  const AppLocalizationsRm();
+
+  @override
+  AppLocale get appLocale => AppLocale.rm;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('rm');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
 /// `ro` translations.
 class AppLocalizationsRo implements AppLocalizations {
   /// Creates the ro translations.
@@ -1628,8 +4384,32 @@ class AppLocalizationsRo implements AppLocalizations {
     }
     if ($operands.v != 0 ||
         $operands.n == 0 ||
-        $operands.n != 1 && $operands.n % 100 >= 1 && $operands.n % 100 <= 19) {
+        $operands.n != 1 &&
+            $operands.n == $operands.i &&
+            $operands.n % 100 >= 1 &&
+            $operands.n % 100 <= 19) {
       return 'few';
+    }
+    return 'other';
+  }
+}
+
+/// `rof` translations.
+class AppLocalizationsRof implements AppLocalizations {
+  /// Creates the rof translations.
+  const AppLocalizationsRof();
+
+  @override
+  AppLocale get appLocale => AppLocale.rof;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('rof');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
     }
     return 'other';
   }
@@ -1669,6 +4449,346 @@ class AppLocalizationsRu implements AppLocalizations {
   }
 }
 
+/// `rwk` translations.
+class AppLocalizationsRwk implements AppLocalizations {
+  /// Creates the rwk translations.
+  const AppLocalizationsRwk();
+
+  @override
+  AppLocale get appLocale => AppLocale.rwk;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('rwk');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `sah` translations.
+class AppLocalizationsSah implements AppLocalizations {
+  /// Creates the sah translations.
+  const AppLocalizationsSah();
+
+  @override
+  AppLocale get appLocale => AppLocale.sah;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('sah');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
+/// `saq` translations.
+class AppLocalizationsSaq implements AppLocalizations {
+  /// Creates the saq translations.
+  const AppLocalizationsSaq();
+
+  @override
+  AppLocale get appLocale => AppLocale.saq;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('saq');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `sat` translations.
+class AppLocalizationsSat implements AppLocalizations {
+  /// Creates the sat translations.
+  const AppLocalizationsSat();
+
+  @override
+  AppLocale get appLocale => AppLocale.sat;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('sat');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    if ($operands.n == 2) {
+      return 'two';
+    }
+    return 'other';
+  }
+}
+
+/// `sc` translations.
+class AppLocalizationsSc implements AppLocalizations {
+  /// Creates the sc translations.
+  const AppLocalizationsSc();
+
+  @override
+  AppLocale get appLocale => AppLocale.sc;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('sc');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.i == 1 && $operands.v == 0) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `scn` translations.
+class AppLocalizationsScn implements AppLocalizations {
+  /// Creates the scn translations.
+  const AppLocalizationsScn();
+
+  @override
+  AppLocale get appLocale => AppLocale.scn;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('scn');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.i == 1 && $operands.v == 0) {
+      return 'one';
+    }
+    if ($operands.i != 0 && $operands.i % 1000000 == 0 && $operands.v == 0) {
+      return 'many';
+    }
+    return 'other';
+  }
+}
+
+/// `sd` translations.
+class AppLocalizationsSd implements AppLocalizations {
+  /// Creates the sd translations.
+  const AppLocalizationsSd();
+
+  @override
+  AppLocale get appLocale => AppLocale.sd;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('sd');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `sdh` translations.
+class AppLocalizationsSdh implements AppLocalizations {
+  /// Creates the sdh translations.
+  const AppLocalizationsSdh();
+
+  @override
+  AppLocale get appLocale => AppLocale.sdh;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('sdh');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `se` translations.
+class AppLocalizationsSe implements AppLocalizations {
+  /// Creates the se translations.
+  const AppLocalizationsSe();
+
+  @override
+  AppLocale get appLocale => AppLocale.se;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('se');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    if ($operands.n == 2) {
+      return 'two';
+    }
+    return 'other';
+  }
+}
+
+/// `seh` translations.
+class AppLocalizationsSeh implements AppLocalizations {
+  /// Creates the seh translations.
+  const AppLocalizationsSeh();
+
+  @override
+  AppLocale get appLocale => AppLocale.seh;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('seh');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `ses` translations.
+class AppLocalizationsSes implements AppLocalizations {
+  /// Creates the ses translations.
+  const AppLocalizationsSes();
+
+  @override
+  AppLocale get appLocale => AppLocale.ses;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ses');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
+/// `sg` translations.
+class AppLocalizationsSg implements AppLocalizations {
+  /// Creates the sg translations.
+  const AppLocalizationsSg();
+
+  @override
+  AppLocale get appLocale => AppLocale.sg;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('sg');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
+/// `sgs` translations.
+class AppLocalizationsSgs implements AppLocalizations {
+  /// Creates the sgs translations.
+  const AppLocalizationsSgs();
+
+  @override
+  AppLocale get appLocale => AppLocale.sgs;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('sgs');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n % 10 == 1 && $operands.n % 100 != 11) {
+      return 'one';
+    }
+    if ($operands.n == 2) {
+      return 'two';
+    }
+    if ($operands.n != 2 &&
+        $operands.n == $operands.i &&
+        $operands.n % 10 >= 2 &&
+        $operands.n % 10 <= 9 &&
+        !($operands.n == $operands.i &&
+            $operands.n % 100 >= 11 &&
+            $operands.n % 100 <= 19)) {
+      return 'few';
+    }
+    if ($operands.f != 0) {
+      return 'many';
+    }
+    return 'other';
+  }
+}
+
+/// `sh` translations.
+class AppLocalizationsSh implements AppLocalizations {
+  /// Creates the sh translations.
+  const AppLocalizationsSh();
+
+  @override
+  AppLocale get appLocale => AppLocale.sh;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('sh');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11 ||
+        $operands.f % 10 == 1 && $operands.f % 100 != 11) {
+      return 'one';
+    }
+    if ($operands.v == 0 &&
+            $operands.i % 10 >= 2 &&
+            $operands.i % 10 <= 4 &&
+            !($operands.i % 100 >= 12 && $operands.i % 100 <= 14) ||
+        $operands.f % 10 >= 2 &&
+            $operands.f % 10 <= 4 &&
+            !($operands.f % 100 >= 12 && $operands.f % 100 <= 14)) {
+      return 'few';
+    }
+    return 'other';
+  }
+}
+
+/// `shi` translations.
+class AppLocalizationsShi implements AppLocalizations {
+  /// Creates the shi translations.
+  const AppLocalizationsShi();
+
+  @override
+  AppLocale get appLocale => AppLocale.shi;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('shi');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.i == 0 || $operands.n == 1) {
+      return 'one';
+    }
+    if ($operands.n == $operands.i && $operands.n >= 2 && $operands.n <= 10) {
+      return 'few';
+    }
+    return 'other';
+  }
+}
+
 /// `si` translations.
 class AppLocalizationsSi implements AppLocalizations {
   /// Creates the si translations.
@@ -1683,8 +4803,7 @@ class AppLocalizationsSi implements AppLocalizations {
   @override
   String cat({required num count}) {
     final $operands = PluralOperands(count);
-    if ($operands.n == 0 ||
-        $operands.n == 1 ||
+    if (($operands.n == 0 || $operands.n == 1) ||
         $operands.i == 0 && $operands.f == 1) {
       return 'one';
     }
@@ -1747,6 +4866,168 @@ class AppLocalizationsSl implements AppLocalizations {
   }
 }
 
+/// `sma` translations.
+class AppLocalizationsSma implements AppLocalizations {
+  /// Creates the sma translations.
+  const AppLocalizationsSma();
+
+  @override
+  AppLocale get appLocale => AppLocale.sma;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('sma');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    if ($operands.n == 2) {
+      return 'two';
+    }
+    return 'other';
+  }
+}
+
+/// `smi` translations.
+class AppLocalizationsSmi implements AppLocalizations {
+  /// Creates the smi translations.
+  const AppLocalizationsSmi();
+
+  @override
+  AppLocale get appLocale => AppLocale.smi;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('smi');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    if ($operands.n == 2) {
+      return 'two';
+    }
+    return 'other';
+  }
+}
+
+/// `smj` translations.
+class AppLocalizationsSmj implements AppLocalizations {
+  /// Creates the smj translations.
+  const AppLocalizationsSmj();
+
+  @override
+  AppLocale get appLocale => AppLocale.smj;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('smj');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    if ($operands.n == 2) {
+      return 'two';
+    }
+    return 'other';
+  }
+}
+
+/// `smn` translations.
+class AppLocalizationsSmn implements AppLocalizations {
+  /// Creates the smn translations.
+  const AppLocalizationsSmn();
+
+  @override
+  AppLocale get appLocale => AppLocale.smn;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('smn');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    if ($operands.n == 2) {
+      return 'two';
+    }
+    return 'other';
+  }
+}
+
+/// `sms` translations.
+class AppLocalizationsSms implements AppLocalizations {
+  /// Creates the sms translations.
+  const AppLocalizationsSms();
+
+  @override
+  AppLocale get appLocale => AppLocale.sms;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('sms');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    if ($operands.n == 2) {
+      return 'two';
+    }
+    return 'other';
+  }
+}
+
+/// `sn` translations.
+class AppLocalizationsSn implements AppLocalizations {
+  /// Creates the sn translations.
+  const AppLocalizationsSn();
+
+  @override
+  AppLocale get appLocale => AppLocale.sn;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('sn');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `so` translations.
+class AppLocalizationsSo implements AppLocalizations {
+  /// Creates the so translations.
+  const AppLocalizationsSo();
+
+  @override
+  AppLocale get appLocale => AppLocale.so;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('so');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
 /// `sq` translations.
 class AppLocalizationsSq implements AppLocalizations {
   /// Creates the sq translations.
@@ -1799,6 +5080,86 @@ class AppLocalizationsSr implements AppLocalizations {
   }
 }
 
+/// `ss` translations.
+class AppLocalizationsSs implements AppLocalizations {
+  /// Creates the ss translations.
+  const AppLocalizationsSs();
+
+  @override
+  AppLocale get appLocale => AppLocale.ss;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ss');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `ssy` translations.
+class AppLocalizationsSsy implements AppLocalizations {
+  /// Creates the ssy translations.
+  const AppLocalizationsSsy();
+
+  @override
+  AppLocale get appLocale => AppLocale.ssy;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ssy');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `st` translations.
+class AppLocalizationsSt implements AppLocalizations {
+  /// Creates the st translations.
+  const AppLocalizationsSt();
+
+  @override
+  AppLocale get appLocale => AppLocale.st;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('st');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `su` translations.
+class AppLocalizationsSu implements AppLocalizations {
+  /// Creates the su translations.
+  const AppLocalizationsSu();
+
+  @override
+  AppLocale get appLocale => AppLocale.su;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('su');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
 /// `sv` translations.
 class AppLocalizationsSv implements AppLocalizations {
   /// Creates the sv translations.
@@ -1835,6 +5196,27 @@ class AppLocalizationsSw implements AppLocalizations {
   String cat({required num count}) {
     final $operands = PluralOperands(count);
     if ($operands.i == 1 && $operands.v == 0) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `syr` translations.
+class AppLocalizationsSyr implements AppLocalizations {
+  /// Creates the syr translations.
+  const AppLocalizationsSyr();
+
+  @override
+  AppLocale get appLocale => AppLocale.syr;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('syr');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
       return 'one';
     }
     return 'other';
@@ -1883,6 +5265,27 @@ class AppLocalizationsTe implements AppLocalizations {
   }
 }
 
+/// `teo` translations.
+class AppLocalizationsTeo implements AppLocalizations {
+  /// Creates the teo translations.
+  const AppLocalizationsTeo();
+
+  @override
+  AppLocale get appLocale => AppLocale.teo;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('teo');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
 /// `th` translations.
 class AppLocalizationsTh implements AppLocalizations {
   /// Creates the th translations.
@@ -1900,6 +5303,154 @@ class AppLocalizationsTh implements AppLocalizations {
   }
 }
 
+/// `ti` translations.
+class AppLocalizationsTi implements AppLocalizations {
+  /// Creates the ti translations.
+  const AppLocalizationsTi();
+
+  @override
+  AppLocale get appLocale => AppLocale.ti;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ti');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == $operands.i && $operands.n >= 0 && $operands.n <= 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `tig` translations.
+class AppLocalizationsTig implements AppLocalizations {
+  /// Creates the tig translations.
+  const AppLocalizationsTig();
+
+  @override
+  AppLocale get appLocale => AppLocale.tig;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('tig');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `tk` translations.
+class AppLocalizationsTk implements AppLocalizations {
+  /// Creates the tk translations.
+  const AppLocalizationsTk();
+
+  @override
+  AppLocale get appLocale => AppLocale.tk;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('tk');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `tl` translations.
+class AppLocalizationsTl implements AppLocalizations {
+  /// Creates the tl translations.
+  const AppLocalizationsTl();
+
+  @override
+  AppLocale get appLocale => AppLocale.tl;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('tl');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.v == 0 &&
+            ($operands.i == 1 || $operands.i == 2 || $operands.i == 3) ||
+        $operands.v == 0 &&
+            $operands.i % 10 != 4 &&
+            $operands.i % 10 != 6 &&
+            $operands.i % 10 != 9 ||
+        $operands.v != 0 &&
+            $operands.f % 10 != 4 &&
+            $operands.f % 10 != 6 &&
+            $operands.f % 10 != 9) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `tn` translations.
+class AppLocalizationsTn implements AppLocalizations {
+  /// Creates the tn translations.
+  const AppLocalizationsTn();
+
+  @override
+  AppLocale get appLocale => AppLocale.tn;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('tn');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `to` translations.
+class AppLocalizationsTo implements AppLocalizations {
+  /// Creates the to translations.
+  const AppLocalizationsTo();
+
+  @override
+  AppLocale get appLocale => AppLocale.to;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('to');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
+/// `tpi` translations.
+class AppLocalizationsTpi implements AppLocalizations {
+  /// Creates the tpi translations.
+  const AppLocalizationsTpi();
+
+  @override
+  AppLocale get appLocale => AppLocale.tpi;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('tpi');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
 /// `tr` translations.
 class AppLocalizationsTr implements AppLocalizations {
   /// Creates the tr translations.
@@ -1910,6 +5461,70 @@ class AppLocalizationsTr implements AppLocalizations {
 
   @override
   L10nLocale get l10nLocale => const L10nLocale('tr');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `ts` translations.
+class AppLocalizationsTs implements AppLocalizations {
+  /// Creates the ts translations.
+  const AppLocalizationsTs();
+
+  @override
+  AppLocale get appLocale => AppLocale.ts;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ts');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `tzm` translations.
+class AppLocalizationsTzm implements AppLocalizations {
+  /// Creates the tzm translations.
+  const AppLocalizationsTzm();
+
+  @override
+  AppLocale get appLocale => AppLocale.tzm;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('tzm');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == $operands.i && $operands.n >= 0 && $operands.n <= 1 ||
+        $operands.n == $operands.i && $operands.n >= 11 && $operands.n <= 99) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `ug` translations.
+class AppLocalizationsUg implements AppLocalizations {
+  /// Creates the ug translations.
+  const AppLocalizationsUg();
+
+  @override
+  AppLocale get appLocale => AppLocale.ug;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ug');
 
   @override
   String cat({required num count}) {
@@ -1951,6 +5566,23 @@ class AppLocalizationsUk implements AppLocalizations {
             $operands.i % 100 <= 14) {
       return 'many';
     }
+    return 'other';
+  }
+}
+
+/// `und` translations.
+class AppLocalizationsUnd implements AppLocalizations {
+  /// Creates the und translations.
+  const AppLocalizationsUnd();
+
+  @override
+  AppLocale get appLocale => AppLocale.und;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('und');
+
+  @override
+  String cat({required num count}) {
     return 'other';
   }
 }
@@ -1997,6 +5629,51 @@ class AppLocalizationsUz implements AppLocalizations {
   }
 }
 
+/// `ve` translations.
+class AppLocalizationsVe implements AppLocalizations {
+  /// Creates the ve translations.
+  const AppLocalizationsVe();
+
+  @override
+  AppLocale get appLocale => AppLocale.ve;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('ve');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `vec` translations.
+class AppLocalizationsVec implements AppLocalizations {
+  /// Creates the vec translations.
+  const AppLocalizationsVec();
+
+  @override
+  AppLocale get appLocale => AppLocale.vec;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('vec');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.i == 1 && $operands.v == 0) {
+      return 'one';
+    }
+    if ($operands.i != 0 && $operands.i % 1000000 == 0 && $operands.v == 0) {
+      return 'many';
+    }
+    return 'other';
+  }
+}
+
 /// `vi` translations.
 class AppLocalizationsVi implements AppLocalizations {
   /// Creates the vi translations.
@@ -2007,6 +5684,204 @@ class AppLocalizationsVi implements AppLocalizations {
 
   @override
   L10nLocale get l10nLocale => const L10nLocale('vi');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
+/// `vo` translations.
+class AppLocalizationsVo implements AppLocalizations {
+  /// Creates the vo translations.
+  const AppLocalizationsVo();
+
+  @override
+  AppLocale get appLocale => AppLocale.vo;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('vo');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `vun` translations.
+class AppLocalizationsVun implements AppLocalizations {
+  /// Creates the vun translations.
+  const AppLocalizationsVun();
+
+  @override
+  AppLocale get appLocale => AppLocale.vun;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('vun');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `wa` translations.
+class AppLocalizationsWa implements AppLocalizations {
+  /// Creates the wa translations.
+  const AppLocalizationsWa();
+
+  @override
+  AppLocale get appLocale => AppLocale.wa;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('wa');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == $operands.i && $operands.n >= 0 && $operands.n <= 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `wae` translations.
+class AppLocalizationsWae implements AppLocalizations {
+  /// Creates the wae translations.
+  const AppLocalizationsWae();
+
+  @override
+  AppLocale get appLocale => AppLocale.wae;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('wae');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `wo` translations.
+class AppLocalizationsWo implements AppLocalizations {
+  /// Creates the wo translations.
+  const AppLocalizationsWo();
+
+  @override
+  AppLocale get appLocale => AppLocale.wo;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('wo');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
+/// `xh` translations.
+class AppLocalizationsXh implements AppLocalizations {
+  /// Creates the xh translations.
+  const AppLocalizationsXh();
+
+  @override
+  AppLocale get appLocale => AppLocale.xh;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('xh');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `xog` translations.
+class AppLocalizationsXog implements AppLocalizations {
+  /// Creates the xog translations.
+  const AppLocalizationsXog();
+
+  @override
+  AppLocale get appLocale => AppLocale.xog;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('xog');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `yi` translations.
+class AppLocalizationsYi implements AppLocalizations {
+  /// Creates the yi translations.
+  const AppLocalizationsYi();
+
+  @override
+  AppLocale get appLocale => AppLocale.yi;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('yi');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.i == 1 && $operands.v == 0) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
+/// `yo` translations.
+class AppLocalizationsYo implements AppLocalizations {
+  /// Creates the yo translations.
+  const AppLocalizationsYo();
+
+  @override
+  AppLocale get appLocale => AppLocale.yo;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('yo');
+
+  @override
+  String cat({required num count}) {
+    return 'other';
+  }
+}
+
+/// `yue` translations.
+class AppLocalizationsYue implements AppLocalizations {
+  /// Creates the yue translations.
+  const AppLocalizationsYue();
+
+  @override
+  AppLocale get appLocale => AppLocale.yue;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('yue');
 
   @override
   String cat({required num count}) {

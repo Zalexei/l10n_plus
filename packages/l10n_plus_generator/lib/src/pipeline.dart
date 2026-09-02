@@ -67,6 +67,7 @@ final class GenerationResult {
     required this.diagnostics,
     required this.files,
     this.keys = const [],
+    this.ignoredCount = 0,
   });
 
   /// Everything reported along the way, in stage order.
@@ -80,6 +81,12 @@ final class GenerationResult {
   /// For tools that ask questions about the result rather than write it —
   /// today, which keys nothing uses.
   final List<TranslationKey> keys;
+
+  /// How many warnings `ignore_diagnostics` dropped.
+  ///
+  /// Surfaced so the CLI can say that the report is shorter than it would
+  /// have been, rather than a project quietly forgetting what it silenced.
+  final int ignoredCount;
 
   /// Whether any error was reported.
   bool get hasErrors => diagnostics.any((d) => d.severity == Severity.error);
@@ -122,11 +129,13 @@ final class L10nPlusGenerator {
   /// caller that only looks at [GenerationResult.hasErrors] would otherwise
   /// generate from a configuration it had already reported as wrong.
   GenerationResult run({DiagnosticCollector? diagnostics}) {
-    diagnostics ??= DiagnosticCollector();
+    diagnostics = (diagnostics ?? DiagnosticCollector())
+      ..ignore(config.ignoreDiagnostics);
     if (diagnostics.hasErrors) {
       return GenerationResult(
         diagnostics: diagnostics.diagnostics,
         files: const [],
+        ignoredCount: diagnostics.ignoredCount,
       );
     }
     final inputs = _readInputs(diagnostics);
@@ -134,6 +143,7 @@ final class L10nPlusGenerator {
       return GenerationResult(
         diagnostics: diagnostics.diagnostics,
         files: const [],
+        ignoredCount: diagnostics.ignoredCount,
       );
     }
     final pubspec = File(resolveProjectPath(projectRoot, 'pubspec.yaml'));
@@ -245,12 +255,17 @@ final class L10nPlusGenerator {
     String? pubspec,
     DiagnosticCollector? diagnostics,
   }) {
-    diagnostics ??= DiagnosticCollector();
+    // Armed here rather than at construction because a caller that parsed the
+    // configuration into this collector — the builder does — must keep the
+    // complaints about the configuration itself.
+    diagnostics = (diagnostics ?? DiagnosticCollector())
+      ..ignore(config.ignoreDiagnostics);
     final documents = _parseInputs(inputs, diagnostics);
     if (documents == null || diagnostics.hasErrors) {
       return GenerationResult(
         diagnostics: diagnostics.diagnostics,
         files: const [],
+        ignoredCount: diagnostics.ignoredCount,
       );
     }
 
@@ -262,6 +277,7 @@ final class L10nPlusGenerator {
       return GenerationResult(
         diagnostics: diagnostics.diagnostics,
         files: const [],
+        ignoredCount: diagnostics.ignoredCount,
       );
     }
 
@@ -283,11 +299,13 @@ final class L10nPlusGenerator {
       baseSignatures: baseSignatures,
       diagnostics: diagnostics,
       fillMissingFromBase: config.fillMissingFromBase,
+      extraKeys: config.extraKeys,
     );
     if (diagnostics.hasErrors) {
       return GenerationResult(
         diagnostics: diagnostics.diagnostics,
         files: const [],
+        ignoredCount: diagnostics.ignoredCount,
       );
     }
 
@@ -319,6 +337,7 @@ final class L10nPlusGenerator {
       return GenerationResult(
         diagnostics: diagnostics.diagnostics,
         files: const [],
+        ignoredCount: diagnostics.ignoredCount,
       );
     }
 
@@ -365,6 +384,7 @@ final class L10nPlusGenerator {
       diagnostics: diagnostics.diagnostics,
       files: files,
       keys: _keysOf(model.root),
+      ignoredCount: diagnostics.ignoredCount,
     );
   }
 

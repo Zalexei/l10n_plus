@@ -2,6 +2,11 @@
 library;
 
 import 'package:intl/intl.dart';
+// The oracle itself: `Intl.pluralLogic` answers `other` for a language it
+// has no rules for, which reads as agreement rather than as silence. This
+// is the only way to ask which languages it actually carries.
+// ignore: implementation_imports
+import 'package:intl/src/plural_rules.dart' show localeHasPluralRules;
 import 'package:l10n_plus_generator/src/plural/cldr_plural_rules.dart';
 import 'package:test/test.dart';
 
@@ -54,8 +59,15 @@ void main() {
 
   test('every sample lands in the same category as package:intl', () {
     final mismatches = <String>[];
+    var compared = 0;
     for (final locale in AppLocale.values) {
       final language = locale.l10nLocale.language;
+      // `intl` carries fewer languages than CLDR publishes and answers
+      // `other` for the rest, so comparing against it there would turn a
+      // missing oracle into a fake agreement. Those languages are covered by
+      // CLDR's own samples in `cldr_sample_test.dart` instead.
+      if (!localeHasPluralRules(language)) continue;
+      compared++;
       final t = AppLocalizations.forLocale(locale);
       for (final sample in samples) {
         final ours = t.cat(count: sample);
@@ -66,6 +78,12 @@ void main() {
       }
     }
     expect(mismatches, isEmpty, reason: mismatches.join('\n'));
+    // A filter that quietly matched nothing would make this test vacuous.
+    expect(
+      compared,
+      greaterThan(80),
+      reason: 'Only $compared languages were compared against intl.',
+    );
   });
 
   test(

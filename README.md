@@ -64,6 +64,15 @@ file_per_locale: false
 # locale. Off by default. See "Untranslated keys" below.
 fill_missing_from_base: false
 
+# What to do with a key a locale has and the base locale does not.
+# "error" (default) fails the build; "warn" reports it and leaves the key out
+# of generation. See "Untranslated keys" below.
+extra_keys: error
+
+# Warning codes this project has decided about and does not want reported.
+# Errors can never be listed here. See "Turning warnings off" below.
+ignore_diagnostics: []
+
 flutter:
   enabled: true
   context_extension: l10n
@@ -155,10 +164,22 @@ one — English gives `1st, 2nd, 3rd, 4th, 11th, 21st`. `offset:` follows ICU:
 `=N` branches match the original value, while `#` and the category rules see the
 adjusted one.
 
-74 languages have plural rules and the same 74 have ordinal rules; both tables
-are checked against ICU's own, so a category a language does not use is a
-warning and a language neither table knows is an error naming the ones they
-do. Nothing falls back to English rules silently.
+**Every language CLDR publishes is supported**: 222 for cardinals and 107 for
+ordinals, generated from CLDR 48 and checked against CLDR's own `@integer` and
+`@decimal` samples. Adding a locale to a project never stops at the rule table.
+A category a language does not use is a warning; a language neither table knows
+is an error. Nothing falls back to English rules silently.
+
+An explicit `=N` branch counts as covering a category the language defines as
+that one value, so the `gen_l10n` shape needs no extra branches:
+
+```json
+{"cart.items": "{count, plural, =0{Empty} =1{One item} other{# items}}"}
+```
+
+English `one` is "1 and nothing else", so `=1` renders every value it could
+select and nothing is reported. Russian `one` also takes 21 and 31, so there
+`=1` covers nothing and the missing branch is still a warning.
 
 ## Numbers and dates
 
@@ -177,12 +198,45 @@ t.wallet.statement(from: DateTime(2026, 3, 14))
                                              // ru: Выписка от 14 мар. 2026 г.
 ```
 
-Styles: `decimal`, `integer`, `percent`, `currency`, `simpleCurrency`,
-`compact`, `compactLong`, `scientific` for numbers; `short`, `medium`, `long`, `full` or any `DateFormat`
-skeleton (`yMMMd`, `jm`, `Hms`, …) for dates. `time` takes only the clock
-skeletons, because `{t, time, yMMMd}` renders a date and drops the time. ARB's
-`"format": "yMMMd"` works too, so a bundle exported from `gen_l10n` formats
-correctly without editing any message.
+Styles: `decimal`, `integer`, `percent`, `decimalPercentPattern`, `currency`,
+`simpleCurrency`, `compact`, `compactLong`, `compactCurrency`,
+`compactSimpleCurrency`, `scientific` for numbers; `short`, `medium`, `long`,
+`full` or any `DateFormat` skeleton (`yMMMd`, `jm`, `Hms`, …) for dates. `time`
+takes only the clock skeletons, because `{t, time, yMMMd}` renders a date and
+drops the time. ARB's `"format": "yMMMd"` works too, so a bundle exported from
+`gen_l10n` formats correctly without editing any message.
+
+`gen_l10n` spells three of these differently, and both spellings are accepted,
+in a message and in ARB alike:
+
+| `gen_l10n` writes | which is |
+| --- | --- |
+| `decimalPattern` | `decimal` |
+| `percentPattern` | `percent` |
+| `scientificPattern` | `scientific` |
+
+They are the same style under another name, so a project mixing the two gets
+one formatter, and every diagnostic names the canonical spelling.
+
+`decimalPercentPattern` is **not** an alias of `percent`. It is the `intl`
+constructor that takes `decimalDigits`, so folding it onto `percent` would
+quietly drop the digits an ARB bundle asked for:
+
+```json
+"@share": {
+  "placeholders": {
+    "v": {"type": "double", "format": "decimalPercentPattern",
+          "optionalParameters": {"decimalDigits": 2}}
+  }
+}
+```
+
+```dart
+t.share(v: 0.4256)   // en: 42.56%   (percent alone gives 43%)
+```
+
+`decimalDigits` is the one setting that is not about money: it applies to
+`decimalPercentPattern` and to the four currency styles, and to nothing else.
 
 ### Currencies
 
@@ -272,7 +326,13 @@ A declared type is kept: `{"type": "double", "format": "currency"}` generates
 
 `package:intl` is imported **only** by generated files that actually format
 something — add it to your `dependencies` when they do; the generator tells you
-if you forget. Date formats also need their ICU symbols once at start up:
+if you forget.
+
+### Dates need one line at start up
+
+**Any message that formats a date needs its ICU symbols loaded first**, and
+`initializeDateFormatting` is asynchronous, so it cannot happen on the way to
+the first `DateFormat`. Await the generated initializer before `runApp`:
 
 ```dart
 Future<void> main() async {
@@ -280,6 +340,19 @@ Future<void> main() async {
   runApp(const App());
 }
 ```
+
+Skip it and the first date formatted message throws — while the formatter is
+being *built*, not while it formats — and the generated code turns that into an
+error naming the call to make:
+
+```
+Bad state: Date symbols for "ru" are not loaded.
+Call `await initializeAppLocalizationsFormatting()` once during start up,
+before reading a date formatted message.
+```
+
+Number formats need no initialization, and a project that formats no dates gets
+no initializer to call.
 
 ### `#` inside a plural
 
@@ -410,6 +483,8 @@ import 'generated/app_localizations_flutter.g.dart';
 
 ```dart
 void main() {
+  // No locale argument: the controller opens in the device's language,
+  // resolved against the locales you have translations for.
   runApp(DemoApp(controller: createAppLocalizationsController()));
 }
 
@@ -435,11 +510,30 @@ class DemoApp extends StatelessWidget {
 }
 ```
 
+`createAppLocalizationsController()` reads
+`WidgetsBinding.instance.platformDispatcher.locales` when no `systemLocales`
+argument is given, so a Russian phone opens the app in Russian on the very
+first frame. Flutter reports `didChangeLocales` only when the locale *changes*,
+never at start up, so without that read the first frame would always be the
+fallback locale. Reading it initializes the Flutter binding, which means the
+factory belongs in `main` or later — where a controller is built anyway.
+
+Two ways to say something else:
+
+```dart
+createAppLocalizationsController(locale: AppLocale.en)     // pin a locale
+createAppLocalizationsController(systemLocales: const [])  // always fall back
+```
+
 Switching locale rebuilds everything that read `context.l10n`:
 
 ```dart
 context.l10nController.setLocale(AppLocale.ru);
 ```
+
+A controller built without `locale` keeps following the device, so a language
+changed in system settings reaches the app without a restart. `setLocale` stops
+that; `useSystemLocale` resumes it.
 
 Translations do not need a `BuildContext`, and none of this needs Flutter:
 with `flutter.enabled: false` the generated library is plain Dart and runs on a
@@ -504,8 +598,67 @@ Falling back only the text would give you English words under Russian plural
 rules — "2 card" — which looks deliberate in a way an untranslated string does
 not.
 
-It excuses nothing else: a key the base locale lacks, arguments that disagree
-with the base, and a missing base locale are still errors.
+It excuses nothing else: arguments that disagree with the base and a missing
+base locale are still errors.
+
+### Keys the base locale no longer has
+
+The opposite case has its own option. A key another locale has and the base
+locale does not is an error by default, because the base locale defines the
+generated API and a key nothing can reach is usually a typo:
+
+```
+translations/ru.json:8:3
+removed
+error[extra_key]: Key "removed" does not exist in the base locale en.
+```
+
+Working through a TMS makes that the wrong default: a key deleted from the base
+locale keeps coming back from the translators for days, and nobody can build
+until every language has caught up.
+
+```yaml
+extra_keys: warn
+```
+
+It becomes a warning and the key is left out of generation — the output is
+byte for byte what deleting the key by hand would produce. An extra *group* is
+reported once, with the number of keys under it, rather than once per key.
+
+This is the only thing it changes. A key the base locale has and this one does
+not is still `missing_key`, and arguments that disagree with the base are still
+errors.
+
+## Turning warnings off
+
+Some warnings are true and already decided about. At three thousand keys in ten
+locales, one plural written without a `few` branch is two thousand identical
+`missing_plural_category` lines, and a report that long is not read at all:
+
+```yaml
+ignore_diagnostics: [missing_plural_category, unused_plural_category]
+```
+
+Only warnings can be listed. A code that always stops the build is refused with
+an explanation, and so is a misspelled one — an entry that silences nothing
+would otherwise leave you believing a warning is off:
+
+```
+warning[invalid_config]: Unknown diagnostic code "missing_plural_categories".
+  Nothing reports "missing_plural_categories", so this entry silences nothing.
+```
+
+A code that is a warning under one option and an error under another —
+`missing_key` with and without `fill_missing_from_base`, `extra_key` with and
+without `extra_keys: warn` — may be listed, and only its warning form is
+dropped.
+
+The count is always printed, so a project never quietly forgets what it
+silenced:
+
+```
+No errors. 0 error(s), 3 warning(s). 1842 ignored.
+```
 
 ## Unused keys
 
@@ -526,6 +679,33 @@ Names are matched as text, so a key is reported only when its member name
 appears nowhere at all — two keys called `title` count as used if either one
 is. That is deliberate: the scan will never call a live translation dead. The
 generated output, `.dart_tool` and `build` are not searched.
+
+## Development loop
+
+**There is no `l10n_plus_generator watch`.** For automatic regeneration while
+you edit translations, use `build_runner`, which has a watcher already:
+
+```bash
+dart run build_runner watch --delete-conflicting-outputs
+```
+
+That needs `l10n_plus_builder` and the `build.yaml` from
+[build_runner](#build_runner-optional) below — `build_runner` does not track a
+root level `translations/` directory unless you say so. Both entry points
+produce byte-identical output, so switching between them changes nothing in
+`lib/generated`.
+
+Without `build_runner`, rerun the CLI:
+
+```bash
+dart run l10n_plus_generator generate
+```
+
+It rewrites only the files whose contents changed, so a watcher or a running
+`flutter run` sees no churn when nothing did.
+
+A CLI `watch` is on the roadmap; until it lands, the above is the answer rather
+than a workaround.
 
 ## CI
 
@@ -570,7 +750,7 @@ MIT. See [`LICENSE`](LICENSE).
 flutter pub get          # pub workspace, resolves every package at once
 dart format .
 dart analyze
-dart test packages/l10n_plus packages/l10n_plus_generator
+dart test packages/l10n_plus packages/l10n_plus_generator packages/l10n_plus_builder
 cd example && flutter test
 ```
 
@@ -585,6 +765,19 @@ There is one golden fixture per input format under
 shape. `test/goldens/formats/` holds every formatter the generator can emit and
 is derived from the style allowlists themselves, and `test/fixtures/split/`
 generates from several files per locale in two formats.
+
+`test/goldens/plurals/` and `test/goldens/ordinals/` are the CLDR rule tables
+compiled into Dart, one locale per language CLDR publishes. Regenerate the
+tables themselves from a new CLDR release with:
+
+```bash
+cd packages/l10n_plus_generator && dart run tool/update_cldr_plural_rules.dart
+```
+
+It downloads `plurals.json` and `ordinals.json`, rewrites
+`lib/src/plural/cldr_plural_rules.dart` and the sample fixture the tests check
+it against, and prints what changed. Run `dart format .` and
+`UPDATE_GOLDENS=1 dart test` after it.
 
 `dart analyze` covers the goldens on purpose: they resolve against the real
 `package:intl`, so a generated call that does not compile is an analysis error

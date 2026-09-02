@@ -2,7 +2,7 @@
 
 part of 'app_localizations.g.dart';
 
-final DateFormat _enDateYMMMd = DateFormat.yMMMd('en');
+final DateFormat _enDateYMMMd = _dateFormat('en', () => DateFormat.yMMMd('en'));
 final NumberFormat _enNumberCurrency = NumberFormat.currency(locale: 'en');
 final NumberFormat _enNumberCurrencyUsd = NumberFormat.currency(
   locale: 'en',
@@ -135,13 +135,13 @@ class $WalletEn implements $Wallet {
 
   String _rank$0({required num place}) {
     final $operands = PluralOperands(place);
-    if ($operands.i % 10 == 1 && $operands.i % 100 != 11) {
+    if ($operands.n % 10 == 1 && $operands.n % 100 != 11) {
       return '${_enNumberDecimalPattern.format(place)}st';
     }
-    if ($operands.i % 10 == 2 && $operands.i % 100 != 12) {
+    if ($operands.n % 10 == 2 && $operands.n % 100 != 12) {
       return '${_enNumberDecimalPattern.format(place)}nd';
     }
-    if ($operands.i % 10 == 3 && $operands.i % 100 != 13) {
+    if ($operands.n % 10 == 3 && $operands.n % 100 != 13) {
       return '${_enNumberDecimalPattern.format(place)}rd';
     }
     return '${_enNumberDecimalPattern.format(place)}th';

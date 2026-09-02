@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:l10n_plus_generator/l10n_plus_generator.dart';
 import 'package:path/path.dart' as p;
@@ -66,6 +67,8 @@ GenerationResult runGenerator(
   return GenerationResult(
     diagnostics: [...diagnostics.diagnostics, ...result.diagnostics],
     files: result.files,
+    keys: result.keys,
+    ignoredCount: result.ignoredCount,
   );
 }
 
@@ -78,3 +81,27 @@ List<String> errorsOf(GenerationResult result) => result.diagnostics
     .where((d) => d.severity == Severity.error)
     .map((d) => d.code)
     .toList(growable: false);
+
+/// The text of every Dart file in the generator's `lib/`.
+///
+/// For tests that assert something about the source itself, such as that no
+/// diagnostic code is missing from the registry that makes it configurable.
+List<String> libSources() {
+  final root = Directory(
+    p.join(
+      p.dirname(
+        p.dirname(
+          Isolate.resolvePackageUriSync(
+            Uri.parse('package:l10n_plus_generator/l10n_plus_generator.dart'),
+          )!.toFilePath(),
+        ),
+      ),
+      'lib',
+    ),
+  );
+  return [
+    for (final entity in root.listSync(recursive: true))
+      if (entity is File && p.extension(entity.path) == '.dart')
+        entity.readAsStringSync(),
+  ];
+}

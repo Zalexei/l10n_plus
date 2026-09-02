@@ -14,6 +14,7 @@ enum _Locale implements AppLocaleBase {
 }
 
 void main() {
+  _regionFallbackOrder();
   const supported = _Locale.values;
 
   _Locale resolve(String? tag) => L10nLocaleResolver.resolve(
@@ -56,5 +57,86 @@ void main() {
       ),
       throwsArgumentError,
     );
+  });
+}
+
+/// Locales in the order a generated enum lists them: sorted by tag.
+enum _Region implements AppLocaleBase {
+  enAu(L10nLocale('en', country: 'AU')),
+  enGb(L10nLocale('en', country: 'GB')),
+  ru(L10nLocale('ru'));
+
+  const _Region(this.l10nLocale);
+
+  @override
+  final L10nLocale l10nLocale;
+}
+
+/// The region fallback picks the first supported locale of the same language.
+///
+/// Pinned because the choice is arbitrary: `en_NZ` resolves to `en_AU` over
+/// `en_GB` because `AU` comes first in the list, not because anyone decided a
+/// New Zealander prefers Australian English. A change here changes what every
+/// app with regional locales renders, so it should have to break a test that
+/// says so out loud.
+void _regionFallbackOrder() {
+  group('region fallback order', () {
+    test('the first supported locale of the language wins', () {
+      expect(
+        L10nLocaleResolver.resolve(
+          requested: L10nLocale.parse('en_NZ'),
+          supported: _Region.values,
+          fallback: _Region.ru,
+        ),
+        _Region.enAu,
+      );
+    });
+
+    test('reordering the list changes the answer', () {
+      expect(
+        L10nLocaleResolver.resolve(
+          requested: L10nLocale.parse('en_NZ'),
+          supported: const [_Region.enGb, _Region.enAu, _Region.ru],
+          fallback: _Region.ru,
+        ),
+        _Region.enGb,
+      );
+    });
+
+    test('an exact region still beats the ordering', () {
+      expect(
+        L10nLocaleResolver.resolve(
+          requested: L10nLocale.parse('en_GB'),
+          supported: _Region.values,
+          fallback: _Region.ru,
+        ),
+        _Region.enGb,
+      );
+    });
+
+    test('a bare language in the list beats both regions', () {
+      // `en_NZ` walks its lineage first, so a plain `en` is found before the
+      // language scan runs at all. That is how a project states the
+      // preference the resolver refuses to guess.
+      expect(
+        L10nLocaleResolver.resolve(
+          requested: L10nLocale.parse('en_NZ'),
+          supported: const [_Locale.enGb, _Locale.en],
+          fallback: _Locale.en,
+        ),
+        _Locale.en,
+      );
+    });
+
+    test('another language falls back', () {
+      expect(
+        L10nLocaleResolver.resolve(
+          requested: L10nLocale.parse('ja'),
+          supported: _Region.values,
+          fallback: _Region.ru,
+        ),
+        _Region.ru,
+      );
+    });
   });
 }

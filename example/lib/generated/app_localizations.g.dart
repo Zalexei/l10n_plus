@@ -7,6 +7,8 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:l10n_plus/l10n_plus.dart';
 
+export 'package:l10n_plus/l10n_plus.dart' show L10nLocale;
+
 part 'app_localizations_en.g.dart';
 part 'app_localizations_ru.g.dart';
 
@@ -19,6 +21,25 @@ part 'app_localizations_ru.g.dart';
 Future<void> initializeAppLocalizationsFormatting() async {
   for (final locale in AppLocale.values) {
     await initializeDateFormatting(locale.l10nLocale.toFileTag());
+  }
+}
+
+/// Builds a [DateFormat], explaining the one way it can fail.
+///
+/// The ICU symbols a non default locale needs are loaded by
+/// [initializeAppLocalizationsFormatting], which must be awaited once during start up.
+DateFormat _dateFormat(String locale, DateFormat Function() build) {
+  try {
+    return build();
+  } on Exception catch (error) {
+    // intl's LocaleDataException is not exported, so the type cannot be
+    // named here; the original error is carried rather than swallowed.
+    throw StateError(
+      'Date symbols for "$locale" are not loaded.\n'
+      'Call `await initializeAppLocalizationsFormatting()` once during start up, before reading a '
+      'date formatted message.\n'
+      'Underlying error: $error',
+    );
   }
 }
 

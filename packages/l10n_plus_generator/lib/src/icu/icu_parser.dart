@@ -366,7 +366,13 @@ final class IcuMessageParser {
 
     final format = ArgumentFormat(
       kind,
-      style,
+      // `{n, number, decimalPattern}` is `{n, number, decimal}` spelled the
+      // way `gen_l10n` spells it. Folding it here means the rest of the
+      // pipeline, the diagnostics and the generated formatter name all see
+      // one style rather than two.
+      kind == ArgumentFormatKind.number
+          ? IntlFormatters.canonicalNumberStyle(style)
+          : style,
       currencyCode == null ? null : CurrencyOptions(code: currencyCode),
     );
     if (!IntlFormatters.isSupported(format)) {

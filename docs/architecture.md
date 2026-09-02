@@ -151,9 +151,27 @@ locales and is plain Dart the compiler can tree-shake.
 ### `num` vs `int` for plural arguments
 
 **Chosen: `num`.** CLDR plural selection reads the *visible fraction digits* of
-the number: `1` is `one` in English but `1.0` is `other`. Typing the parameter
-as `int` makes correct handling of "2.5 stars" impossible, and `count: 5` still
-compiles. `PluralOperands` computes `n, i, v, w, f, t` from the `num`.
+the number, so "2.5 stars" cannot be selected correctly from an `int`, and
+`count: 5` still compiles against a `num`. `PluralOperands` computes
+`n, i, v, w, f, t` from the `num`.
+
+**Where a `num` cannot say what CLDR asks.** The operands are about how the
+number will be *displayed*: CLDR distinguishes `1` from `1.0` by `v`, the count
+of visible fraction digits. A Dart `num` does not carry that — `1.0` and `1`
+are the same value — and `PluralOperands` resolves it by treating anything
+equal to its own truncation as having no fraction digits, so `v` is 0 for both.
+
+The consequence is narrow and real: `1.0` selects `one` in English where CLDR
+says `other`, and Czech `many` (`v != 0`) is unreachable for a whole number
+written as a double. It only shows for a `double` argument with a zero
+fraction; every genuinely fractional value has the operands CLDR expects, and
+integer arguments — nearly all of them — are exact.
+
+This is why the CLDR sample check leaves out `@decimal 1.0` style values: they
+are values this runtime cannot be handed, and a test that pretended otherwise
+would be asserting the wrong thing. Deriving `v` from `toString()` instead
+would match CLDR and would change what existing messages render, so it is an
+open question rather than a quiet fix.
 
 ### Plural rules: runtime table vs generated conditions
 
@@ -167,30 +185,62 @@ if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
 }
 ```
 
-No rule table ships to the app, and there is no per-call rule dispatch. The
-generator holds a **curated** CLDR table of 74 languages; an unknown language
-produces `unknown_plural_language` rather than silently falling back to
-English rules, which is the classic way localization libraries ship wrong
-plurals.
+No rule table ships to the app, and there is no per-call rule dispatch. An
+unknown language produces `unknown_plural_language` rather than silently
+falling back to English rules, which is the classic way localization libraries
+ship wrong plurals.
 
-Curated means written by hand, which means wrong sooner or later, so both
-tables are checked against a second implementation of the same data:
+**The table is the whole of CLDR, and is generated.** It began curated — about
+forty languages someone had transcribed — and that was a wall rather than a
+safeguard: `bg`, `sl`, `lv`, `fa`, `ta`, `mr` and a hundred others could not be
+added to a project at all, and the diagnostic that explained why had no fix
+under it. `tool/update_cldr_plural_rules.dart` now compiles `plurals.json` and
+`ordinals.json` into the same condition format: 222 cardinal languages and 107
+ordinal ones, from CLDR 48.
 
-* **cardinals** against `package:intl`, which carries its own copy generated
-  from ICU data. `test/plural_matrix_test.dart` derives one message per
-  language from the table itself, and
-  `test/plural_matrix_runtime_test.dart` executes the generated code and
-  compares every branch against `Intl.pluralLogic`. It has one known defect
-  of its own — `intl` computes the operand `i` as `n.round()` where CLDR says
-  the integer digits — so values ending in `.5` are asserted against CLDR's
-  published samples instead;
-* **ordinals** against ICU directly, because `intl` has no ordinal table.
-  `Intl.PluralRules(locale, {type: 'ordinal'})` in Node is that table;
-  `tool/ordinal_oracle.sh` dumps its answers for 1214 values per language
-  into `test/data/cldr_ordinals.json`, and
-  `test/ordinal_matrix_runtime_test.dart` compares against the dump. The
-  answers are vendored rather than queried, so the suite needs nothing but
-  Dart; the script exists so the file can be regenerated and argued with.
+Two CLDR subtleties are compiled in rather than left to whoever transcribes
+next:
+
+* **a range matches integers only** (UTS #35), so `n % 100 = 3..10` is `few`
+  for 3 and `other` for 3.5. `@n == @i` is what says "n is an integer" in terms
+  of the operands, and it is emitted into every range condition over `n`. The
+  hand written table had this wrong for Arabic, which is exactly the failure
+  mode the curation was supposed to prevent: it compiled, it analyzed, it
+  rendered a plausible sentence, and it was wrong in a language nobody on the
+  team reads;
+* **the operand `e`**, the exponent of a compact form, is always 0 here because
+  nothing formats compactly before selecting a branch. Relations over it are
+  decided at generation time and never reach the output, which is why the
+  Romance `many` is three clauses rather than five.
+
+Two independent oracles check the result, and they are complementary rather
+than redundant:
+
+* **CLDR's own samples.** Every rule carries `@integer` and `@decimal` lists
+  naming values that must land in that category; 2698 cardinal and 1044 ordinal
+  values are run through the *generated code* and compared. They come from the
+  release the conditions were generated from, and they cover all 222 languages.
+* **`package:intl`.** It carries its own copy of the rules, generated from ICU
+  data, so it is a second implementation. It covers 89 of the 222 and answers
+  `other` for the rest — which would read as agreement, so languages it does
+  not carry are excluded rather than compared.
+* **ICU itself, for ordinals**, where `intl` has no table at all.
+  `Intl.PluralRules(locale, {type: 'ordinal'})` in Node is that table, and
+  `tool/ordinal_oracle.sh` dumps its answers into
+  `test/data/cldr_ordinals.json`. The answers are vendored rather than
+  queried, so the suite needs nothing but Dart; the script exists so the file
+  can be regenerated and argued with.
+
+Neither alone is enough. CLDR's samples for Arabic `few` are all integers and
+whole decimals, so deleting the integer guard passes them; `intl` catches it at
+3.1. `intl` computes the operand `i` as `n.round()` where CLDR defines it as
+the integer digits, so it reads 1.5 as `i = 2` and is wrong for Danish, French,
+Portuguese and Hindi fractions; CLDR's samples are right there. Both are in the
+suite, and the guard was verified by regression against both.
+
+Script and region qualified CLDR entries (`pt-PT`, `kok-Latn`) are left out:
+rules are looked up by language subtag, so nothing could reach them.
+
 
 ### Select arguments: enum per message argument
 
@@ -204,6 +254,43 @@ still checked and reported.
 All *internal* generated classes are prefixed with `$` (`$Auth`, `$AuthLoginEn`),
 which keeps the user-facing enum namespace clean and makes collisions between
 namespaces and enums structurally impossible.
+
+### One registry for every top level name
+
+The `$` prefix separates enums from namespaces. It does not separate namespaces
+from each other, and that is where the generator used to emit a file that did
+not compile:
+
+```json
+{"auth": {"login": {"title": "A"}}, "auth_login": {"title": "B"}}
+```
+
+`auth.login` and `auth_login` both normalize to `$AuthLogin`. Collisions were
+checked per namespace — two members of one class — and between select enums,
+and neither check sees this. The generator wrote the file without a diagnostic
+and `dart analyze` reported `duplicate_definition` in generated code, which
+reads like a generator bug because it is one.
+
+Dart puts classes, enums, interfaces and top level functions in **one**
+namespace, so there is one registry to match. Everything is claimed in
+generation order: the class name, the locale enum, each locale's implementation
+of the root class, each namespace interface, each namespace's implementations
+(`$AuthLoginEn`, `$AuthLoginRu`), and each select enum. A second claim on a
+taken name is an error naming both sides and pointing at the second key.
+
+Two details are worth the words:
+
+* **the implementations are claimed only when the interface was free.** A
+  colliding pair in a ten locale project would otherwise be eleven errors for
+  one rename;
+* **the code depends on what collided.** A select enum on either side keeps
+  `enum_name_collision`, which that case has always reported. Everything else
+  is `type_name_collision`, which is new because the collision was previously
+  undetectable rather than differently named.
+
+The registry also covers the case the `$` prefix does *not* handle: a namespace
+whose interface takes the name of another namespace's implementation, so
+`foo.en` collides with `$FooEn` in a project that has an `en` locale.
 
 ### Object graph: `const`, not lazy fields
 
@@ -449,6 +536,47 @@ one, and `simpleCurrency` covers the case a JSON project usually needs. Packing
 them into the style token (`currency:USD/₿/8`) would invent a grammar with no
 ICU precedent for two attributes that a bundle already knows how to carry.
 
+### The names `gen_l10n` writes are the same styles
+
+The README promises an ARB bundle exported from `gen_l10n` generates without
+editing a message. `"format": "decimalPattern"` — its spelling of the plain
+decimal format — was met with `unsupported_placeholder_format`, which made the
+promise false for the most ordinary formatted number there is.
+
+`decimalPattern`, `percentPattern` and `scientificPattern` are now accepted as
+spellings of `decimal`, `percent` and `scientific`, in a message and in ARB
+alike. They are **folded at the entry points** — the ICU parser, the metadata
+reader, and a locale's own override — rather than carried through as separate
+styles, so everything downstream sees one style. That is what makes a project
+mixing both spellings emit one formatter rather than two finals initialized
+from the same constructor, and what makes every diagnostic name the canonical
+spelling instead of echoing whichever the file used.
+
+**`decimalPercentPattern` is not among them.** It reads like a spelling of
+`percent` and is a different `intl` constructor: the one that takes
+`decimalDigits`. Folding it onto `percentPattern` would compile, analyze, and
+quietly render `43%` where the bundle asked for `42.56%` — the exact class of
+silent wrongness the currency options were built to prevent. It is a style of
+its own.
+
+That made `decimalDigits` the first option that is not about money. The
+validation splits accordingly: `name` and `symbol` still belong to the currency
+styles alone, while `decimalDigits` is accepted by those four and by
+`decimalPercentPattern`, and refused with a diagnostic naming the styles that
+take it anywhere else.
+
+`compactCurrency` and `compactSimpleCurrency` are added as full currency
+styles rather than aliases, because they are genuinely different formats —
+`USD1.2M` rather than `USD1,200,000.00`. The `simpleCurrency` rule carries over
+unchanged: `compactSimpleCurrency` has no `symbol:` parameter for the same
+reason `simpleCurrency` has none, so declaring one is an error rather than a
+generated file that does not compile.
+
+All of it lands in the formatter surface fixture automatically, because that
+fixture derives its messages from the style allowlists — and the surface is
+analyzed *and* executed, so the new constructors are type checked against real
+`intl` and their output asserted.
+
 ### Currency settings are per locale; the format is not
 
 The base locale decides *whether* an argument is money and how its Dart type is
@@ -656,6 +784,36 @@ asynchronously in generated mode, so returning `Future<void>` would be a lie
 that exists only to support a loader that does not exist yet. It is `void`. If
 network or OTA translations arrive, they get their own async API.
 
+### The system locale is read once, in the factory
+
+`create<Class>Controller()` is documented as "omit the locale to follow the
+operating system", and it did not. `systemLocales` defaulted to `const []`,
+`L10nController` resolved that to the fallback locale, and Flutter calls
+`didChangeLocales` only when the locale *changes* — never at start up. So on a
+Russian phone the app opened in English and stayed there until the user changed
+the system language and came back. The README and the example both used the
+no-argument call, so the bug was in the recommended path.
+
+The factory now reads
+`WidgetsFlutterBinding.ensureInitialized().platformDispatcher.locales` when the
+argument is omitted.
+
+**`WidgetsFlutterBinding.ensureInitialized()`, not `PlatformDispatcher.instance`.**
+Both give the platform's locales and the second needs no binding. The first is
+what `flutter_test` can substitute: `tester.platformDispatcher.localesTestValue`
+sets the value on the *binding's* dispatcher, and `PlatformDispatcher.instance`
+would ignore it. A default that cannot be tested is a default that breaks
+quietly, and this one already had. `ensureInitialized` returns the binding that
+already exists rather than building a second one, so calling it from a test, or
+after `runApp`, changes nothing.
+
+The cost is that the factory binds the Flutter engine, so it must be called
+from `main` or later. That is where a controller is built anyway, and the doc
+comment says it.
+
+`const []` still means "ignore the device", now as something a caller asks for
+rather than as the only behaviour available.
+
 ### No `LocalizationsDelegate` in the MVP
 
 `L10nScope` + `L10nController` is a single source of truth for the active
@@ -663,6 +821,30 @@ locale, and `MaterialApp.locale` is driven from it. Adding a delegate would
 create a second path to the same state. Apps still add
 `GlobalMaterialLocalizations.delegates` for Flutter's *own* widgets — that is
 not this library's job, and the example shows it.
+
+### Region fallback picks the first match, and says so
+
+`L10nLocaleResolver` walks the requested locale's lineage, then any supported
+locale sharing its language, then the fallback. The middle step takes the
+**first** match in the list it was given, which for generated code is the
+locale enum, which is sorted by tag. So `en_NZ` resolves to `en_AU` over
+`en_GB` because `AU` sorts before `GB`, and for no other reason.
+
+Kept, and documented rather than dressed up. Real regional affinity — that a
+New Zealander wants `en_GB` spelling — is a table CLDR publishes and this
+library does not carry; guessing it in code would be wrong in ways nobody could
+predict from reading the source, and carrying the table would be a second CLDR
+dataset in a runtime that has none. Arbitrary and stable beats plausible and
+unpredictable.
+
+A project that cares states the preference instead of hoping: add the region it
+wants, or a plain `en`, to its translations. A bare `en` is found during the
+lineage walk, before the language scan runs at all.
+
+The order has a test that says out loud that it is arbitrary, including one
+case asserting that reordering the list changes the answer. That is the point:
+this is behaviour every app with regional locales depends on, so changing it
+should have to break something.
 
 ### `date` is permissive about skeletons, `time` is not
 
@@ -807,10 +989,33 @@ The alternative — English words under Russian plural rules — would produce
 "Total: 1 234,5". Both are worse than an obviously untranslated string, because
 both look deliberate. A missing translation should read as missing.
 
-What the option does **not** excuse: a key the base locale does not have
-(`extra_key`), a translated key whose arguments disagree with the base
-(`missing_placeholder` and friends), or a missing base locale. Those stay
-errors, because none of them can be filled in from anywhere.
+What the option does **not** excuse: a translated key whose arguments disagree
+with the base (`missing_placeholder` and friends), or a missing base locale.
+Those stay errors, because neither can be filled in from anywhere.
+
+**The mirror case has its own option.** `extra_key` — a key another locale has
+and the base does not — was an error with no way out, and that is right for a
+finished project and wrong for a team on a TMS: a key deleted from the base
+locale keeps arriving from the translators for days, and every language has to
+catch up before anyone can build.
+
+`extra_keys: warn` reports it and leaves the key out of generation. The output
+is byte for byte what deleting the key by hand would produce, which is the
+property that makes the option safe: the base locale still defines the API
+exactly, and the setting changes what is reported rather than what is
+generated. That falls out of the design rather than being arranged — the model
+is built by walking the *base* locale's tree, so a key no base locale key
+matches was never going to be emitted.
+
+Two smaller decisions:
+
+* **an extra group is one diagnostic, with a count.** A namespace dropped from
+  the base locale is one decision, and "wallet is not in the base locale (200
+  keys)" reads better than two hundred lines that each say a fifth of it;
+* **the default stays `error`, including when the option cannot be read.** A
+  value the generator does not understand gets `invalid_config` and keeps the
+  strict behaviour. An unreadable option must never be the reason a build got
+  looser than the project asked for.
 
 The `fill_missing` golden fixture is a Russian locale with one key of six, so
 the fallback paths are generated and — since the goldens are analyzed — type
@@ -866,6 +1071,91 @@ Not measured: `context.l10n` lookup and locale switch rebuild cost. Both need a
 Flutter harness, and both would mostly report Flutter's costs —
 `dependOnInheritedWidgetOfExactType` and the app's own rebuild — rather than
 this library's.
+
+### A warning nobody can turn off is a warning nobody reads
+
+`missing_plural_category` is true and useful. At three thousand keys in ten
+locales it is also two thousand identical lines about a decision the team made
+months ago, and a report that long is not read — which costs the warnings that
+*were* worth reading.
+
+`ignore_diagnostics` takes a list of codes. Three constraints shape it:
+
+* **only warnings are ever dropped.** The filter lives in `DiagnosticCollector`
+  and checks the severity of the diagnostic in hand, not a static property of
+  the code. So `missing_key`, which is a warning under
+  `fill_missing_from_base` and an error without it, can be listed and only its
+  warning form disappears. An error stops generation; hiding it would hide the
+  reason the build failed.
+* **an entry that silences nothing is reported.** A misspelled code and a code
+  that is always an error both get `invalid_config`, because the failure being
+  prevented is a project believing a warning is off when it is not. That needs
+  a list of every code the generator can emit, which is `DiagnosticCodes` — and
+  a hand written list of that kind drifts, so a test scrapes the sources and
+  fails when a code is not registered. It found one the day it was written.
+* **the count is always printed.** `1842 ignored` at the end of the report. A
+  silenced warning nobody remembers silencing is a worse problem than the
+  warning was.
+
+The list is armed *after* the configuration has been parsed, so the complaints
+about the configuration itself cannot be silenced by it.
+
+### `=N` can cover a whole category
+
+A `gen_l10n` bundle writes `{count, plural, =0{none} =1{one} other{# items}}`,
+and the validator reported that English `one` was missing. It was not: English
+defines `one` as `i = 1 and v = 0`, true of 1 and of nothing else, so the `=1`
+branch renders every value the category could ever select. Every ARB bundle
+imported from `gen_l10n` met a warning with no fix under it.
+
+A category is now covered when the language defines it as a **single exact
+value** and an `=N` branch matches that value. The value is read off the
+generated condition — `@n == N`, or `@i == N && @v == 0` — rather than from a
+hand written list, because a hand written list would drift from the conditions
+and the conditions are what actually run.
+
+Deliberately not general. Nothing tries to prove that a set of literals covers
+a range: Arabic `few` is `n % 100 = 3..10`, which no list of `=N` closes, and a
+prover that got it wrong would silence a real warning. Russian `one` also takes
+21 and 31, so `=1` covers nothing there and the warning stays — which is the
+case the check has to keep getting right.
+
+`offset:` disables it entirely. ICU matches `=N` against the original value and
+selects the category from the adjusted one, so the two are about different
+numbers and neither can cover the other.
+
+### Date symbols: the error names the call
+
+`DateFormat.yMMMd('ru')` throws when it is **built**, not when it formats. The
+generated formatters are lazily initialized top level finals, so the failure
+lands on the first read of one, carrying intl's own message: "Locale data has
+not been initialized, call initializeDateFormatting(<locale>)". True, and it
+cannot know that this generator emitted `initializeAppLocalizationsFormatting`
+for exactly this.
+
+Loading them lazily was considered and does not work: `initializeDateFormatting`
+is asynchronous and a field initializer is not, so there is nowhere to await.
+An `assert` does not help either — the throw happens inside the initializer,
+before anything the generated code could assert on.
+
+What is left is the error. Every `DateFormat` is built through a small
+generated helper that catches, and rethrows naming the call:
+
+```dart
+final DateFormat _ruDateYMMMd = _dateFormat('ru', () => DateFormat.yMMMd('ru'));
+```
+
+```
+Bad state: Date symbols for "ru" are not loaded.
+Call `await initializeAppLocalizationsFormatting()` once during start up,
+before reading a date formatted message.
+Underlying error: LocaleDataException: ...
+```
+
+It catches `Exception` rather than `LocaleDataException`, which `intl` does not
+export, and carries the original along rather than swallowing it. The helper is
+emitted only when something formats a date, and with `file_per_locale` it is
+declared once in the shared file — the parts are one library with it.
 
 ## Determinism
 

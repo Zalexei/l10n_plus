@@ -44,7 +44,8 @@ final class ModelBuilder {
   final DiagnosticCollector diagnostics;
 
   final Map<String, SelectEnumModel> _enums = {};
-  final Map<String, String> _enumOwners = {};
+  final Map<String, _TopLevelName> _topLevelNames = {};
+  List<LocaleModel> _localeModels = const [];
 
   /// Builds the model, or returns `null` when a fatal problem was found.
   LocalizationModel? build({
@@ -52,14 +53,29 @@ final class ModelBuilder {
     required LocaleModel fallbackLocaleModel,
     required List<LocaleModel> localeModels,
   }) {
+    _localeModels = localeModels;
+    // Claimed before the walk, so a key colliding with one of them is reported
+    // against the key, which is the thing that can be renamed.
+    _claimTopLevel(
+      className,
+      _TopLevelName('the generated class "$className"'),
+    );
+    _claimTopLevel(
+      localeEnumName,
+      _TopLevelName('the generated locale enum "$localeEnumName"'),
+    );
+    for (final locale in localeModels) {
+      _claimTopLevel(
+        '$className${locale.classSuffix}',
+        _TopLevelName('the ${locale.tag} implementation of "$className"'),
+      );
+    }
+
     final root = _namespace(base.root);
     if (diagnostics.hasErrors) return null;
 
     final enums = _enums.values.toList(growable: false)
       ..sort((a, b) => a.name.compareTo(b.name));
-
-    _checkTopLevelCollisions(enums);
-    if (diagnostics.hasErrors) return null;
 
     return LocalizationModel(
       className: className,
@@ -86,7 +102,76 @@ final class ModelBuilder {
     'resolve': 'a generated static member',
   };
 
+  /// Claims one name in the generated file's single top level namespace.
+  ///
+  /// Returns whether the name was free. Dart has one namespace for classes,
+  /// enums, interfaces and top level functions, so a namespace interface, its
+  /// per locale implementations and a select enum all compete for the same
+  /// names — and two declarations of one name is a file that does not compile.
+  /// Member level collisions are `claim`'s job; this is the file level one.
+  bool _claimTopLevel(String name, _TopLevelName owner) {
+    final previous = _topLevelNames[name];
+    if (previous == null) {
+      _topLevelNames[name] = owner;
+      return true;
+    }
+    diagnostics.add(
+      Diagnostic.error(
+        // A select enum on either side keeps the code that case has always
+        // reported; everything else is the collision class that used to go
+        // undetected until `dart analyze` met the generated file.
+        code: previous.isEnum || owner.isEnum
+            ? 'enum_name_collision'
+            : 'type_name_collision',
+        message: 'Two generated declarations are both called "$name".',
+        span: owner.span,
+        translationKey: owner.translationKey,
+        details:
+            'Already taken by ${previous.description}.\n'
+            'Wanted again by ${owner.description}.\n'
+            'Classes, enums and interfaces share one namespace in Dart, so '
+            'the generated file would declare "$name" twice. Rename one of '
+            'the keys, nest one under a namespace, or rename the generated '
+            'class.',
+      ),
+    );
+    return false;
+  }
+
+  /// Claims the interface and every per locale implementation of a namespace.
+  ///
+  /// The implementations are claimed only when the interface itself was free.
+  /// Otherwise one pair of colliding keys would be reported once per locale,
+  /// and a ten locale project would print eleven errors for one rename.
+  void _claimNamespace(String interfaceName, TranslationGroup group) {
+    final free = _claimTopLevel(
+      interfaceName,
+      _TopLevelName(
+        'the namespace "${group.path}"',
+        span: group.keySpan,
+        translationKey: group.path,
+      ),
+    );
+    if (!free) return;
+    for (final locale in _localeModels) {
+      _claimTopLevel(
+        '$interfaceName${locale.classSuffix}',
+        _TopLevelName(
+          'the ${locale.tag} implementation of the namespace "${group.path}"',
+          span: group.keySpan,
+          translationKey: group.path,
+        ),
+      );
+    }
+  }
+
   NamespaceModel _namespace(TranslationGroup group) {
+    // The root's name is the generated class, claimed before the walk began.
+    final interfaceName = group.path.isEmpty
+        ? className
+        : '\$${DartIdentifiers.upperCamelPath(group.path.split('.'))}';
+    if (group.path.isNotEmpty) _claimNamespace(interfaceName, group);
+
     final children = <NamespaceModel>[];
     final messages = <MessageModel>[];
     final usedNames = <String, String>{
@@ -149,9 +234,7 @@ final class ModelBuilder {
     return NamespaceModel(
       path: group.path,
       dartName: group.path.isEmpty ? '' : DartIdentifiers.lowerCamel(group.key),
-      interfaceName: group.path.isEmpty
-          ? className
-          : '\$${DartIdentifiers.upperCamelPath(group.path.split('.'))}',
+      interfaceName: interfaceName,
       children: children,
       messages: messages,
     );
@@ -358,20 +441,33 @@ final class ModelBuilder {
     if (declared == null) return format;
     final span = declaration!.currencySpan ?? declaration.span;
 
-    if (format == null || !IntlFormatters.acceptsCurrencyOptions(format)) {
+    // `decimalDigits` is not a currency setting: `decimalPercentPattern`
+    // takes it and is not money. Everything else in the declaration is.
+    final onlyDigits = declared.code == null && declared.symbol == null;
+    final accepted =
+        format != null &&
+        (IntlFormatters.acceptsCurrencyOptions(format) ||
+            (onlyDigits && IntlFormatters.acceptsDecimalDigits(format)));
+    if (!accepted) {
       diagnostics.add(
         Diagnostic.error(
           code: 'unexpected_currency_code',
-          message:
-              'Placeholder "${spec.name}" declares currency settings but is '
-              'not formatted as a currency.',
+          message: onlyDigits
+              ? 'Placeholder "${spec.name}" declares "decimalDigits" but is '
+                    'not formatted in a style that takes them.'
+              : 'Placeholder "${spec.name}" declares currency settings but is '
+                    'not formatted as a currency.',
           span: span,
           translationKey: leaf.path,
-          details:
-              'Declared: $declared.\n'
-              'Current formatting: ${format ?? 'none'}.\n'
-              'Add "format": "currency" next to it, or write '
-              '{${spec.name}, number, currency} in the message.',
+          details: onlyDigits
+              ? 'Declared: $declared.\n'
+                    'Current formatting: ${format ?? 'none'}.\n'
+                    'Styles that take "decimalDigits": '
+                    '${_sorted(IntlFormatters.decimalDigitsStyles)}.'
+              : 'Declared: $declared.\n'
+                    'Current formatting: ${format ?? 'none'}.\n'
+                    'Add "format": "currency" next to it, or write '
+                    '{${spec.name}, number, currency} in the message.',
         ),
       );
       return format;
@@ -422,6 +518,10 @@ final class ModelBuilder {
     final merged = (format.currency ?? const CurrencyOptions()).merge(declared);
     return ArgumentFormat(format.kind, format.style, merged);
   }
+
+  /// [values] sorted and comma separated, for a diagnostic's details.
+  static String _sorted(Set<String> values) =>
+      (values.toList()..sort()).join(', ');
 
   /// Dart types a `{placeholder}` may be declared as.
   ///
@@ -481,7 +581,9 @@ final class ModelBuilder {
     ArgumentModel argument,
     PlaceholderMetadata declaration,
   ) {
-    final declaredStyle = declaration.format;
+    final declaredStyle = argument.format?.kind == ArgumentFormatKind.number
+        ? IntlFormatters.canonicalNumberStyle(declaration.format)
+        : declaration.format;
     final declaredCurrency = declaration.currency;
     if (declaredStyle == null && declaredCurrency == null) return null;
 
@@ -533,7 +635,7 @@ final class ModelBuilder {
       format = ArgumentFormat(
         inheritedFormat.kind,
         declaredStyle,
-        IntlFormatters.acceptsCurrencyOptions(restyled)
+        IntlFormatters.acceptsDecimalDigits(restyled)
             ? inheritedFormat.currency
             : null,
       );
@@ -564,13 +666,17 @@ final class ModelBuilder {
     ArgumentFormat inheritedFormat,
   ) {
     final span = declaration.currencySpan ?? declaration.span;
-    if (!IntlFormatters.acceptsCurrencyOptions(format)) {
+    final onlyDigits = declared.code == null && declared.symbol == null;
+    if (!IntlFormatters.acceptsCurrencyOptions(format) &&
+        !(onlyDigits && IntlFormatters.acceptsDecimalDigits(format))) {
       diagnostics.add(
         Diagnostic.error(
           code: 'unexpected_currency_code',
-          message:
-              'Placeholder "${argument.name}" declares currency settings but '
-              'is not formatted as a currency.',
+          message: onlyDigits
+              ? 'Placeholder "${argument.name}" declares "decimalDigits" but '
+                    'is not formatted in a style that takes them.'
+              : 'Placeholder "${argument.name}" declares currency settings '
+                    'but is not formatted as a currency.',
           span: span,
           translationKey: baseLeaf.path,
           details:
@@ -697,7 +803,12 @@ final class ModelBuilder {
       return null;
     }
 
-    final format = ArgumentFormat(kind, style);
+    final format = ArgumentFormat(
+      kind,
+      kind == ArgumentFormatKind.number
+          ? IntlFormatters.canonicalNumberStyle(style)
+          : style,
+    );
     if (!IntlFormatters.isSupported(format)) {
       diagnostics.add(
         Diagnostic.error(
@@ -773,21 +884,16 @@ final class ModelBuilder {
         DartIdentifiers.upperCamelPath(leaf.path.split('.')) +
         DartIdentifiers.upperCamel(spec.name);
 
-    final owner = _enumOwners[name];
-    final signature = '${leaf.path}#${spec.name}';
-    if (owner != null && owner != signature) {
-      diagnostics.add(
-        Diagnostic.error(
-          code: 'enum_name_collision',
-          message: 'Two select arguments both generate the enum "$name".',
-          span: spec.span,
-          translationKey: leaf.path,
-          details: 'The other one is "$owner". Rename a key or an argument.',
-        ),
-      );
-      return null;
-    }
-    _enumOwners[name] = signature;
+    final free = _claimTopLevel(
+      name,
+      _TopLevelName(
+        'the enum for "${leaf.path}" argument "${spec.name}"',
+        span: spec.span,
+        translationKey: leaf.path,
+        isEnum: true,
+      ),
+    );
+    if (!free) return null;
 
     final values = <EnumValueModel>[];
     final used = <String, String>{};
@@ -831,25 +937,29 @@ final class ModelBuilder {
     _enums[name] = model;
     return model;
   }
+}
 
-  void _checkTopLevelCollisions(List<SelectEnumModel> enums) {
-    final reserved = <String, String>{
-      className: 'the generated root class',
-      localeEnumName: 'the generated locale enum',
-    };
-    for (final model in enums) {
-      final clash = reserved[model.name];
-      if (clash != null) {
-        diagnostics.add(
-          Diagnostic.error(
-            code: 'enum_name_collision',
-            message: 'Enum "${model.name}" collides with $clash.',
-            translationKey: model.messagePath,
-            details: 'Rename the key, the argument, or the generated class.',
-          ),
-        );
-      }
-      reserved[model.name] = 'the enum for "${model.messagePath}"';
-    }
-  }
+/// One declaration the generated file puts in Dart's top level namespace.
+///
+/// Recorded so a collision can name both sides: the reader needs to know what
+/// already took the name as much as what wanted it again.
+final class _TopLevelName {
+  const _TopLevelName(
+    this.description, {
+    this.span,
+    this.translationKey,
+    this.isEnum = false,
+  });
+
+  /// Human readable phrase naming the declaration, e.g. `the namespace "auth"`.
+  final String description;
+
+  /// Where the key that produced it is, when it came from a key at all.
+  final SourceSpan? span;
+
+  /// Dotted translation key behind the declaration, when there is one.
+  final String? translationKey;
+
+  /// Whether this is a select enum, which decides the diagnostic code.
+  final bool isEnum;
 }

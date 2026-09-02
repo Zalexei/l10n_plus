@@ -21,9 +21,28 @@ Future<void> initializeCatalogFormatting() async {
   }
 }
 
-final DateFormat _arDateJm = DateFormat.jm('ar');
-final DateFormat _arDateMMMd = DateFormat.MMMd('ar');
-final DateFormat _arDateYMMMd = DateFormat.yMMMd('ar');
+/// Builds a [DateFormat], explaining the one way it can fail.
+///
+/// The ICU symbols a non default locale needs are loaded by
+/// [initializeCatalogFormatting], which must be awaited once during start up.
+DateFormat _dateFormat(String locale, DateFormat Function() build) {
+  try {
+    return build();
+  } on Exception catch (error) {
+    // intl's LocaleDataException is not exported, so the type cannot be
+    // named here; the original error is carried rather than swallowed.
+    throw StateError(
+      'Date symbols for "$locale" are not loaded.\n'
+      'Call `await initializeCatalogFormatting()` once during start up, before reading a '
+      'date formatted message.\n'
+      'Underlying error: $error',
+    );
+  }
+}
+
+final DateFormat _arDateJm = _dateFormat('ar', () => DateFormat.jm('ar'));
+final DateFormat _arDateMMMd = _dateFormat('ar', () => DateFormat.MMMd('ar'));
+final DateFormat _arDateYMMMd = _dateFormat('ar', () => DateFormat.yMMMd('ar'));
 final NumberFormat _arNumberCompact = NumberFormat.compact(locale: 'ar');
 final NumberFormat _arNumberCompactLong = NumberFormat.compactLong(
   locale: 'ar',
@@ -33,9 +52,9 @@ final NumberFormat _arNumberCurrencyEur = NumberFormat.currency(
   name: 'EUR',
 );
 final NumberFormat _arNumberDecimalPattern = NumberFormat.decimalPattern('ar');
-final DateFormat _enDateJm = DateFormat.jm('en');
-final DateFormat _enDateMMMd = DateFormat.MMMd('en');
-final DateFormat _enDateYMMMd = DateFormat.yMMMd('en');
+final DateFormat _enDateJm = _dateFormat('en', () => DateFormat.jm('en'));
+final DateFormat _enDateMMMd = _dateFormat('en', () => DateFormat.MMMd('en'));
+final DateFormat _enDateYMMMd = _dateFormat('en', () => DateFormat.yMMMd('en'));
 final NumberFormat _enNumberCompact = NumberFormat.compact(locale: 'en');
 final NumberFormat _enNumberCompactLong = NumberFormat.compactLong(
   locale: 'en',
@@ -45,9 +64,9 @@ final NumberFormat _enNumberCurrencyEur = NumberFormat.currency(
   name: 'EUR',
 );
 final NumberFormat _enNumberDecimalPattern = NumberFormat.decimalPattern('en');
-final DateFormat _jaDateJm = DateFormat.jm('ja');
-final DateFormat _jaDateMMMd = DateFormat.MMMd('ja');
-final DateFormat _jaDateYMMMd = DateFormat.yMMMd('ja');
+final DateFormat _jaDateJm = _dateFormat('ja', () => DateFormat.jm('ja'));
+final DateFormat _jaDateMMMd = _dateFormat('ja', () => DateFormat.MMMd('ja'));
+final DateFormat _jaDateYMMMd = _dateFormat('ja', () => DateFormat.yMMMd('ja'));
 final NumberFormat _jaNumberCompact = NumberFormat.compact(locale: 'ja');
 final NumberFormat _jaNumberCompactLong = NumberFormat.compactLong(
   locale: 'ja',
@@ -57,9 +76,9 @@ final NumberFormat _jaNumberCurrencyEur = NumberFormat.currency(
   name: 'EUR',
 );
 final NumberFormat _jaNumberDecimalPattern = NumberFormat.decimalPattern('ja');
-final DateFormat _plDateJm = DateFormat.jm('pl');
-final DateFormat _plDateMMMd = DateFormat.MMMd('pl');
-final DateFormat _plDateYMMMd = DateFormat.yMMMd('pl');
+final DateFormat _plDateJm = _dateFormat('pl', () => DateFormat.jm('pl'));
+final DateFormat _plDateMMMd = _dateFormat('pl', () => DateFormat.MMMd('pl'));
+final DateFormat _plDateYMMMd = _dateFormat('pl', () => DateFormat.yMMMd('pl'));
 final NumberFormat _plNumberCompact = NumberFormat.compact(locale: 'pl');
 final NumberFormat _plNumberCompactLong = NumberFormat.compactLong(
   locale: 'pl',
@@ -69,9 +88,9 @@ final NumberFormat _plNumberCurrencyEur = NumberFormat.currency(
   name: 'EUR',
 );
 final NumberFormat _plNumberDecimalPattern = NumberFormat.decimalPattern('pl');
-final DateFormat _slDateJm = DateFormat.jm('sl');
-final DateFormat _slDateMMMd = DateFormat.MMMd('sl');
-final DateFormat _slDateYMMMd = DateFormat.yMMMd('sl');
+final DateFormat _slDateJm = _dateFormat('sl', () => DateFormat.jm('sl'));
+final DateFormat _slDateMMMd = _dateFormat('sl', () => DateFormat.MMMd('sl'));
+final DateFormat _slDateYMMMd = _dateFormat('sl', () => DateFormat.yMMMd('sl'));
 final NumberFormat _slNumberCompact = NumberFormat.compact(locale: 'sl');
 final NumberFormat _slNumberCompactLong = NumberFormat.compactLong(
   locale: 'sl',
@@ -308,10 +327,12 @@ class $SearchAr implements $Search {
     if ($operands.n == 2) {
       return 'نتيجتان لـ "$query"';
     }
-    if ($operands.v == 0 && $operands.n % 100 >= 3 && $operands.n % 100 <= 10) {
+    if ($operands.n == $operands.i &&
+        $operands.n % 100 >= 3 &&
+        $operands.n % 100 <= 10) {
       return '${_arNumberDecimalPattern.format(count)} نتائج لـ "$query"';
     }
-    if ($operands.v == 0 &&
+    if ($operands.n == $operands.i &&
         $operands.n % 100 >= 11 &&
         $operands.n % 100 <= 99) {
       return '${_arNumberDecimalPattern.format(count)} نتيجة لـ "$query"';
@@ -331,10 +352,12 @@ class $SearchAr implements $Search {
     if ($operands.n == 2) {
       return 'مراجعتان';
     }
-    if ($operands.v == 0 && $operands.n % 100 >= 3 && $operands.n % 100 <= 10) {
+    if ($operands.n == $operands.i &&
+        $operands.n % 100 >= 3 &&
+        $operands.n % 100 <= 10) {
       return '${_arNumberDecimalPattern.format(count)} مراجعات';
     }
-    if ($operands.v == 0 &&
+    if ($operands.n == $operands.i &&
         $operands.n % 100 >= 11 &&
         $operands.n % 100 <= 99) {
       return '${_arNumberDecimalPattern.format(count)} مراجعة';
@@ -354,10 +377,12 @@ class $SearchAr implements $Search {
     if ($operands.n == 2) {
       return 'بقيت قطعتان';
     }
-    if ($operands.v == 0 && $operands.n % 100 >= 3 && $operands.n % 100 <= 10) {
+    if ($operands.n == $operands.i &&
+        $operands.n % 100 >= 3 &&
+        $operands.n % 100 <= 10) {
       return 'بقي ${_arNumberDecimalPattern.format(count)} قطع';
     }
-    if ($operands.v == 0 &&
+    if ($operands.n == $operands.i &&
         $operands.n % 100 >= 11 &&
         $operands.n % 100 <= 99) {
       return 'بقيت ${_arNumberDecimalPattern.format(count)} قطعة';
@@ -394,10 +419,12 @@ class $CartAr implements $Cart {
     if ($operands.n == 2) {
       return 'قطعتان، ${_arNumberCurrencyEur.format(total)}';
     }
-    if ($operands.v == 0 && $operands.n % 100 >= 3 && $operands.n % 100 <= 10) {
+    if ($operands.n == $operands.i &&
+        $operands.n % 100 >= 3 &&
+        $operands.n % 100 <= 10) {
       return '${_arNumberDecimalPattern.format(count)} قطع، ${_arNumberCurrencyEur.format(total)}';
     }
-    if ($operands.v == 0 &&
+    if ($operands.n == $operands.i &&
         $operands.n % 100 >= 11 &&
         $operands.n % 100 <= 99) {
       return '${_arNumberDecimalPattern.format(count)} قطعة، ${_arNumberCurrencyEur.format(total)}';
@@ -441,10 +468,12 @@ class $CartAr implements $Cart {
     if ($operands.n == 2) {
       return 'يومان';
     }
-    if ($operands.v == 0 && $operands.n % 100 >= 3 && $operands.n % 100 <= 10) {
+    if ($operands.n == $operands.i &&
+        $operands.n % 100 >= 3 &&
+        $operands.n % 100 <= 10) {
       return '${_arNumberDecimalPattern.format(days)} أيام';
     }
-    if ($operands.v == 0 &&
+    if ($operands.n == $operands.i &&
         $operands.n % 100 >= 11 &&
         $operands.n % 100 <= 99) {
       return '${_arNumberDecimalPattern.format(days)} يومًا';
@@ -487,10 +516,12 @@ class $OrderAr implements $Order {
     if ($operands.n == 2) {
       return '$first و${_arNumberDecimalPattern.format($countOffset)} آخران';
     }
-    if ($operands.v == 0 && $operands.n % 100 >= 3 && $operands.n % 100 <= 10) {
+    if ($operands.n == $operands.i &&
+        $operands.n % 100 >= 3 &&
+        $operands.n % 100 <= 10) {
       return '$first و${_arNumberDecimalPattern.format($countOffset)} آخرين';
     }
-    if ($operands.v == 0 &&
+    if ($operands.n == $operands.i &&
         $operands.n % 100 >= 11 &&
         $operands.n % 100 <= 99) {
       return '$first و${_arNumberDecimalPattern.format($countOffset)} آخرًا';
@@ -533,10 +564,12 @@ class $SellerAr implements $Seller {
     if ($operands.n == 2) {
       return 'مشتريان';
     }
-    if ($operands.v == 0 && $operands.n % 100 >= 3 && $operands.n % 100 <= 10) {
+    if ($operands.n == $operands.i &&
+        $operands.n % 100 >= 3 &&
+        $operands.n % 100 <= 10) {
       return '${_arNumberDecimalPattern.format(count)} مشترين';
     }
-    if ($operands.v == 0 &&
+    if ($operands.n == $operands.i &&
         $operands.n % 100 >= 11 &&
         $operands.n % 100 <= 99) {
       return '${_arNumberDecimalPattern.format(count)} مشتريًا';

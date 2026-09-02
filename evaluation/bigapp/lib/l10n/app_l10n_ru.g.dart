@@ -2,7 +2,7 @@
 
 part of 'app_l10n.g.dart';
 
-final DateFormat _ruDateYMMMd = DateFormat.yMMMd('ru');
+final DateFormat _ruDateYMMMd = _dateFormat('ru', () => DateFormat.yMMMd('ru'));
 final NumberFormat _ruNumberCurrencyEur = NumberFormat.currency(
   locale: 'ru',
   name: 'EUR',

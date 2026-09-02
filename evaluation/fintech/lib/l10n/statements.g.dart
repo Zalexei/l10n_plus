@@ -21,7 +21,26 @@ Future<void> initializeStatementsFormatting() async {
   }
 }
 
-final DateFormat _enDateYMMMM = DateFormat.yMMMM('en');
+/// Builds a [DateFormat], explaining the one way it can fail.
+///
+/// The ICU symbols a non default locale needs are loaded by
+/// [initializeStatementsFormatting], which must be awaited once during start up.
+DateFormat _dateFormat(String locale, DateFormat Function() build) {
+  try {
+    return build();
+  } on Exception catch (error) {
+    // intl's LocaleDataException is not exported, so the type cannot be
+    // named here; the original error is carried rather than swallowed.
+    throw StateError(
+      'Date symbols for "$locale" are not loaded.\n'
+      'Call `await initializeStatementsFormatting()` once during start up, before reading a '
+      'date formatted message.\n'
+      'Underlying error: $error',
+    );
+  }
+}
+
+final DateFormat _enDateYMMMM = _dateFormat('en', () => DateFormat.yMMMM('en'));
 final NumberFormat _enNumberCurrencyBtcSymbolhlafDigits8 =
     NumberFormat.currency(
       locale: 'en',
@@ -47,7 +66,7 @@ final NumberFormat _enNumberSimpleCurrencyUsd = NumberFormat.simpleCurrency(
   locale: 'en',
   name: 'USD',
 );
-final DateFormat _jaDateYMMMM = DateFormat.yMMMM('ja');
+final DateFormat _jaDateYMMMM = _dateFormat('ja', () => DateFormat.yMMMM('ja'));
 final NumberFormat _jaNumberCurrencyBtcSymbolhlafDigits8 =
     NumberFormat.currency(
       locale: 'ja',
@@ -70,7 +89,7 @@ final NumberFormat _jaNumberSimpleCurrencyUsd = NumberFormat.simpleCurrency(
 );
 final NumberFormat _jaNumberSimpleCurrencyUsdDigits0 =
     NumberFormat.simpleCurrency(locale: 'ja', name: 'USD', decimalDigits: 0);
-final DateFormat _ruDateYMMMM = DateFormat.yMMMM('ru');
+final DateFormat _ruDateYMMMM = _dateFormat('ru', () => DateFormat.yMMMM('ru'));
 final NumberFormat _ruNumberCurrencyBtcSymbolhlafDigits8 =
     NumberFormat.currency(
       locale: 'ru',
@@ -286,13 +305,13 @@ class $StatementEn implements $Statement {
 
   String _feeNote$0({required num fee, required num n}) {
     final $operands = PluralOperands(n);
-    if ($operands.i % 10 == 1 && $operands.i % 100 != 11) {
+    if ($operands.n % 10 == 1 && $operands.n % 100 != 11) {
       return '${n}st';
     }
-    if ($operands.i % 10 == 2 && $operands.i % 100 != 12) {
+    if ($operands.n % 10 == 2 && $operands.n % 100 != 12) {
       return '${n}nd';
     }
-    if ($operands.i % 10 == 3 && $operands.i % 100 != 13) {
+    if ($operands.n % 10 == 3 && $operands.n % 100 != 13) {
       return '${n}rd';
     }
     return '${n}th';

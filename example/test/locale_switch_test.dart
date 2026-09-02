@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:l10n_plus/l10n_plus.dart';
 import 'package:l10n_plus_example/generated/app_localizations.g.dart';
 import 'package:l10n_plus_example/generated/app_localizations_flutter.g.dart';
 import 'package:l10n_plus_example/main.dart';

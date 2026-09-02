@@ -12,7 +12,6 @@
 // This is a command line script; printing is the output.
 // ignore_for_file: avoid_print
 import 'package:benchmark_harness/benchmark_harness.dart';
-import 'package:l10n_plus/l10n_plus.dart';
 import 'package:l10n_plus_example/generated/app_localizations.g.dart';
 
 /// Somewhere for results to go, so nothing measured can be optimized away.

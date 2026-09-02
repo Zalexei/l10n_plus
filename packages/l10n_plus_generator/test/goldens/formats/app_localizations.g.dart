@@ -21,46 +21,88 @@ Future<void> initializeAppLocalizationsFormatting() async {
   }
 }
 
-final DateFormat _enDateD = DateFormat.d('en');
-final DateFormat _enDateE = DateFormat.E('en');
-final DateFormat _enDateEEEE = DateFormat.EEEE('en');
-final DateFormat _enDateH = DateFormat.H('en');
-final DateFormat _enDateHm = DateFormat.Hm('en');
-final DateFormat _enDateHms = DateFormat.Hms('en');
-final DateFormat _enDateJ = DateFormat.j('en');
-final DateFormat _enDateJm = DateFormat.jm('en');
-final DateFormat _enDateJms = DateFormat.jms('en');
-final DateFormat _enDateLLL = DateFormat.LLL('en');
-final DateFormat _enDateLLLL = DateFormat.LLLL('en');
-final DateFormat _enDateM = DateFormat.m('en');
-final DateFormat _enDateMEd = DateFormat.MEd('en');
-final DateFormat _enDateMMM = DateFormat.MMM('en');
-final DateFormat _enDateMMMEd = DateFormat.MMMEd('en');
-final DateFormat _enDateMMMM = DateFormat.MMMM('en');
-final DateFormat _enDateMMMMEEEEd = DateFormat.MMMMEEEEd('en');
-final DateFormat _enDateMMMMd = DateFormat.MMMMd('en');
-final DateFormat _enDateMMMd = DateFormat.MMMd('en');
-final DateFormat _enDateMd = DateFormat.Md('en');
-final DateFormat _enDateMs = DateFormat.ms('en');
-final DateFormat _enDateQQQ = DateFormat.QQQ('en');
-final DateFormat _enDateQQQQ = DateFormat.QQQQ('en');
-final DateFormat _enDateS = DateFormat.s('en');
-final DateFormat _enDateY = DateFormat.y('en');
-final DateFormat _enDateYM = DateFormat.yM('en');
-final DateFormat _enDateYMEd = DateFormat.yMEd('en');
-final DateFormat _enDateYMMM = DateFormat.yMMM('en');
-final DateFormat _enDateYMMMEd = DateFormat.yMMMEd('en');
-final DateFormat _enDateYMMMM = DateFormat.yMMMM('en');
-final DateFormat _enDateYMMMMEEEEd = DateFormat.yMMMMEEEEd('en');
-final DateFormat _enDateYMMMMd = DateFormat.yMMMMd('en');
-final DateFormat _enDateYMMMd = DateFormat.yMMMd('en');
-final DateFormat _enDateYMd = DateFormat.yMd('en');
-final DateFormat _enDateYQQQ = DateFormat.yQQQ('en');
-final DateFormat _enDateYQQQQ = DateFormat.yQQQQ('en');
+/// Builds a [DateFormat], explaining the one way it can fail.
+///
+/// The ICU symbols a non default locale needs are loaded by
+/// [initializeAppLocalizationsFormatting], which must be awaited once during start up.
+DateFormat _dateFormat(String locale, DateFormat Function() build) {
+  try {
+    return build();
+  } on Exception catch (error) {
+    // intl's LocaleDataException is not exported, so the type cannot be
+    // named here; the original error is carried rather than swallowed.
+    throw StateError(
+      'Date symbols for "$locale" are not loaded.\n'
+      'Call `await initializeAppLocalizationsFormatting()` once during start up, before reading a '
+      'date formatted message.\n'
+      'Underlying error: $error',
+    );
+  }
+}
+
+final DateFormat _enDateD = _dateFormat('en', () => DateFormat.d('en'));
+final DateFormat _enDateE = _dateFormat('en', () => DateFormat.E('en'));
+final DateFormat _enDateEEEE = _dateFormat('en', () => DateFormat.EEEE('en'));
+final DateFormat _enDateH = _dateFormat('en', () => DateFormat.H('en'));
+final DateFormat _enDateHm = _dateFormat('en', () => DateFormat.Hm('en'));
+final DateFormat _enDateHms = _dateFormat('en', () => DateFormat.Hms('en'));
+final DateFormat _enDateJ = _dateFormat('en', () => DateFormat.j('en'));
+final DateFormat _enDateJm = _dateFormat('en', () => DateFormat.jm('en'));
+final DateFormat _enDateJms = _dateFormat('en', () => DateFormat.jms('en'));
+final DateFormat _enDateLLL = _dateFormat('en', () => DateFormat.LLL('en'));
+final DateFormat _enDateLLLL = _dateFormat('en', () => DateFormat.LLLL('en'));
+final DateFormat _enDateM = _dateFormat('en', () => DateFormat.m('en'));
+final DateFormat _enDateMEd = _dateFormat('en', () => DateFormat.MEd('en'));
+final DateFormat _enDateMMM = _dateFormat('en', () => DateFormat.MMM('en'));
+final DateFormat _enDateMMMEd = _dateFormat('en', () => DateFormat.MMMEd('en'));
+final DateFormat _enDateMMMM = _dateFormat('en', () => DateFormat.MMMM('en'));
+final DateFormat _enDateMMMMEEEEd = _dateFormat(
+  'en',
+  () => DateFormat.MMMMEEEEd('en'),
+);
+final DateFormat _enDateMMMMd = _dateFormat('en', () => DateFormat.MMMMd('en'));
+final DateFormat _enDateMMMd = _dateFormat('en', () => DateFormat.MMMd('en'));
+final DateFormat _enDateMd = _dateFormat('en', () => DateFormat.Md('en'));
+final DateFormat _enDateMs = _dateFormat('en', () => DateFormat.ms('en'));
+final DateFormat _enDateQQQ = _dateFormat('en', () => DateFormat.QQQ('en'));
+final DateFormat _enDateQQQQ = _dateFormat('en', () => DateFormat.QQQQ('en'));
+final DateFormat _enDateS = _dateFormat('en', () => DateFormat.s('en'));
+final DateFormat _enDateY = _dateFormat('en', () => DateFormat.y('en'));
+final DateFormat _enDateYM = _dateFormat('en', () => DateFormat.yM('en'));
+final DateFormat _enDateYMEd = _dateFormat('en', () => DateFormat.yMEd('en'));
+final DateFormat _enDateYMMM = _dateFormat('en', () => DateFormat.yMMM('en'));
+final DateFormat _enDateYMMMEd = _dateFormat(
+  'en',
+  () => DateFormat.yMMMEd('en'),
+);
+final DateFormat _enDateYMMMM = _dateFormat('en', () => DateFormat.yMMMM('en'));
+final DateFormat _enDateYMMMMEEEEd = _dateFormat(
+  'en',
+  () => DateFormat.yMMMMEEEEd('en'),
+);
+final DateFormat _enDateYMMMMd = _dateFormat(
+  'en',
+  () => DateFormat.yMMMMd('en'),
+);
+final DateFormat _enDateYMMMd = _dateFormat('en', () => DateFormat.yMMMd('en'));
+final DateFormat _enDateYMd = _dateFormat('en', () => DateFormat.yMd('en'));
+final DateFormat _enDateYQQQ = _dateFormat('en', () => DateFormat.yQQQ('en'));
+final DateFormat _enDateYQQQQ = _dateFormat('en', () => DateFormat.yQQQQ('en'));
 final NumberFormat _enNumberCompact = NumberFormat.compact(locale: 'en');
+final NumberFormat _enNumberCompactCurrency = NumberFormat.compactCurrency(
+  locale: 'en',
+);
+final NumberFormat _enNumberCompactCurrencyUsd = NumberFormat.compactCurrency(
+  locale: 'en',
+  name: 'USD',
+);
 final NumberFormat _enNumberCompactLong = NumberFormat.compactLong(
   locale: 'en',
 );
+final NumberFormat _enNumberCompactSimpleCurrency =
+    NumberFormat.compactSimpleCurrency(locale: 'en');
+final NumberFormat _enNumberCompactSimpleCurrencyUsd =
+    NumberFormat.compactSimpleCurrency(locale: 'en', name: 'USD');
 final NumberFormat _enNumberCurrency = NumberFormat.currency(locale: 'en');
 final NumberFormat _enNumberCurrencyBtcSymbol682eDigits8 =
     NumberFormat.currency(
@@ -84,6 +126,10 @@ final NumberFormat _enNumberCurrencyUsd = NumberFormat.currency(
 final NumberFormat _enNumberDecimalPattern = NumberFormat.decimalPattern('en');
 final NumberFormat _enNumberDecimalPatternDigits =
     NumberFormat.decimalPatternDigits(locale: 'en', decimalDigits: 0);
+final NumberFormat _enNumberDecimalPercentPattern =
+    NumberFormat.decimalPercentPattern(locale: 'en');
+final NumberFormat _enNumberDecimalPercentPatternDigits2 =
+    NumberFormat.decimalPercentPattern(locale: 'en', decimalDigits: 2);
 final NumberFormat _enNumberPercentPattern = NumberFormat.percentPattern('en');
 final NumberFormat _enNumberScientificPattern = NumberFormat.scientificPattern(
   'en',
@@ -97,46 +143,69 @@ final NumberFormat _enNumberSimpleCurrencyUsd = NumberFormat.simpleCurrency(
   locale: 'en',
   name: 'USD',
 );
-final DateFormat _ruDateD = DateFormat.d('ru');
-final DateFormat _ruDateE = DateFormat.E('ru');
-final DateFormat _ruDateEEEE = DateFormat.EEEE('ru');
-final DateFormat _ruDateH = DateFormat.H('ru');
-final DateFormat _ruDateHm = DateFormat.Hm('ru');
-final DateFormat _ruDateHms = DateFormat.Hms('ru');
-final DateFormat _ruDateJ = DateFormat.j('ru');
-final DateFormat _ruDateJm = DateFormat.jm('ru');
-final DateFormat _ruDateJms = DateFormat.jms('ru');
-final DateFormat _ruDateLLL = DateFormat.LLL('ru');
-final DateFormat _ruDateLLLL = DateFormat.LLLL('ru');
-final DateFormat _ruDateM = DateFormat.m('ru');
-final DateFormat _ruDateMEd = DateFormat.MEd('ru');
-final DateFormat _ruDateMMM = DateFormat.MMM('ru');
-final DateFormat _ruDateMMMEd = DateFormat.MMMEd('ru');
-final DateFormat _ruDateMMMM = DateFormat.MMMM('ru');
-final DateFormat _ruDateMMMMEEEEd = DateFormat.MMMMEEEEd('ru');
-final DateFormat _ruDateMMMMd = DateFormat.MMMMd('ru');
-final DateFormat _ruDateMMMd = DateFormat.MMMd('ru');
-final DateFormat _ruDateMd = DateFormat.Md('ru');
-final DateFormat _ruDateMs = DateFormat.ms('ru');
-final DateFormat _ruDateQQQ = DateFormat.QQQ('ru');
-final DateFormat _ruDateQQQQ = DateFormat.QQQQ('ru');
-final DateFormat _ruDateS = DateFormat.s('ru');
-final DateFormat _ruDateY = DateFormat.y('ru');
-final DateFormat _ruDateYM = DateFormat.yM('ru');
-final DateFormat _ruDateYMEd = DateFormat.yMEd('ru');
-final DateFormat _ruDateYMMM = DateFormat.yMMM('ru');
-final DateFormat _ruDateYMMMEd = DateFormat.yMMMEd('ru');
-final DateFormat _ruDateYMMMM = DateFormat.yMMMM('ru');
-final DateFormat _ruDateYMMMMEEEEd = DateFormat.yMMMMEEEEd('ru');
-final DateFormat _ruDateYMMMMd = DateFormat.yMMMMd('ru');
-final DateFormat _ruDateYMMMd = DateFormat.yMMMd('ru');
-final DateFormat _ruDateYMd = DateFormat.yMd('ru');
-final DateFormat _ruDateYQQQ = DateFormat.yQQQ('ru');
-final DateFormat _ruDateYQQQQ = DateFormat.yQQQQ('ru');
+final DateFormat _ruDateD = _dateFormat('ru', () => DateFormat.d('ru'));
+final DateFormat _ruDateE = _dateFormat('ru', () => DateFormat.E('ru'));
+final DateFormat _ruDateEEEE = _dateFormat('ru', () => DateFormat.EEEE('ru'));
+final DateFormat _ruDateH = _dateFormat('ru', () => DateFormat.H('ru'));
+final DateFormat _ruDateHm = _dateFormat('ru', () => DateFormat.Hm('ru'));
+final DateFormat _ruDateHms = _dateFormat('ru', () => DateFormat.Hms('ru'));
+final DateFormat _ruDateJ = _dateFormat('ru', () => DateFormat.j('ru'));
+final DateFormat _ruDateJm = _dateFormat('ru', () => DateFormat.jm('ru'));
+final DateFormat _ruDateJms = _dateFormat('ru', () => DateFormat.jms('ru'));
+final DateFormat _ruDateLLL = _dateFormat('ru', () => DateFormat.LLL('ru'));
+final DateFormat _ruDateLLLL = _dateFormat('ru', () => DateFormat.LLLL('ru'));
+final DateFormat _ruDateM = _dateFormat('ru', () => DateFormat.m('ru'));
+final DateFormat _ruDateMEd = _dateFormat('ru', () => DateFormat.MEd('ru'));
+final DateFormat _ruDateMMM = _dateFormat('ru', () => DateFormat.MMM('ru'));
+final DateFormat _ruDateMMMEd = _dateFormat('ru', () => DateFormat.MMMEd('ru'));
+final DateFormat _ruDateMMMM = _dateFormat('ru', () => DateFormat.MMMM('ru'));
+final DateFormat _ruDateMMMMEEEEd = _dateFormat(
+  'ru',
+  () => DateFormat.MMMMEEEEd('ru'),
+);
+final DateFormat _ruDateMMMMd = _dateFormat('ru', () => DateFormat.MMMMd('ru'));
+final DateFormat _ruDateMMMd = _dateFormat('ru', () => DateFormat.MMMd('ru'));
+final DateFormat _ruDateMd = _dateFormat('ru', () => DateFormat.Md('ru'));
+final DateFormat _ruDateMs = _dateFormat('ru', () => DateFormat.ms('ru'));
+final DateFormat _ruDateQQQ = _dateFormat('ru', () => DateFormat.QQQ('ru'));
+final DateFormat _ruDateQQQQ = _dateFormat('ru', () => DateFormat.QQQQ('ru'));
+final DateFormat _ruDateS = _dateFormat('ru', () => DateFormat.s('ru'));
+final DateFormat _ruDateY = _dateFormat('ru', () => DateFormat.y('ru'));
+final DateFormat _ruDateYM = _dateFormat('ru', () => DateFormat.yM('ru'));
+final DateFormat _ruDateYMEd = _dateFormat('ru', () => DateFormat.yMEd('ru'));
+final DateFormat _ruDateYMMM = _dateFormat('ru', () => DateFormat.yMMM('ru'));
+final DateFormat _ruDateYMMMEd = _dateFormat(
+  'ru',
+  () => DateFormat.yMMMEd('ru'),
+);
+final DateFormat _ruDateYMMMM = _dateFormat('ru', () => DateFormat.yMMMM('ru'));
+final DateFormat _ruDateYMMMMEEEEd = _dateFormat(
+  'ru',
+  () => DateFormat.yMMMMEEEEd('ru'),
+);
+final DateFormat _ruDateYMMMMd = _dateFormat(
+  'ru',
+  () => DateFormat.yMMMMd('ru'),
+);
+final DateFormat _ruDateYMMMd = _dateFormat('ru', () => DateFormat.yMMMd('ru'));
+final DateFormat _ruDateYMd = _dateFormat('ru', () => DateFormat.yMd('ru'));
+final DateFormat _ruDateYQQQ = _dateFormat('ru', () => DateFormat.yQQQ('ru'));
+final DateFormat _ruDateYQQQQ = _dateFormat('ru', () => DateFormat.yQQQQ('ru'));
 final NumberFormat _ruNumberCompact = NumberFormat.compact(locale: 'ru');
+final NumberFormat _ruNumberCompactCurrency = NumberFormat.compactCurrency(
+  locale: 'ru',
+);
+final NumberFormat _ruNumberCompactCurrencyUsd = NumberFormat.compactCurrency(
+  locale: 'ru',
+  name: 'USD',
+);
 final NumberFormat _ruNumberCompactLong = NumberFormat.compactLong(
   locale: 'ru',
 );
+final NumberFormat _ruNumberCompactSimpleCurrency =
+    NumberFormat.compactSimpleCurrency(locale: 'ru');
+final NumberFormat _ruNumberCompactSimpleCurrencyUsd =
+    NumberFormat.compactSimpleCurrency(locale: 'ru', name: 'USD');
 final NumberFormat _ruNumberCurrency = NumberFormat.currency(locale: 'ru');
 final NumberFormat _ruNumberCurrencyBtcSymbol682eDigits8 =
     NumberFormat.currency(
@@ -156,6 +225,10 @@ final NumberFormat _ruNumberCurrencyUsd = NumberFormat.currency(
 final NumberFormat _ruNumberDecimalPattern = NumberFormat.decimalPattern('ru');
 final NumberFormat _ruNumberDecimalPatternDigits =
     NumberFormat.decimalPatternDigits(locale: 'ru', decimalDigits: 0);
+final NumberFormat _ruNumberDecimalPercentPattern =
+    NumberFormat.decimalPercentPattern(locale: 'ru');
+final NumberFormat _ruNumberDecimalPercentPatternDigits2 =
+    NumberFormat.decimalPercentPattern(locale: 'ru', decimalDigits: 2);
 final NumberFormat _ruNumberPercentPattern = NumberFormat.percentPattern('ru');
 final NumberFormat _ruNumberScientificPattern = NumberFormat.scientificPattern(
   'ru',
@@ -247,6 +320,9 @@ abstract interface class AppLocalizations implements BaseTranslations {
   /// `en`: {n, number, percent}
   String numberPercent({required num n});
 
+  /// `en`: {n, number, decimalPercentPattern}
+  String numberDecimalPercentPattern({required num n});
+
   /// `en`: {n, number, currency}
   String numberCurrency({required num n});
 
@@ -259,6 +335,12 @@ abstract interface class AppLocalizations implements BaseTranslations {
   /// `en`: {n, number, compactLong}
   String numberCompactLong({required num n});
 
+  /// `en`: {n, number, compactCurrency}
+  String numberCompactCurrency({required num n});
+
+  /// `en`: {n, number, compactSimpleCurrency}
+  String numberCompactSimpleCurrency({required num n});
+
   /// `en`: {n, number, scientific}
   String numberScientific({required num n});
 
@@ -267,6 +349,12 @@ abstract interface class AppLocalizations implements BaseTranslations {
 
   /// `en`: {n, number, simpleCurrency:USD}
   String codeSimpleCurrency({required num n});
+
+  /// `en`: {n, number, compactCurrency:USD}
+  String codeCompactCurrency({required num n});
+
+  /// `en`: {n, number, compactSimpleCurrency:USD}
+  String codeCompactSimpleCurrency({required num n});
 
   /// `en`: {d, date, E}
   String date00({required DateTime d});
@@ -441,6 +529,9 @@ abstract interface class AppLocalizations implements BaseTranslations {
 
   /// `en`: {n}
   String optSimple({required double n});
+
+  /// `en`: {n}
+  String optPercent({required double n});
 }
 
 /// `en` translations.
@@ -468,6 +559,10 @@ class AppLocalizationsEn implements AppLocalizations {
   String numberPercent({required num n}) => _enNumberPercentPattern.format(n);
 
   @override
+  String numberDecimalPercentPattern({required num n}) =>
+      _enNumberDecimalPercentPattern.format(n);
+
+  @override
   String numberCurrency({required num n}) => _enNumberCurrency.format(n);
 
   @override
@@ -481,6 +576,14 @@ class AppLocalizationsEn implements AppLocalizations {
   String numberCompactLong({required num n}) => _enNumberCompactLong.format(n);
 
   @override
+  String numberCompactCurrency({required num n}) =>
+      _enNumberCompactCurrency.format(n);
+
+  @override
+  String numberCompactSimpleCurrency({required num n}) =>
+      _enNumberCompactSimpleCurrency.format(n);
+
+  @override
   String numberScientific({required num n}) =>
       _enNumberScientificPattern.format(n);
 
@@ -490,6 +593,14 @@ class AppLocalizationsEn implements AppLocalizations {
   @override
   String codeSimpleCurrency({required num n}) =>
       _enNumberSimpleCurrencyUsd.format(n);
+
+  @override
+  String codeCompactCurrency({required num n}) =>
+      _enNumberCompactCurrencyUsd.format(n);
+
+  @override
+  String codeCompactSimpleCurrency({required num n}) =>
+      _enNumberCompactSimpleCurrencyUsd.format(n);
 
   @override
   String date00({required DateTime d}) => _enDateE.format(d);
@@ -667,6 +778,10 @@ class AppLocalizationsEn implements AppLocalizations {
   @override
   String optSimple({required double n}) =>
       _enNumberSimpleCurrencyJpyDigits0.format(n);
+
+  @override
+  String optPercent({required double n}) =>
+      _enNumberDecimalPercentPatternDigits2.format(n);
 }
 
 /// `ru` translations.
@@ -694,6 +809,10 @@ class AppLocalizationsRu implements AppLocalizations {
   String numberPercent({required num n}) => _ruNumberPercentPattern.format(n);
 
   @override
+  String numberDecimalPercentPattern({required num n}) =>
+      _ruNumberDecimalPercentPattern.format(n);
+
+  @override
   String numberCurrency({required num n}) => _ruNumberCurrency.format(n);
 
   @override
@@ -707,6 +826,14 @@ class AppLocalizationsRu implements AppLocalizations {
   String numberCompactLong({required num n}) => _ruNumberCompactLong.format(n);
 
   @override
+  String numberCompactCurrency({required num n}) =>
+      _ruNumberCompactCurrency.format(n);
+
+  @override
+  String numberCompactSimpleCurrency({required num n}) =>
+      _ruNumberCompactSimpleCurrency.format(n);
+
+  @override
   String numberScientific({required num n}) =>
       _ruNumberScientificPattern.format(n);
 
@@ -716,6 +843,14 @@ class AppLocalizationsRu implements AppLocalizations {
   @override
   String codeSimpleCurrency({required num n}) =>
       _ruNumberSimpleCurrencyUsd.format(n);
+
+  @override
+  String codeCompactCurrency({required num n}) =>
+      _ruNumberCompactCurrencyUsd.format(n);
+
+  @override
+  String codeCompactSimpleCurrency({required num n}) =>
+      _ruNumberCompactSimpleCurrencyUsd.format(n);
 
   @override
   String date00({required DateTime d}) => _ruDateE.format(d);
@@ -894,4 +1029,8 @@ class AppLocalizationsRu implements AppLocalizations {
   @override
   String optSimple({required double n}) =>
       _ruNumberSimpleCurrencyJpyDigits0.format(n);
+
+  @override
+  String optPercent({required double n}) =>
+      _ruNumberDecimalPercentPatternDigits2.format(n);
 }

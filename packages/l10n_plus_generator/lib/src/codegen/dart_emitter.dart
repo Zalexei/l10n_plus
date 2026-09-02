@@ -123,6 +123,9 @@ final class DartEmitter {
     }
     shared.writeln();
     _writeFormattingInitializer(shared);
+    // Declared once in the shared file: the parts are one library with it, so
+    // every locale's formatters can reach it.
+    _writeDateFormatHelper(shared);
     _writeLocaleEnum(shared);
     for (final selectEnum in model.enums) {
       _writeSelectEnum(shared, selectEnum);
@@ -151,6 +154,7 @@ final class DartEmitter {
     final buffer = StringBuffer();
     _writeHeader(buffer);
     _writeFormattingInitializer(buffer);
+    _writeDateFormatHelper(buffer);
     _writeFormatters(buffer);
     buffer.write(body);
     return buffer.toString();
@@ -206,6 +210,45 @@ final class DartEmitter {
       ..writeln('  }')
       ..writeln('}')
       ..writeln();
+  }
+
+  /// Emits the helper every generated `DateFormat` is constructed through.
+  ///
+  /// `DateFormat.yMMMd('ru')` throws while it is *built*, not while it
+  /// formats, so the failure lands on the first read of a lazily initialized
+  /// top level final — carrying intl's own message, which cannot know that
+  /// this file generated an initializer that fixes it.
+  ///
+  /// Nothing can be loaded lazily here: `initializeDateFormatting` is
+  /// asynchronous and a field initializer is not, so the best available
+  /// answer is an error that names the call to make.
+  void _writeDateFormatHelper(StringBuffer buffer) {
+    if (!_usesDateFormats) return;
+    final initializer = 'initialize${model.className}Formatting';
+    buffer.write('''
+/// Builds a [DateFormat], explaining the one way it can fail.
+///
+/// The ICU symbols a non default locale needs are loaded by
+/// [$initializer], which must be awaited once during start up.
+DateFormat ${IntlFormatters.dateFormatHelper}(
+  String locale,
+  DateFormat Function() build,
+) {
+  try {
+    return build();
+  } on Exception catch (error) {
+    // intl's LocaleDataException is not exported, so the type cannot be
+    // named here; the original error is carried rather than swallowed.
+    throw StateError(
+      'Date symbols for "\$locale" are not loaded.\\n'
+      'Call `await $initializer()` once during start up, before reading a '
+      'date formatted message.\\n'
+      'Underlying error: \$error',
+    );
+  }
+}
+
+''');
   }
 
   /// Emits one lazily initialized final per locale and style.
