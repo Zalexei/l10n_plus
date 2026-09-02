@@ -2,7 +2,7 @@
 
 part of 'app_l10n.g.dart';
 
-final DateFormat _enDateYMMMd = DateFormat.yMMMd('en');
+final DateFormat _enDateYMMMd = _dateFormat('en', () => DateFormat.yMMMd('en'));
 final NumberFormat _enNumberCurrencyEur = NumberFormat.currency(
   locale: 'en',
   name: 'EUR',

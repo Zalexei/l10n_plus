@@ -41,6 +41,7 @@ Diagnostic _onlyDiagnostic(GenerationResult result) {
 }
 
 void main() {
+  _unquotedBraceHint();
   group('shape', () {
     test('nested maps become namespaces', () {
       final source = _generated('''
@@ -231,6 +232,46 @@ profile:
         _generated("a: 'It''''s a ''{''literal brace''}'''"),
         contains(r"String get a => 'It\'s a {literal brace}';"),
       );
+    });
+  });
+}
+
+/// The one YAML mistake everybody makes.
+///
+/// Nearly every ICU message starts with `{`, which YAML reads as the opening
+/// of a flow mapping. `package:yaml` then says "Expected a key while parsing
+/// a block mapping", which is accurate and mentions neither translations nor
+/// quoting, and is the first thing a newcomer to the YAML format sees.
+void _unquotedBraceHint() {
+  group('an unquoted brace', () {
+    test('the diagnostic says to quote the message', () {
+      final result = runGenerator({'en.yaml': 'brace: {n} things\n'});
+
+      final diagnostic = result.diagnostics.firstWhere(
+        (d) => d.code == 'invalid_yaml',
+      );
+      expect(diagnostic.details, isNotNull);
+      expect(diagnostic.details, contains('must be quoted'));
+      expect(diagnostic.details, contains('flow mapping'));
+      // And shows the fix, because "quote it" is ambiguous about which quotes.
+      expect(diagnostic.details, contains("'{name}, hello'"));
+    });
+
+    test('a quoted message parses', () {
+      final result = runGenerator({'en.yaml': "brace: '{n} things'\n"});
+      expect(errorsOf(result), isEmpty);
+    });
+
+    test('an unrelated YAML error keeps its own message and adds no hint', () {
+      // The hint is attached by what the parser complained about, not to
+      // every failure, so a genuine indentation mistake is not answered with
+      // advice about braces.
+      final result = runGenerator({'en.yaml': 'a: 1\n  b: 2\n'});
+
+      final diagnostic = result.diagnostics.firstWhere(
+        (d) => d.code == 'invalid_yaml',
+      );
+      expect(diagnostic.details, isNull);
     });
   });
 }

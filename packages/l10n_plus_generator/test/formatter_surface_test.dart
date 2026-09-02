@@ -76,9 +76,15 @@ String _surfaceBundle({String locale = 'en'}) {
     'opt_digits': '{"decimalDigits": 0}',
     'opt_all': '{"name": "BTC", "symbol": "B", "decimalDigits": 8}',
     'opt_simple': '{"name": "JPY", "decimalDigits": 0}',
+    // The one style that takes `decimalDigits` without being money.
+    'opt_percent': '{"decimalDigits": 2}',
+  };
+  const declaredStyles = {
+    'opt_simple': 'simpleCurrency',
+    'opt_percent': 'decimalPercentPattern',
   };
   declared.forEach((key, options) {
-    final style = key == 'opt_simple' ? 'simpleCurrency' : 'currency';
+    final style = declaredStyles[key] ?? 'currency';
     buffer.write(',\n  "$key": "{n}"');
     if (locale != 'en') return;
     buffer.write(

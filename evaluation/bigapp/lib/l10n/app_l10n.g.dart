@@ -26,6 +26,25 @@ Future<void> initializeAppL10nFormatting() async {
   }
 }
 
+/// Builds a [DateFormat], explaining the one way it can fail.
+///
+/// The ICU symbols a non default locale needs are loaded by
+/// [initializeAppL10nFormatting], which must be awaited once during start up.
+DateFormat _dateFormat(String locale, DateFormat Function() build) {
+  try {
+    return build();
+  } on Exception catch (error) {
+    // intl's LocaleDataException is not exported, so the type cannot be
+    // named here; the original error is carried rather than swallowed.
+    throw StateError(
+      'Date symbols for "$locale" are not loaded.\n'
+      'Call `await initializeAppL10nFormatting()` once during start up, before reading a '
+      'date formatted message.\n'
+      'Underlying error: $error',
+    );
+  }
+}
+
 /// Every locale this app has translations for.
 enum AppLocale implements AppLocaleBase {
   /// `de`

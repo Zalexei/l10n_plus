@@ -14,16 +14,30 @@ typedef AppL10nController = L10nController<AppLocale, AppL10n>;
 /// Creates the controller that drives locale switching.
 ///
 /// Pass [locale] to pin a locale; omit it to follow the operating system.
+///
+/// [systemLocales] defaults to the platform's preferred locales, read once
+/// here. Flutter reports `didChangeLocales` only when the locale *changes*,
+/// so without this the first frame would always render the fallback locale.
+/// Pass `const []` to opt out and start on the fallback regardless of the
+/// device.
+///
+/// Reading them binds the Flutter engine, so this must be called from `main`
+/// or later — which is where a controller is built anyway.
 AppL10nController createAppL10nController({
   AppLocale? locale,
-  List<Locale> systemLocales = const [],
+  List<Locale>? systemLocales,
 }) {
+  final resolvedSystemLocales =
+      systemLocales ??
+      WidgetsFlutterBinding.ensureInitialized().platformDispatcher.locales;
   return AppL10nController(
     supportedLocales: AppL10n.supportedLocales,
     fallbackLocale: AppL10n.fallbackLocale,
     translationsOf: (locale) => locale.translations,
     initialLocale: locale,
-    systemLocales: [for (final locale in systemLocales) locale.toL10nLocale()],
+    systemLocales: [
+      for (final locale in resolvedSystemLocales) locale.toL10nLocale(),
+    ],
   );
 }
 

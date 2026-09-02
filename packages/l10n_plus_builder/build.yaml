@@ -8,4 +8,6 @@ builders:
         - lib/generated/app_localizations_flutter.g.dart
     auto_apply: dependents
     build_to: source
-    required_inputs: [".json", ".arb"]
+    # Every format the generator reads. A missing extension here means
+    # build_runner does not rerun the builder when that file changes.
+    required_inputs: [".json", ".arb", ".yaml", ".yml"]

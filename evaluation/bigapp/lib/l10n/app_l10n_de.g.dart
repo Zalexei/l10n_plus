@@ -2,7 +2,7 @@
 
 part of 'app_l10n.g.dart';
 
-final DateFormat _deDateYMMMd = DateFormat.yMMMd('de');
+final DateFormat _deDateYMMMd = _dateFormat('de', () => DateFormat.yMMMd('de'));
 final NumberFormat _deNumberCurrencyEur = NumberFormat.currency(
   locale: 'de',
   name: 'EUR',

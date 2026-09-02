@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0
+
+* **Fixed: editing a `.yaml` or `.yml` translation did not trigger a rebuild.**
+  `required_inputs` listed only `.json` and `.arb`, so `build_runner` did not
+  know YAML translations were inputs.
+
 ## 0.1.0
 
 First release. A `build_runner` adapter over the same generator API the CLI

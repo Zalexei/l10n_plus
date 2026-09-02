@@ -2,6 +2,7 @@ import 'package:l10n_plus/l10n_plus.dart';
 import 'package:path/path.dart' as p;
 
 import '../ast/message_ast.dart';
+import '../config.dart';
 import '../ast/translation_tree.dart';
 import '../diagnostic.dart';
 import '../model/argument.dart';
@@ -43,6 +44,7 @@ abstract final class CrossLocaleValidator {
     required Map<String, MessageSignature> baseSignatures,
     required DiagnosticCollector diagnostics,
     bool fillMissingFromBase = false,
+    ExtraKeys extraKeys = ExtraKeys.error,
   }) {
     _checkPluralSupport(base, diagnostics);
     for (final message in base.messages.values) {
@@ -58,6 +60,7 @@ abstract final class CrossLocaleValidator {
         otherNode: locale.root,
         diagnostics: diagnostics,
         fillMissingFromBase: fillMissingFromBase,
+        extraKeys: extraKeys,
       );
       for (final entry in baseSignatures.entries) {
         final message = locale.messages[entry.key];
@@ -102,15 +105,40 @@ abstract final class CrossLocaleValidator {
                 'plural rules are known for language "$language".',
             span: node.span,
             translationKey: message.path,
-            details:
-                '${type.label} messages cannot be generated for this locale.\n'
-                'Supported languages: '
-                '${(type == PluralType.ordinal ? CldrPluralRules.supportedOrdinalLanguages : CldrPluralRules.supportedLanguages).join(', ')}.',
+            details: _unknownLanguageDetails(type, language),
           ),
         );
         break;
       }
     }
+  }
+
+  /// Explains an unknown language without listing two hundred known ones.
+  ///
+  /// The tables are the whole of CLDR, so "not supported" almost always means
+  /// the locale tag is wrong rather than that the language is exotic — and a
+  /// list of every language CLDR publishes would bury that.
+  static String _unknownLanguageDetails(PluralType type, String language) {
+    final known = type == PluralType.ordinal
+        ? CldrPluralRules.supportedOrdinalLanguages
+        : CldrPluralRules.supportedLanguages;
+    final buffer = StringBuffer()
+      ..writeln('${type.label} messages cannot be generated for this locale.')
+      ..writeln(
+        'CLDR ${CldrPluralRules.cldrVersion} publishes '
+        '${type == PluralType.ordinal ? 'ordinal ' : ''}rules for '
+        '${known.length} languages and "$language" is not one of them.',
+      );
+    if (type == PluralType.ordinal &&
+        CldrPluralRules.forLanguage(language) != null) {
+      buffer.writeln(
+        'It does have cardinal rules, so {n, plural, ...} works here and only '
+        '{n, selectordinal, ...} does not.',
+      );
+    } else {
+      buffer.writeln('Check the locale tag on the file.');
+    }
+    return buffer.toString().trimRight();
   }
 
   static void _compareStructure({
@@ -119,6 +147,7 @@ abstract final class CrossLocaleValidator {
     required TranslationGroup baseNode,
     required TranslationGroup otherNode,
     required DiagnosticCollector diagnostics,
+    required ExtraKeys extraKeys,
     required bool fillMissingFromBase,
   }) {
     for (final baseChild in baseNode.children) {
@@ -166,6 +195,7 @@ abstract final class CrossLocaleValidator {
         case (final TranslationGroup a, final TranslationGroup b):
           _compareStructure(
             fillMissingFromBase: fillMissingFromBase,
+            extraKeys: extraKeys,
             base: base,
             other: other,
             baseNode: a,
@@ -201,21 +231,55 @@ abstract final class CrossLocaleValidator {
 
     for (final otherChild in otherNode.children) {
       if (baseNode.child(otherChild.key) != null) continue;
-      diagnostics.add(
-        Diagnostic.error(
+      // Reported on the group rather than on each key under it: a namespace
+      // dropped from the base locale is one decision, and a hundred warnings
+      // saying so is a report nobody reads. The count carries the size.
+      final keys = _messageCount(otherChild);
+      final scale = keys == 1 ? '' : ' ($keys keys)';
+      diagnostics.add(switch (extraKeys) {
+        ExtraKeys.error => Diagnostic.error(
           code: 'extra_key',
           message:
               'Key "${otherChild.path}" does not exist in the base locale '
-              '${base.locale.toFileTag()}.',
+              '${base.locale.toFileTag()}.$scale',
           span: otherChild.keySpan,
           translationKey: otherChild.path,
           details:
               'Add it to the base locale first, or remove it here. The base '
-              'locale defines the generated API.',
+              'locale defines the generated API.\n'
+              'Set "extra_keys: warn" to let a translation outlive the key '
+              'it was written for.',
         ),
-      );
+        ExtraKeys.warn => Diagnostic.warning(
+          code: 'extra_key',
+          message:
+              'Key "${otherChild.path}" does not exist in the base locale '
+              '${base.locale.toFileTag()}.$scale',
+          span: otherChild.keySpan,
+          translationKey: otherChild.path,
+          details:
+              'The translation is ignored: the base locale defines the '
+              'generated API, so there is nothing for it to implement.\n'
+              'Add the key to ${base.locale.toFileTag()}, or delete it '
+              'here once the translators have caught up.',
+        ),
+      });
     }
   }
+
+  /// How many messages [node] stands for: 1 for a leaf, the subtree's for a
+  /// group.
+  ///
+  /// A diagnostic about an extra group names one key but covers everything
+  /// under it, and "wallet is not in the base locale" reads very differently
+  /// at 2 keys and at 200.
+  static int _messageCount(TranslationNode node) => switch (node) {
+    TranslationLeaf() => 1,
+    TranslationGroup(:final children) => children.fold(
+      0,
+      (total, child) => total + _messageCount(child),
+    ),
+  };
 
   static void _compareSignature({
     required String key,
@@ -353,6 +417,34 @@ abstract final class CrossLocaleValidator {
     }
   }
 
+  /// Whether the plural's `=N` branches already render all of [category].
+  ///
+  /// `gen_l10n` writes `{count, plural, =0{none} =1{one} other{# items}}`, and
+  /// English `one` is true of 1 and of nothing else — so `=1` covers it and
+  /// reporting `one` as missing is a warning with no fix, on every bundle
+  /// imported from `gen_l10n`.
+  ///
+  /// Only a category CLDR defines as one exact value can be covered this way.
+  /// Nothing tries to prove that a set of `=N` branches covers a range: `few`
+  /// in Arabic is `n % 100 = 3..10`, which no list of literals closes, and a
+  /// prover that got it wrong would silence a real warning.
+  static bool _coveredByExactCases(
+    PluralRuleSet rules,
+    PluralNode plural,
+    PluralCategory category,
+  ) {
+    // `offset:` puts the two sides on different numbers: ICU matches `=N`
+    // against the original value and selects the category from the adjusted
+    // one, so `=1` and `one` are not talking about the same input.
+    if (plural.offset != 0) return false;
+
+    final value = rules.exactValueOf(category);
+    if (value == null) return false;
+    return plural.cases.keys.any(
+      (branch) => branch is ExactPluralCase && branch.value == value,
+    );
+  }
+
   static void _checkPluralCategories(
     LocaleMessages locale,
     ParsedMessage message,
@@ -369,7 +461,10 @@ abstract final class CrossLocaleValidator {
           .toSet();
       final supported = rules.categories;
 
-      final missing = supported.difference(declared);
+      final missing = supported
+          .difference(declared)
+          .where((category) => !_coveredByExactCases(rules, plural, category))
+          .toSet();
       if (missing.isNotEmpty) {
         diagnostics.add(
           Diagnostic.warning(

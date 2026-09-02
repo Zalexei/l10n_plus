@@ -83,7 +83,7 @@ Future<void> main(List<String> arguments) async {
   _report(all, highlight: highlight);
 
   if (result.hasErrors) {
-    stderr.writeln(_summary(all));
+    stderr.writeln(_summary(all, ignored: result.ignoredCount));
     exit(_exitCodeDiagnostics);
   }
 
@@ -101,7 +101,9 @@ Future<void> main(List<String> arguments) async {
   }
 
   if (command == 'analyze') {
-    stdout.writeln('No errors. ${_summary(all)}'.trim());
+    stdout.writeln(
+      'No errors. ${_summary(all, ignored: result.ignoredCount)}'.trim(),
+    );
     exit(0);
   }
 
@@ -122,13 +124,16 @@ void _report(List<Diagnostic> diagnostics, {required bool highlight}) {
   }
 }
 
-String _summary(List<Diagnostic> diagnostics) {
+String _summary(List<Diagnostic> diagnostics, {int ignored = 0}) {
   final errors = diagnostics.where((d) => d.severity == Severity.error).length;
   final warnings = diagnostics
       .where((d) => d.severity == Severity.warning)
       .length;
-  if (errors == 0 && warnings == 0) return '';
-  return '$errors error(s), $warnings warning(s).';
+  if (errors == 0 && warnings == 0 && ignored == 0) return '';
+  // The ignored count is always shown: a warning silenced by a config nobody
+  // remembers writing is worse than the warning was.
+  final suppressed = ignored == 0 ? '' : ' $ignored ignored.';
+  return '$errors error(s), $warnings warning(s).$suppressed';
 }
 
 String _usage(ArgParser parser) => '''

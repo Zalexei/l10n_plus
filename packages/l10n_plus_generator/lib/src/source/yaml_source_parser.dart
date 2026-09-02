@@ -68,6 +68,7 @@ final class YamlSourceParser implements TranslationSourceParser {
           code: 'invalid_yaml',
           message: 'Could not parse YAML: ${error.message}.',
           span: error.span ?? file.span(0, 0),
+          details: _yamlHint(error),
         ),
       );
       return null;
@@ -255,4 +256,20 @@ final class YamlSourceParser implements TranslationSourceParser {
       _ => 'a ${value.runtimeType}',
     };
   }
+}
+
+/// What a raw `package:yaml` error usually means in a translation file.
+///
+/// Nearly every ICU message starts with `{`, which YAML reads as the opening
+/// of a flow mapping — so the first YAML file anyone writes fails with
+/// "Expected a key while parsing a block mapping", which is true and does not
+/// mention translations, braces or quoting.
+String? _yamlHint(YamlException error) {
+  final message = error.message.toLowerCase();
+  if (!message.contains('block mapping') && !message.contains('flow mapping')) {
+    return null;
+  }
+  return 'A message starting with `{` must be quoted: YAML reads a bare `{` '
+      'as the start of a flow mapping.\n'
+      "  greeting: '{name}, hello'";
 }

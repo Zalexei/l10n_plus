@@ -7,6 +7,15 @@ import 'diagnostic.dart';
 import 'source/file_pattern.dart';
 import 'model/dart_identifiers.dart';
 
+/// What to do with a key a locale has and the base locale does not.
+enum ExtraKeys {
+  /// Fail the build. The default.
+  error,
+
+  /// Report it and leave the key out of generation.
+  warn,
+}
+
 /// Flutter specific generation options.
 final class FlutterConfig {
   /// Creates Flutter options.
@@ -33,6 +42,8 @@ final class L10nPlusConfig {
     this.filePattern,
     this.filePerLocale = false,
     this.fillMissingFromBase = false,
+    this.extraKeys = ExtraKeys.error,
+    this.ignoreDiagnostics = const {},
     this.flutter = const FlutterConfig(),
   });
 
@@ -99,6 +110,27 @@ final class L10nPlusConfig {
   /// is unchanged either way.
   final bool filePerLocale;
 
+  /// What to do with a key a locale has and the base locale does not.
+  ///
+  /// An error by default: the base locale is the API contract, and a key
+  /// nothing generated can reach is usually a typo. [ExtraKeys.warn] is for
+  /// teams whose translations arrive through a TMS, where a key removed from
+  /// the base locale keeps coming back from the translators for a while and
+  /// nobody can build in the meantime.
+  final ExtraKeys extraKeys;
+
+  /// Warning codes this project does not want reported.
+  ///
+  /// A project of three thousand keys in ten locales can produce two thousand
+  /// `missing_plural_category` warnings, all of them saying the same true
+  /// thing about a decision the team already made. Without a way to turn them
+  /// off the report gets ignored wholesale, which costs more than the warning
+  /// was worth.
+  ///
+  /// Only warnings are ever dropped. A code that is an error here stays an
+  /// error, whatever the list says.
+  final Set<String> ignoreDiagnostics;
+
   /// Flutter options.
   final FlutterConfig flutter;
 
@@ -156,6 +188,8 @@ final class L10nPlusConfig {
       'file_pattern',
       'file_per_locale',
       'fill_missing_from_base',
+      'extra_keys',
+      'ignore_diagnostics',
       'flutter',
     };
     for (final key in document.keys) {
@@ -235,8 +269,110 @@ final class L10nPlusConfig {
       filePerLocale: _bool(document, 'file_per_locale', diagnostics) ?? false,
       fillMissingFromBase:
           _bool(document, 'fill_missing_from_base', diagnostics) ?? false,
+      extraKeys: _extraKeys(document, diagnostics),
+      ignoreDiagnostics: _ignoreDiagnostics(document, diagnostics),
       flutter: flutter,
     );
+  }
+
+  /// Reads `ignore_diagnostics`, dropping entries that cannot mean anything.
+  ///
+  /// A misspelled code and a code that always stops the build are both
+  /// reported rather than accepted: silently keeping either would leave the
+  /// project believing a warning is off when it is not.
+  static Set<String> _ignoreDiagnostics(
+    YamlMap map,
+    DiagnosticCollector diagnostics,
+  ) {
+    final node = map['ignore_diagnostics'];
+    if (node == null) return const {};
+    final span = map.nodes['ignore_diagnostics']?.span ?? map.span;
+    if (node is! YamlList) {
+      diagnostics.add(
+        Diagnostic.warning(
+          code: 'invalid_config',
+          message: '"ignore_diagnostics" must be a list of diagnostic codes.',
+          span: span,
+          details:
+              'For example:\n'
+              '  ignore_diagnostics: [missing_plural_category]',
+        ),
+      );
+      return const {};
+    }
+
+    final codes = <String>{};
+    for (final entry in node.nodes) {
+      final value = entry.value;
+      if (value is! String) {
+        diagnostics.add(
+          Diagnostic.warning(
+            code: 'invalid_config',
+            message:
+                '"ignore_diagnostics" entries must be strings, not '
+                '"$value".',
+            span: entry.span,
+          ),
+        );
+        continue;
+      }
+      if (DiagnosticCodes.suppressible.contains(value)) {
+        codes.add(value);
+        continue;
+      }
+      diagnostics.add(
+        Diagnostic.warning(
+          code: 'invalid_config',
+          message: DiagnosticCodes.alwaysErrors.contains(value)
+              ? 'Diagnostic "$value" is an error and cannot be ignored.'
+              : 'Unknown diagnostic code "$value".',
+          span: entry.span,
+          details: DiagnosticCodes.alwaysErrors.contains(value)
+              ? 'An error stops generation, so hiding it would hide the '
+                    'reason the build failed. Fix the translation, or change '
+                    'the option that makes it an error.'
+              : 'Nothing reports "$value", so this entry silences nothing.\n'
+                    'Ignorable codes:\n'
+                    '${_wrap(DiagnosticCodes.suppressible)}',
+        ),
+      );
+    }
+    return codes;
+  }
+
+  /// Renders [codes] sorted, two per line, for a diagnostic's details.
+  static String _wrap(Set<String> codes) {
+    final sorted = codes.toList()..sort();
+    final lines = <String>[];
+    for (var i = 0; i < sorted.length; i += 2) {
+      lines.add('  ${sorted.skip(i).take(2).join(', ')}');
+    }
+    return lines.join('\n');
+  }
+
+  /// Reads `extra_keys`, keeping the strict default when it cannot be read.
+  ///
+  /// An option the generator does not understand must never be the reason a
+  /// build got looser than the project asked for.
+  static ExtraKeys _extraKeys(YamlMap map, DiagnosticCollector diagnostics) {
+    final node = map['extra_keys'];
+    if (node == null) return ExtraKeys.error;
+    final span = map.nodes['extra_keys']?.span ?? map.span;
+    for (final value in ExtraKeys.values) {
+      if (node == value.name) return value;
+    }
+    diagnostics.add(
+      Diagnostic.warning(
+        code: 'invalid_config',
+        message: '"extra_keys" must be "error" or "warn", not "$node".',
+        span: span,
+        details:
+            'Keeping "error", which is the default.\n'
+            '  error  a key the base locale does not have fails the build\n'
+            '  warn   it is reported and the key is ignored',
+      ),
+    );
+    return ExtraKeys.error;
   }
 
   static FilePattern? _filePattern(

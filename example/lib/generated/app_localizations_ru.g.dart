@@ -2,7 +2,7 @@
 
 part of 'app_localizations.g.dart';
 
-final DateFormat _ruDateYMMMd = DateFormat.yMMMd('ru');
+final DateFormat _ruDateYMMMd = _dateFormat('ru', () => DateFormat.yMMMd('ru'));
 final NumberFormat _ruNumberCurrencyDigits0 = NumberFormat.currency(
   locale: 'ru',
   decimalDigits: 0,

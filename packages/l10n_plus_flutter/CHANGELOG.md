@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0
+
+* No API change. The generated controller factory now reads the platform's
+  locales when none are passed, so `L10nController` receives a real system
+  locale list at start up instead of an empty one. See the generator's
+  changelog.
+
 ## 0.1.0
 
 First release. The Flutter edge of `l10n_plus`.

@@ -48,12 +48,41 @@ abstract final class IntlFormatters {
     // did not compile.
     'integer': 'decimalPatternDigits',
     'percent': 'percentPattern',
+    'decimalPercentPattern': 'decimalPercentPattern',
     'currency': 'currency',
     'simpleCurrency': 'simpleCurrency',
     'compact': 'compact',
     'compactLong': 'compactLong',
+    'compactCurrency': 'compactCurrency',
+    'compactSimpleCurrency': 'compactSimpleCurrency',
     'scientific': 'scientificPattern',
   };
+
+  /// The names `gen_l10n` writes, mapped onto the style this library calls it.
+  ///
+  /// A bundle exported from `gen_l10n` says `"format": "decimalPattern"`, and
+  /// the README promises such a bundle works unedited. These are spellings of
+  /// styles that already existed, so they are folded away by
+  /// [canonicalNumberStyle] before anything else sees them: one style, one
+  /// generated formatter, one name in every diagnostic.
+  ///
+  /// `decimalPercentPattern` is **not** here. It looks like a spelling of
+  /// `percent` and is a different `NumberFormat` constructor — the one that
+  /// takes `decimalDigits` — so folding it onto `percent` would silently drop
+  /// the digits a bundle asked for. It is a style of its own above.
+  static const Map<String, String> numberStyleAliases = {
+    'decimalPattern': 'decimal',
+    'percentPattern': 'percent',
+    'scientificPattern': 'scientific',
+  };
+
+  /// [style] under the name the rest of the generator uses.
+  ///
+  /// Applied wherever a style enters from a source file — the message, the
+  /// ARB metadata, a locale's override — so `decimal` and `decimalPattern`
+  /// are the same style rather than two that generate the same code twice.
+  static String? canonicalNumberStyle(String? style) =>
+      style == null ? null : numberStyleAliases[style] ?? style;
 
   /// Named date styles, mapped onto `DateFormat` skeletons.
   static const Map<String, String> dateStyles = {
@@ -127,7 +156,23 @@ abstract final class IntlFormatters {
   /// the locale's symbol for that currency (`\$1,234.50`). Both are `intl`
   /// constructors; the choice is the user's, because the symbol is prettier
   /// and the code is unambiguous.
-  static const Set<String> currencyStyles = {'currency', 'simpleCurrency'};
+  static const Set<String> currencyStyles = {
+    'currency',
+    'simpleCurrency',
+    'compactCurrency',
+    'compactSimpleCurrency',
+  };
+
+  /// The styles whose `NumberFormat` constructor takes `decimalDigits`.
+  ///
+  /// The currency four, plus `decimalPercentPattern`, which exists in `intl`
+  /// for no other reason: `percentPattern` is the same format without the
+  /// digits. A style here that is not a currency takes `decimalDigits` and
+  /// nothing else — a currency code on a percentage means nothing.
+  static const Set<String> decimalDigitsStyles = {
+    ...currencyStyles,
+    'decimalPercentPattern',
+  };
 
   /// Whether [format] is a currency format, and so may carry currency options.
   static bool acceptsCurrencyOptions(ArgumentFormat format) =>
@@ -141,7 +186,22 @@ abstract final class IntlFormatters {
   /// is the whole difference between the two, so overriding it there is a
   /// contradiction — and would generate code that does not compile.
   static bool acceptsCurrencySymbol(ArgumentFormat format) =>
-      format.kind == ArgumentFormatKind.number && format.style == 'currency';
+      format.kind == ArgumentFormatKind.number &&
+      _symbolStyles.contains(format.style);
+
+  /// The currency styles that take an explicit symbol.
+  ///
+  /// `simpleCurrency` and `compactSimpleCurrency` derive it from the currency,
+  /// which is the whole difference between them and the other two.
+  static const Set<String> _symbolStyles = {'currency', 'compactCurrency'};
+
+  /// Whether [format] may carry `decimalDigits`.
+  ///
+  /// Wider than [acceptsCurrencyOptions]: `decimalPercentPattern` takes the
+  /// digits without being money.
+  static bool acceptsDecimalDigits(ArgumentFormat format) =>
+      format.kind == ArgumentFormatKind.number &&
+      decimalDigitsStyles.contains(format.style);
 
   /// Whether [code] is a well formed ISO 4217 alphabetic code.
   ///
@@ -150,6 +210,9 @@ abstract final class IntlFormatters {
   static bool isValidCurrencyCode(String code) => _currencyCode.hasMatch(code);
 
   static final RegExp _currencyCode = RegExp(r'^[A-Z]{3}$');
+
+  /// Name of the generated helper every `DateFormat` is built through.
+  static const String dateFormatHelper = '_dateFormat';
 
   /// Largest number of fraction digits `NumberFormat` will honour.
   static const int maxDecimalDigits = 20;
@@ -208,7 +271,10 @@ abstract final class IntlFormatters {
     switch (format.kind) {
       case ArgumentFormatKind.number:
         final constructor = numberStyles[format.style]!;
-        final options = acceptsCurrencyOptions(format) ? format.currency : null;
+        // Wider than the currency styles: `decimalPercentPattern` carries
+        // `decimalDigits` and nothing else, and dropping it here would render
+        // a different number than the bundle asked for.
+        final options = acceptsDecimalDigits(format) ? format.currency : null;
         return FormatterBinding(
           fieldName:
               '_$localeDartName'
@@ -232,7 +298,12 @@ abstract final class IntlFormatters {
               '_$localeDartName'
               'Date${_capitalize(skeleton)}',
           dartType: 'DateFormat',
-          initializer: "DateFormat.$skeleton('$locale')",
+          // Built through the generated helper rather than directly: a
+          // `DateFormat` throws *while being constructed* when its locale's
+          // ICU symbols are not loaded, and says so without naming the
+          // initializer this file generated for exactly that purpose.
+          initializer:
+              "$dateFormatHelper('$locale', () => DateFormat.$skeleton('$locale'))",
           localeDartName: localeDartName,
         );
     }
@@ -251,16 +322,23 @@ abstract final class IntlFormatters {
         currencyStyles.contains(constructor) ||
         constructor == 'compact' ||
         constructor == 'compactLong' ||
-        constructor == 'decimalPatternDigits';
+        constructor == 'decimalPatternDigits' ||
+        constructor == 'decimalPercentPattern';
     if (!named) return "NumberFormat.$constructor('$locale')";
 
     final arguments = [
       "locale: '$locale'",
-      if (options?.code case final String code) "name: '$code'",
-      // `simpleCurrency` has no `symbol:`; the model builder rejects one, and
-      // this guard keeps a bug there from emitting uncompilable code.
+      // Only money has a currency; the model builder rejects a code on
+      // anything else, and this guard keeps a bug there from emitting an
+      // argument the constructor does not have.
+      if (options?.code case final String code
+          when currencyStyles.contains(constructor))
+        "name: '$code'",
+      // `simpleCurrency` and `compactSimpleCurrency` have no `symbol:`; the
+      // model builder rejects one, and this guard keeps a bug there from
+      // emitting uncompilable code.
       if (options?.symbol case final String symbol
-          when constructor == 'currency')
+          when _symbolStyles.contains(constructor))
         'symbol: ${_stringLiteral(symbol)}',
       if (options?.decimalDigits case final int digits)
         'decimalDigits: $digits',

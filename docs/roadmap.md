@@ -10,6 +10,7 @@ Everything below works end to end today.
   `#`, arbitrary nesting, apostrophe quoting
 * argument inference: `String`, `num`, generated select enums
 * CLDR plural rules for 30 languages, inlined per locale at generation time
+  (the whole of CLDR since Milestone 19)
 * cross-locale validation against the base locale
 * Dart code generation: nested typed API, `const` object graph, `dart_style`
   formatted, deterministic
@@ -362,7 +363,55 @@ ordinal table, so there was nothing to check hand written rules against.
 * `evaluation/marketplace` gets its `selectordinal` back — the message had to
   be removed when Slovenian could not generate one.
 
-## Milestone 21 — next slice
+## Milestone 21 — bugs and coverage before publishing (done)
+
+
+Eight things found by using the library rather than by testing it.
+
+* **Type name collisions.** `auth.login` beside `auth_login` generated
+  `$AuthLogin` twice, with no diagnostic; `dart analyze` reported
+  `duplicate_definition` in generated code. Every top level name — interfaces,
+  their per locale implementations, select enums, the class and the locale
+  enum — is now claimed in one registry, and a second claim is
+  `type_name_collision` naming both keys.
+* **The app did not start in the system locale.** `create<Class>Controller()`
+  is documented as following the operating system and defaulted
+  `systemLocales` to `const []`, which resolves to the fallback. Flutter never
+  reports `didChangeLocales` at start up, so a Russian phone opened the app in
+  English. The factory now reads the platform's locales through
+  `WidgetsFlutterBinding.ensureInitialized()`, which is also the one a widget
+  test can substitute.
+* **The whole CLDR plural table.** The curated forty language table blocked
+  `bg`, `sl`, `lv`, `fa`, `ta`, `mr` and a hundred others outright.
+  `tool/update_cldr_plural_rules.dart` compiles CLDR 48 into the same
+  condition format: 222 cardinal and 107 ordinal languages, checked against
+  CLDR's own samples *and* against `package:intl` — which are complementary,
+  because each catches what the other misses. The hand written Arabic rule was
+  missing the integer guard a CLDR range implies.
+* **`ignore_diagnostics`.** Warning codes a project has decided about. Only
+  warnings, an unknown or always-error code is reported, and the suppressed
+  count is always printed.
+* **`=1` covers `one`.** A `gen_l10n` bundle writing `=0 =1 other` was told
+  English `one` was missing. It is not: English defines `one` as one exact
+  value, and `=1` renders all of it. Ranges are not attempted, and `offset:`
+  disables the check.
+* **The format names `gen_l10n` writes.** `decimalPattern`, `percentPattern`
+  and `scientificPattern` accepted as spellings of the styles that existed,
+  folded at the entry points so both spellings share one formatter.
+  `compactCurrency` and `compactSimpleCurrency` added as real styles, and
+  `decimalPercentPattern` as its own — it is the constructor that takes
+  `decimalDigits`, so aliasing it to `percent` would have dropped them.
+* **`extra_keys: warn`.** For teams on a TMS, where a translation outlives the
+  key it was written for. The key is ignored, and the output is what deleting
+  it by hand would give.
+* **Four smaller ones.** A YAML message starting with `{` now gets a
+  diagnostic saying to quote it; the builder declares `.yaml` and `.yml` as
+  required inputs; a `DateFormat` built before its symbols are loaded throws
+  an error naming the generated initializer; and the region fallback order —
+  `en_NZ` to `en_AU` because `AU` sorts first — is documented and pinned by a
+  test that says out loud that it is arbitrary.
+
+## Milestone 22 — next slice
 
 Ordered by what the evaluation showed actually costs time.
 
@@ -394,12 +443,23 @@ Ordered by what the evaluation showed actually costs time.
 6. **Did you mean.** `unknown_config_key` lists eleven keys where a one edit
    distance match would name the one.
 
-## Milestone 22 — earlier open items
+### Earlier open items
 
-1. **`context.l10n` and locale switch cost.** Needs a Flutter harness, and the
+
+1. **`watch` in the CLI.** `dart run build_runner watch` is the answer today
+   and is written into the README, but it costs a second dev dependency and a
+   `build.yaml` to do what the CLI could do with a file watcher. The pipeline
+   already rewrites only files whose contents changed, so the loop would be
+   quiet by construction.
+2. **`context.l10n` and locale switch cost.** Needs a Flutter harness, and the
    numbers would mostly be Flutter's rather than this library's.
-2. **YAML metadata.** Only if a convention appears that people actually use.
-3. **Ecosystem.** TMS import/export, PO/XLIFF, OTA, IDE plugin — a different
+3. **Plural operands from a formatted number.** `PluralOperands` takes a `num`,
+   so `1.0` cannot be told from `1` and English calls it `one` where CLDR says
+   `other`. Deriving `v` from `toString()` would fix it and would change what
+   existing messages render — a decision, not a patch. See the note in
+   `architecture.md`.
+4. **YAML metadata.** Only if a convention appears that people actually use.
+5. **Ecosystem.** TMS import/export, PO/XLIFF, OTA, IDE plugin — a different
    scale of work from everything above.
 
 
@@ -408,6 +468,7 @@ allocation — beyond one example test asserting identity. Worth numbers before
 the ecosystem work starts.
 
 ## Milestone 23 — ecosystem
+
 
 7. **TMS import/export** (Crowdin, Lokalise, POEditor).
 8. **PO / XLIFF** interchange formats.

@@ -31,8 +31,8 @@ void main() {
 
       // English cardinals are one/other; ordinals are one/two/few/other.
       expect(source, contains(r"return '${n}st';"));
-      // Over `n`, not `i`, which is how CLDR writes the English rule: 1.5
-      // is `other`, because there is no 1.5st of anything.
+      // CLDR writes the English ordinal rules over `n`, not over `i`, so
+      // 1.5 is `other` rather than `one`.
       expect(
         source,
         contains(r'$operands.n % 10 == 2 && $operands.n % 100 != 12'),
@@ -62,18 +62,21 @@ void main() {
     });
 
     test('rejects a language with no known ordinal rules', () {
-      // Welsh is in neither table. Azerbaijani used to be the example here
-      // and now has both, which is the direction this should keep moving.
-      expect(CldrPluralRules.ordinalForLanguage('cy'), isNull);
+      // Breton has cardinal rules and no ordinal ones, which is the common
+      // shape: CLDR publishes ordinals for about half as many languages.
+      expect(CldrPluralRules.forLanguage('br'), isNotNull);
+      expect(CldrPluralRules.ordinalForLanguage('br'), isNull);
       final result = runGenerator({
         'en.json': '{"p": "{n, selectordinal, other{#th}}"}',
-        'cy.json': '{"p": "{n, selectordinal, other{#}}"}',
+        'br.json': '{"p": "{n, selectordinal, other{#}}"}',
       }, configYaml: _config);
 
       final diagnostic = result.diagnostics.firstWhere(
         (d) => d.code == 'unknown_ordinal_language',
       );
-      expect(diagnostic.details, contains('Supported languages'));
+      // Having cardinal rules and not ordinal ones is worth saying, because
+      // the obvious reading of "unknown language" is that the tag is wrong.
+      expect(diagnostic.details, contains('It does have cardinal rules'));
     });
 
     test(

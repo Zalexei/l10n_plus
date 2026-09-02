@@ -21,7 +21,26 @@ Future<void> initializeAppLocalizationsFormatting() async {
   }
 }
 
-final DateFormat _enDateYMMMd = DateFormat.yMMMd('en');
+/// Builds a [DateFormat], explaining the one way it can fail.
+///
+/// The ICU symbols a non default locale needs are loaded by
+/// [initializeAppLocalizationsFormatting], which must be awaited once during start up.
+DateFormat _dateFormat(String locale, DateFormat Function() build) {
+  try {
+    return build();
+  } on Exception catch (error) {
+    // intl's LocaleDataException is not exported, so the type cannot be
+    // named here; the original error is carried rather than swallowed.
+    throw StateError(
+      'Date symbols for "$locale" are not loaded.\n'
+      'Call `await initializeAppLocalizationsFormatting()` once during start up, before reading a '
+      'date formatted message.\n'
+      'Underlying error: $error',
+    );
+  }
+}
+
+final DateFormat _enDateYMMMd = _dateFormat('en', () => DateFormat.yMMMd('en'));
 final NumberFormat _enNumberCurrency = NumberFormat.currency(locale: 'en');
 final NumberFormat _enNumberCurrencyEur = NumberFormat.currency(
   locale: 'en',
@@ -34,7 +53,7 @@ final NumberFormat _enNumberCurrencyUsd = NumberFormat.currency(
 final NumberFormat _enNumberDecimalPattern = NumberFormat.decimalPattern('en');
 final NumberFormat _enNumberSimpleCurrencyUsdDigits0 =
     NumberFormat.simpleCurrency(locale: 'en', name: 'USD', decimalDigits: 0);
-final DateFormat _ruDateYMMMd = DateFormat.yMMMd('ru');
+final DateFormat _ruDateYMMMd = _dateFormat('ru', () => DateFormat.yMMMd('ru'));
 final NumberFormat _ruNumberCurrency = NumberFormat.currency(locale: 'ru');
 final NumberFormat _ruNumberCurrencyEur = NumberFormat.currency(
   locale: 'ru',

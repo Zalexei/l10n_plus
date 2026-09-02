@@ -75,7 +75,7 @@ class $AuthLoginFr implements $AuthLogin {
       return 'Aucun login';
     }
     final $operands = PluralOperands(count);
-    if ($operands.i == 0 || $operands.i == 1) {
+    if (($operands.i == 0 || $operands.i == 1)) {
       return '${_frNumberDecimalPattern.format(count)} login';
     }
     return '${_frNumberDecimalPattern.format(count)} logins';

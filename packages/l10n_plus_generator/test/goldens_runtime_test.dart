@@ -45,12 +45,35 @@ void main() {
     test('scientific is scientific', () {
       expect(en.numberScientific(n: 1234), contains('E'));
     });
+
+    test('decimalPercentPattern is percent with a digit count', () {
+      // The reason it is a style of its own rather than an alias of
+      // `percent`: `NumberFormat.decimalPercentPattern` is the constructor
+      // that takes `decimalDigits`, and folding it onto `percentPattern`
+      // would silently drop what a gen_l10n bundle asked for.
+      // Undeclared, it is `percentPattern`: the digit count defaults to 0.
+      expect(en.numberDecimalPercentPattern(n: 0.4256), '43%');
+      // Declared, the digits are honoured — which is the whole point of the
+      // constructor, and what folding it onto `percent` would have lost.
+      expect(en.optPercent(n: 0.4256), '42.56%');
+      // A non breaking space before the sign, which is what `ru` uses.
+      expect(ru.optPercent(n: 0.4256), '42,56\u00a0%');
+    });
   });
 
   group('currency styles', () {
     test('currency prints the ISO code, simpleCurrency the symbol', () {
       expect(en.numberCurrency(n: 1234.5), 'USD1,234.50');
       expect(en.numberSimpleCurrency(n: 1234.5), r'$1,234.50');
+    });
+
+    test('the compact pair abbreviates the amount', () {
+      // `compactCurrency` prints the code, `compactSimpleCurrency` the
+      // symbol, exactly as the non compact pair does.
+      expect(en.numberCompactCurrency(n: 1200000), 'USD1.2M');
+      expect(en.numberCompactSimpleCurrency(n: 1200000), r'$1.2M');
+      expect(en.codeCompactCurrency(n: 1200000), 'USD1.2M');
+      expect(en.codeCompactSimpleCurrency(n: 1200000), r'$1.2M');
     });
 
     test('an explicit code survives into another locale', () {

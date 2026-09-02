@@ -35,19 +35,28 @@ flutter:
 /// The branch set is derived from [CldrPluralRules] rather than written out,
 /// so a language added to the table joins the matrix automatically — and so
 /// does the diff, which is what makes the golden worth reading.
-String _bundle(String language, {required bool ordinal}) {
-  final rules = ordinal
-      ? CldrPluralRules.ordinalForLanguage(language)!
-      : CldrPluralRules.forLanguage(language)!;
+String _bundle(String language) => _message(
+  'cat',
+  'plural',
+  CldrPluralRules.forLanguage(language)!.categories,
+);
+
+/// The same, on the ordinal table, which is a different and much smaller set
+/// of languages.
+String _ordinalBundle(String language) => _message(
+  'ord',
+  'selectordinal',
+  CldrPluralRules.ordinalForLanguage(language)!.categories,
+);
+
+String _message(String key, String type, Set<PluralCategory> categories) {
   final branches = [
     for (final category in PluralCategory.values)
-      if (category != PluralCategory.other &&
-          rules.categories.contains(category))
+      if (category != PluralCategory.other && categories.contains(category))
         '${category.name}{${category.name}}',
     'other{other}',
   ].join(' ');
-  final type = ordinal ? 'selectordinal' : 'plural';
-  return '{\n  "cat": "{count, $type, $branches}"\n}\n';
+  return '{\n  "$key": "{count, $type, $branches}"\n}\n';
 }
 
 void main() {
@@ -55,10 +64,9 @@ void main() {
     final languages = CldrPluralRules.supportedLanguages;
     final result = runGenerator({
       // English first: it is the base locale.
-      'en.json': _bundle('en', ordinal: false),
+      'en.json': _bundle('en'),
       for (final language in languages)
-        if (language != 'en')
-          '$language.json': _bundle(language, ordinal: false),
+        if (language != 'en') '$language.json': _bundle(language),
     }, configYaml: _config);
 
     expect(
@@ -91,28 +99,12 @@ void main() {
     );
   });
 
-  test('the matrix covers every language the table claims', () {
-    final golden = File(
-      p.join(_packageRoot, 'test/goldens/plurals/app_localizations.g.dart'),
-    );
-    if (!golden.existsSync()) return;
-    final source = golden.readAsStringSync();
-    for (final language in CldrPluralRules.supportedLanguages) {
-      expect(
-        source,
-        contains("L10nLocale('$language')"),
-        reason: '$language is in the table but not in the executed matrix.',
-      );
-    }
-  });
-
-  test('every language with ordinal rules generates its own branches', () {
+  test('every ordinal language generates its own CLDR branches', () {
     final languages = CldrPluralRules.supportedOrdinalLanguages;
     final result = runGenerator({
-      'en.json': _bundle('en', ordinal: true),
+      'en.json': _ordinalBundle('en'),
       for (final language in languages)
-        if (language != 'en')
-          '$language.json': _bundle(language, ordinal: true),
+        if (language != 'en') '$language.json': _ordinalBundle(language),
     }, configYaml: _config);
 
     expect(
@@ -145,14 +137,23 @@ void main() {
     );
   });
 
-  test('a language with cardinal rules but no ordinal ones is deliberate', () {
-    // Not an error: CLDR gives fewer languages an ordinal rule than a
-    // cardinal one, and `unknown_ordinal_language` is the honest answer for
-    // the rest. This pins the count so that adding a cardinal language
-    // without thinking about its ordinal shows up in the diff.
-    final withoutOrdinals = CldrPluralRules.supportedLanguages
-        .where((l) => CldrPluralRules.ordinalForLanguage(l) == null)
-        .toList();
-    expect(withoutOrdinals, isEmpty, reason: withoutOrdinals.join(', '));
+  test('the matrix covers every language the tables claim', () {
+    for (final (fixture, languages) in [
+      ('plurals', CldrPluralRules.supportedLanguages),
+      ('ordinals', CldrPluralRules.supportedOrdinalLanguages),
+    ]) {
+      final golden = File(
+        p.join(_packageRoot, 'test/goldens/$fixture/app_localizations.g.dart'),
+      );
+      if (!golden.existsSync()) continue;
+      final source = golden.readAsStringSync();
+      for (final language in languages) {
+        expect(
+          source,
+          contains("L10nLocale('$language')"),
+          reason: '$language is in the $fixture table but not executed.',
+        );
+      }
+    }
   });
 }

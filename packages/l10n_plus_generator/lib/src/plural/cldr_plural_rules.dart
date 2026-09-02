@@ -19,437 +19,1393 @@ final class PluralRuleSet {
     ...conditions.keys,
     PluralCategory.other,
   };
+
+  /// The single value [category] matches, when it matches exactly one.
+  ///
+  /// English `one` is `i = 1 and v = 0`, which is true of 1 and of nothing
+  /// else, so an explicit `=1` branch renders every value the category could
+  /// ever select and the category is not missing. Russian `one` also takes 21
+  /// and 31, so no single `=N` closes it and this returns null.
+  ///
+  /// Read off the generated condition rather than listed by hand: a hand
+  /// written list would drift from the conditions, and the condition is the
+  /// thing that actually runs.
+  int? exactValueOf(PluralCategory category) {
+    final condition = conditions[category];
+    if (condition == null) return null;
+    final match = _singleValue.firstMatch(condition);
+    if (match == null) return null;
+    return int.parse(match.group(1) ?? match.group(2)!);
+  }
+
+  /// The two shapes CLDR uses for a category of exactly one value.
+  static final RegExp _singleValue = RegExp(
+    r'^@n == (\d+)$|^@i == (\d+) && @v == 0$',
+  );
 }
 
-/// The CLDR cardinal rules the generator knows about.
+/// The CLDR plural rules, whole.
 ///
-/// Deliberately a curated table rather than a generated dump: an unknown
-/// language produces a clear diagnostic instead of silently falling back to
-/// English rules, which is the classic way localization libraries ship wrong
-/// plurals.
+/// Generated from CLDR 48 by
+/// `tool/update_cldr_plural_rules.dart`. Every language CLDR
+/// publishes is here, so adding a locale to a project never
+/// stops at the table; a language CLDR does not know still
+/// gets a diagnostic rather than English rules.
+///
+/// Two CLDR subtleties are compiled in rather than left to the
+/// reader:
+///
+/// * a range matches **integers only** (UTS #35), so
+///   `n % 100 = 3..10` is `few` for 3 and `other` for 3.5.
+///   `@n == @i` is what says "n is an integer" in operands;
+/// * the operand `e`, the exponent of a compact form, is
+///   always 0 here because nothing formats compactly before
+///   selecting a branch. Relations over it are decided at
+///   generation time and do not reach the output.
+///
+/// Script and region qualified CLDR entries (`pt-PT`,
+/// `kok-Latn`) are left out: rules are looked up by language
+/// subtag, so nothing could reach them.
 abstract final class CldrPluralRules {
-  /// Rules keyed by lowercase language subtag.
+  /// The CLDR release these tables were generated from.
+  static const String cldrVersion = '48';
+
+  /// Cardinal rules keyed by language subtag.
   static const Map<String, PluralRuleSet> _rules = {
-    // one: i = 1 and v = 0
-    'en': PluralRuleSet({PluralCategory.one: '@i == 1 && @v == 0'}),
-    'de': PluralRuleSet({PluralCategory.one: '@i == 1 && @v == 0'}),
-    'nl': PluralRuleSet({PluralCategory.one: '@i == 1 && @v == 0'}),
-    'sv': PluralRuleSet({PluralCategory.one: '@i == 1 && @v == 0'}),
-    'et': PluralRuleSet({PluralCategory.one: '@i == 1 && @v == 0'}),
-    'fi': PluralRuleSet({PluralCategory.one: '@i == 1 && @v == 0'}),
-    'it': PluralRuleSet({
-      PluralCategory.one: '@i == 1 && @v == 0',
-      PluralCategory.many: _millions,
-    }),
-    'el': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    'es': PluralRuleSet({
+    'af': PluralRuleSet({
+      // n = 1
       PluralCategory.one: '@n == 1',
-      PluralCategory.many: _millions,
     }),
-    'tr': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    'az': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    'nb': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    'no': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    // one: n = 1 or t != 0 and i = 0,1
+    'ak': PluralRuleSet({
+      // n = 0..1
+      PluralCategory.one: '@n == @i && @n >= 0 && @n <= 1',
+    }),
+    'am': PluralRuleSet({
+      // i = 0 or n = 1
+      PluralCategory.one: '@i == 0 || @n == 1',
+    }),
+    'an': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'ar': PluralRuleSet({
+      // n = 0
+      PluralCategory.zero: '@n == 0',
+      // n = 1
+      PluralCategory.one: '@n == 1',
+      // n = 2
+      PluralCategory.two: '@n == 2',
+      // n % 100 = 3..10
+      PluralCategory.few: '@n == @i && @n % 100 >= 3 && @n % 100 <= 10',
+      // n % 100 = 11..99
+      PluralCategory.many: '@n == @i && @n % 100 >= 11 && @n % 100 <= 99',
+    }),
+    'ars': PluralRuleSet({
+      // n = 0
+      PluralCategory.zero: '@n == 0',
+      // n = 1
+      PluralCategory.one: '@n == 1',
+      // n = 2
+      PluralCategory.two: '@n == 2',
+      // n % 100 = 3..10
+      PluralCategory.few: '@n == @i && @n % 100 >= 3 && @n % 100 <= 10',
+      // n % 100 = 11..99
+      PluralCategory.many: '@n == @i && @n % 100 >= 11 && @n % 100 <= 99',
+    }),
+    'as': PluralRuleSet({
+      // i = 0 or n = 1
+      PluralCategory.one: '@i == 0 || @n == 1',
+    }),
+    'asa': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'ast': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+    }),
+    'az': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'bal': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'be': PluralRuleSet({
+      // n % 10 = 1 and n % 100 != 11
+      PluralCategory.one: '@n % 10 == 1 && @n % 100 != 11',
+      // n % 10 = 2..4 and n % 100 != 12..14
+      PluralCategory.few:
+          '@n == @i && @n % 10 >= 2 && @n % 10 <= 4 && !(@n == @i && @n % 100 >= 12 && @n % 100 <= 14)',
+      // n % 10 = 0 or n % 10 = 5..9 or n % 100 = 11..14
+      PluralCategory.many:
+          '@n % 10 == 0 || @n == @i && @n % 10 >= 5 && @n % 10 <= 9 || @n == @i && @n % 100 >= 11 && @n % 100 <= 14',
+    }),
+    'bem': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'bez': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'bg': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'bho': PluralRuleSet({
+      // n = 0..1
+      PluralCategory.one: '@n == @i && @n >= 0 && @n <= 1',
+    }),
+    'blo': PluralRuleSet({
+      // n = 0
+      PluralCategory.zero: '@n == 0',
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'bm': PluralRuleSet({}),
+    'bn': PluralRuleSet({
+      // i = 0 or n = 1
+      PluralCategory.one: '@i == 0 || @n == 1',
+    }),
+    'bo': PluralRuleSet({}),
+    'br': PluralRuleSet({
+      // n % 10 = 1 and n % 100 != 11,71,91
+      PluralCategory.one:
+          '@n % 10 == 1 && @n % 100 != 11 && @n % 100 != 71 && @n % 100 != 91',
+      // n % 10 = 2 and n % 100 != 12,72,92
+      PluralCategory.two:
+          '@n % 10 == 2 && @n % 100 != 12 && @n % 100 != 72 && @n % 100 != 92',
+      // n % 10 = 3..4,9 and n % 100 != 10..19,70..79,90..99
+      PluralCategory.few:
+          '(@n == @i && @n % 10 >= 3 && @n % 10 <= 4 || @n % 10 == 9) && !(@n == @i && @n % 100 >= 10 && @n % 100 <= 19 || @n == @i && @n % 100 >= 70 && @n % 100 <= 79 || @n == @i && @n % 100 >= 90 && @n % 100 <= 99)',
+      // n != 0 and n % 1000000 = 0
+      PluralCategory.many: '@n != 0 && @n % 1000000 == 0',
+    }),
+    'brx': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'bs': PluralRuleSet({
+      // v = 0 and i % 10 = 1 and i % 100 != 11 or f % 10 = 1 and f % 100 != 11
+      PluralCategory.one:
+          '@v == 0 && @i % 10 == 1 && @i % 100 != 11 || @f % 10 == 1 && @f % 100 != 11',
+      // v = 0 and i % 10 = 2..4 and i % 100 != 12..14 or f % 10 = 2..4 and f % 100 != 12..14
+      PluralCategory.few:
+          '@v == 0 && @i % 10 >= 2 && @i % 10 <= 4 && !(@i % 100 >= 12 && @i % 100 <= 14) || @f % 10 >= 2 && @f % 10 <= 4 && !(@f % 100 >= 12 && @f % 100 <= 14)',
+    }),
+    'ca': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+      // e = 0 and i != 0 and i % 1000000 = 0 and v = 0 or e != 0..5
+      PluralCategory.many: '@i != 0 && @i % 1000000 == 0 && @v == 0',
+    }),
+    'ce': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'ceb': PluralRuleSet({
+      // v = 0 and i = 1,2,3 or v = 0 and i % 10 != 4,6,9 or v != 0 and f % 10 != 4,6,9
+      PluralCategory.one:
+          '@v == 0 && (@i == 1 || @i == 2 || @i == 3) || @v == 0 && @i % 10 != 4 && @i % 10 != 6 && @i % 10 != 9 || @v != 0 && @f % 10 != 4 && @f % 10 != 6 && @f % 10 != 9',
+    }),
+    'cgg': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'chr': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'ckb': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'cs': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+      // i = 2..4 and v = 0
+      PluralCategory.few: '@i >= 2 && @i <= 4 && @v == 0',
+      // v != 0
+      PluralCategory.many: '@v != 0',
+    }),
+    'csw': PluralRuleSet({
+      // n = 0..1
+      PluralCategory.one: '@n == @i && @n >= 0 && @n <= 1',
+    }),
+    'cv': PluralRuleSet({
+      // n = 0
+      PluralCategory.zero: '@n == 0',
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'cy': PluralRuleSet({
+      // n = 0
+      PluralCategory.zero: '@n == 0',
+      // n = 1
+      PluralCategory.one: '@n == 1',
+      // n = 2
+      PluralCategory.two: '@n == 2',
+      // n = 3
+      PluralCategory.few: '@n == 3',
+      // n = 6
+      PluralCategory.many: '@n == 6',
+    }),
     'da': PluralRuleSet({
+      // n = 1 or t != 0 and i = 0,1
       PluralCategory.one: '@n == 1 || @t != 0 && (@i == 0 || @i == 1)',
     }),
-    // one: i = 0,1
+    'de': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+    }),
+    'doi': PluralRuleSet({
+      // i = 0 or n = 1
+      PluralCategory.one: '@i == 0 || @n == 1',
+    }),
+    'dsb': PluralRuleSet({
+      // v = 0 and i % 100 = 1 or f % 100 = 1
+      PluralCategory.one: '@v == 0 && @i % 100 == 1 || @f % 100 == 1',
+      // v = 0 and i % 100 = 2 or f % 100 = 2
+      PluralCategory.two: '@v == 0 && @i % 100 == 2 || @f % 100 == 2',
+      // v = 0 and i % 100 = 3..4 or f % 100 = 3..4
+      PluralCategory.few:
+          '@v == 0 && @i % 100 >= 3 && @i % 100 <= 4 || @f % 100 >= 3 && @f % 100 <= 4',
+    }),
+    'dv': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'dz': PluralRuleSet({}),
+    'ee': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'el': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'en': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+    }),
+    'eo': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'es': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+      // e = 0 and i != 0 and i % 1000000 = 0 and v = 0 or e != 0..5
+      PluralCategory.many: '@i != 0 && @i % 1000000 == 0 && @v == 0',
+    }),
+    'et': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+    }),
+    'eu': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'fa': PluralRuleSet({
+      // i = 0 or n = 1
+      PluralCategory.one: '@i == 0 || @n == 1',
+    }),
+    'ff': PluralRuleSet({
+      // i = 0,1
+      PluralCategory.one: '(@i == 0 || @i == 1)',
+    }),
+    'fi': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+    }),
+    'fil': PluralRuleSet({
+      // v = 0 and i = 1,2,3 or v = 0 and i % 10 != 4,6,9 or v != 0 and f % 10 != 4,6,9
+      PluralCategory.one:
+          '@v == 0 && (@i == 1 || @i == 2 || @i == 3) || @v == 0 && @i % 10 != 4 && @i % 10 != 6 && @i % 10 != 9 || @v != 0 && @f % 10 != 4 && @f % 10 != 6 && @f % 10 != 9',
+    }),
+    'fo': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
     'fr': PluralRuleSet({
-      PluralCategory.one: '@i == 0 || @i == 1',
-      PluralCategory.many: _millions,
+      // i = 0,1
+      PluralCategory.one: '(@i == 0 || @i == 1)',
+      // e = 0 and i != 0 and i % 1000000 = 0 and v = 0 or e != 0..5
+      PluralCategory.many: '@i != 0 && @i % 1000000 == 0 && @v == 0',
     }),
-    // one: i = 0..1
-    'pt': PluralRuleSet({
-      PluralCategory.one: '@i >= 0 && @i <= 1',
-      PluralCategory.many: _millions,
+    'fur': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
     }),
-    // one: i = 0 or n = 1
-    'hi': PluralRuleSet({PluralCategory.one: '@i == 0 || @n == 1'}),
-    'ru': _slavic,
-    'uk': _slavic,
-    'pl': PluralRuleSet({
+    'fy': PluralRuleSet({
+      // i = 1 and v = 0
       PluralCategory.one: '@i == 1 && @v == 0',
-      PluralCategory.few:
-          '@v == 0 && @i % 10 >= 2 && @i % 10 <= 4 && '
-          '!(@i % 100 >= 12 && @i % 100 <= 14)',
-      PluralCategory.many:
-          '@v == 0 && @i != 1 && @i % 10 >= 0 && @i % 10 <= 1 || '
-          '@v == 0 && @i % 10 >= 5 && @i % 10 <= 9 || '
-          '@v == 0 && @i % 100 >= 12 && @i % 100 <= 14',
     }),
-    'cs': _westSlavic,
-    'sk': _westSlavic,
-    'sr': _bcs,
-    'hr': _bcs,
-    'bs': _bcs,
-    // one: i = 1 and v = 0; few: v != 0 or n = 0 or n != 1 and n % 100 = 1..19
-    // The range starts at 1, so 101, 201 and 1001 are `few`.
-    'ro': PluralRuleSet({
+    'ga': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+      // n = 2
+      PluralCategory.two: '@n == 2',
+      // n = 3..6
+      PluralCategory.few: '@n == @i && @n >= 3 && @n <= 6',
+      // n = 7..10
+      PluralCategory.many: '@n == @i && @n >= 7 && @n <= 10',
+    }),
+    'gd': PluralRuleSet({
+      // n = 1,11
+      PluralCategory.one: '(@n == 1 || @n == 11)',
+      // n = 2,12
+      PluralCategory.two: '(@n == 2 || @n == 12)',
+      // n = 3..10,13..19
+      PluralCategory.few:
+          '(@n == @i && @n >= 3 && @n <= 10 || @n == @i && @n >= 13 && @n <= 19)',
+    }),
+    'gl': PluralRuleSet({
+      // i = 1 and v = 0
       PluralCategory.one: '@i == 1 && @v == 0',
-      PluralCategory.few:
-          '@v != 0 || @n == 0 || '
-          '@n != 1 && @n % 100 >= 1 && @n % 100 <= 19',
     }),
-    // one: i = 1 and v = 0 or i = 0 and v != 0 — 0.5 is `one` in Hebrew.
+    'gsw': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'gu': PluralRuleSet({
+      // i = 0 or n = 1
+      PluralCategory.one: '@i == 0 || @n == 1',
+    }),
+    'guw': PluralRuleSet({
+      // n = 0..1
+      PluralCategory.one: '@n == @i && @n >= 0 && @n <= 1',
+    }),
+    'gv': PluralRuleSet({
+      // v = 0 and i % 10 = 1
+      PluralCategory.one: '@v == 0 && @i % 10 == 1',
+      // v = 0 and i % 10 = 2
+      PluralCategory.two: '@v == 0 && @i % 10 == 2',
+      // v = 0 and i % 100 = 0,20,40,60,80
+      PluralCategory.few:
+          '@v == 0 && (@i % 100 == 0 || @i % 100 == 20 || @i % 100 == 40 || @i % 100 == 60 || @i % 100 == 80)',
+      // v != 0
+      PluralCategory.many: '@v != 0',
+    }),
+    'ha': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'haw': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
     'he': PluralRuleSet({
+      // i = 1 and v = 0 or i = 0 and v != 0
       PluralCategory.one: '@i == 1 && @v == 0 || @i == 0 && @v != 0',
+      // i = 2 and v = 0
       PluralCategory.two: '@i == 2 && @v == 0',
     }),
-    // few: n % 100 = 3..10; many: n % 100 = 11..99.
-    // A CLDR range matches integers only (UTS #35), so 3.5 is `other`, not
-    // `few`. `@v == 0` is what says "integer" in terms of the operands.
-    'ar': PluralRuleSet({
-      PluralCategory.zero: '@n == 0',
+    'hi': PluralRuleSet({
+      // i = 0 or n = 1
+      PluralCategory.one: '@i == 0 || @n == 1',
+    }),
+    'hnj': PluralRuleSet({}),
+    'hr': PluralRuleSet({
+      // v = 0 and i % 10 = 1 and i % 100 != 11 or f % 10 = 1 and f % 100 != 11
+      PluralCategory.one:
+          '@v == 0 && @i % 10 == 1 && @i % 100 != 11 || @f % 10 == 1 && @f % 100 != 11',
+      // v = 0 and i % 10 = 2..4 and i % 100 != 12..14 or f % 10 = 2..4 and f % 100 != 12..14
+      PluralCategory.few:
+          '@v == 0 && @i % 10 >= 2 && @i % 10 <= 4 && !(@i % 100 >= 12 && @i % 100 <= 14) || @f % 10 >= 2 && @f % 10 <= 4 && !(@f % 100 >= 12 && @f % 100 <= 14)',
+    }),
+    'hsb': PluralRuleSet({
+      // v = 0 and i % 100 = 1 or f % 100 = 1
+      PluralCategory.one: '@v == 0 && @i % 100 == 1 || @f % 100 == 1',
+      // v = 0 and i % 100 = 2 or f % 100 = 2
+      PluralCategory.two: '@v == 0 && @i % 100 == 2 || @f % 100 == 2',
+      // v = 0 and i % 100 = 3..4 or f % 100 = 3..4
+      PluralCategory.few:
+          '@v == 0 && @i % 100 >= 3 && @i % 100 <= 4 || @f % 100 >= 3 && @f % 100 <= 4',
+    }),
+    'hu': PluralRuleSet({
+      // n = 1
       PluralCategory.one: '@n == 1',
-      PluralCategory.two: '@n == 2',
-      PluralCategory.few: '@v == 0 && @n % 100 >= 3 && @n % 100 <= 10',
-      PluralCategory.many: '@v == 0 && @n % 100 >= 11 && @n % 100 <= 99',
     }),
-    // Languages without cardinal categories.
-    'ja': PluralRuleSet({}),
-    'zh': PluralRuleSet({}),
-    'ko': PluralRuleSet({}),
-    'th': PluralRuleSet({}),
-    'vi': PluralRuleSet({}),
+    'hy': PluralRuleSet({
+      // i = 0,1
+      PluralCategory.one: '(@i == 0 || @i == 1)',
+    }),
+    'ia': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+    }),
     'id': PluralRuleSet({}),
-    'ms': PluralRuleSet({}),
-    'ka': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    'hu': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-
-    // Every entry below is checked sample by sample against `package:intl`'s
-    // own CLDR data by test/plural_matrix_runtime_test.dart, which is what
-    // makes hand transcription safe enough to do at all.
-
-    // one: n = 1
-    'bg': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    'sq': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    'eu': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    'sw': PluralRuleSet({PluralCategory.one: '@i == 1 && @v == 0'}),
-    'af': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    'ur': PluralRuleSet({PluralCategory.one: '@i == 1 && @v == 0'}),
-    'gl': PluralRuleSet({PluralCategory.one: '@i == 1 && @v == 0'}),
-    'ne': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    'ml': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    'kn': PluralRuleSet({PluralCategory.one: '@i == 0 || @n == 1'}),
-    'or': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    'ps': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    'ta': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    'te': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    'kk': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    'ky': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    'uz': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    'mn': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    'zu': PluralRuleSet({PluralCategory.one: '@i == 0 || @n == 1'}),
-    // one: i = 0 or n = 1 — a fraction below one is singular.
-    'fa': PluralRuleSet({PluralCategory.one: '@i == 0 || @n == 1'}),
-    'bn': PluralRuleSet({PluralCategory.one: '@i == 0 || @n == 1'}),
-    'am': PluralRuleSet({PluralCategory.one: '@i == 0 || @n == 1'}),
-    'gu': PluralRuleSet({PluralCategory.one: '@i == 0 || @n == 1'}),
-    'mr': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    // one: i = 0,1
-    'hy': PluralRuleSet({PluralCategory.one: '@i == 0 || @i == 1'}),
-    // one: v = 0 and i % 10 = 1 and i % 100 != 11 or f % 10 = 1 and f % 100 != 11
-    'mk': PluralRuleSet({
-      PluralCategory.one:
-          '@v == 0 && @i % 10 == 1 && @i % 100 != 11 || '
-          '@f % 10 == 1 && @f % 100 != 11',
+    'ie': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
     }),
-    // one: t = 0 and i % 10 = 1 and i % 100 != 11
-    //      or t % 10 = 1 and t % 100 != 11
+    'ig': PluralRuleSet({}),
+    'ii': PluralRuleSet({}),
+    'io': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+    }),
     'is': PluralRuleSet({
+      // t = 0 and i % 10 = 1 and i % 100 != 11 or t % 10 = 1 and t % 100 != 11
       PluralCategory.one:
-          '@t == 0 && @i % 10 == 1 && @i % 100 != 11 || '
-          '@t % 10 == 1 && @t % 100 != 11',
+          '@t == 0 && @i % 10 == 1 && @i % 100 != 11 || @t % 10 == 1 && @t % 100 != 11',
     }),
-    // one: v = 0 and i % 100 = 1; two: v = 0 and i % 100 = 2;
-    // few: v = 0 and i % 100 = 3..4 or v != 0
+    'it': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+      // e = 0 and i != 0 and i % 1000000 = 0 and v = 0 or e != 0..5
+      PluralCategory.many: '@i != 0 && @i % 1000000 == 0 && @v == 0',
+    }),
+    'iu': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+      // n = 2
+      PluralCategory.two: '@n == 2',
+    }),
+    'ja': PluralRuleSet({}),
+    'jbo': PluralRuleSet({}),
+    'jgo': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'jmc': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'jv': PluralRuleSet({}),
+    'jw': PluralRuleSet({}),
+    'ka': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'kab': PluralRuleSet({
+      // i = 0,1
+      PluralCategory.one: '(@i == 0 || @i == 1)',
+    }),
+    'kaj': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'kcg': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'kde': PluralRuleSet({}),
+    'kea': PluralRuleSet({}),
+    'kk': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'kkj': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'kl': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'km': PluralRuleSet({}),
+    'kn': PluralRuleSet({
+      // i = 0 or n = 1
+      PluralCategory.one: '@i == 0 || @n == 1',
+    }),
+    'ko': PluralRuleSet({}),
+    'kok': PluralRuleSet({
+      // i = 0 or n = 1
+      PluralCategory.one: '@i == 0 || @n == 1',
+    }),
+    'ks': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'ksb': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'ksh': PluralRuleSet({
+      // n = 0
+      PluralCategory.zero: '@n == 0',
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'ku': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'kw': PluralRuleSet({
+      // n = 0
+      PluralCategory.zero: '@n == 0',
+      // n = 1
+      PluralCategory.one: '@n == 1',
+      // n % 100 = 2,22,42,62,82 or n % 1000 = 0 and n % 100000 = 1000..20000,40000,60000,80000 or n != 0 and n % 1000000 = 100000
+      PluralCategory.two:
+          '(@n % 100 == 2 || @n % 100 == 22 || @n % 100 == 42 || @n % 100 == 62 || @n % 100 == 82) || @n % 1000 == 0 && (@n == @i && @n % 100000 >= 1000 && @n % 100000 <= 20000 || @n % 100000 == 40000 || @n % 100000 == 60000 || @n % 100000 == 80000) || @n != 0 && @n % 1000000 == 100000',
+      // n % 100 = 3,23,43,63,83
+      PluralCategory.few:
+          '(@n % 100 == 3 || @n % 100 == 23 || @n % 100 == 43 || @n % 100 == 63 || @n % 100 == 83)',
+      // n != 1 and n % 100 = 1,21,41,61,81
+      PluralCategory.many:
+          '@n != 1 && (@n % 100 == 1 || @n % 100 == 21 || @n % 100 == 41 || @n % 100 == 61 || @n % 100 == 81)',
+    }),
+    'ky': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'lag': PluralRuleSet({
+      // n = 0
+      PluralCategory.zero: '@n == 0',
+      // i = 0,1 and n != 0
+      PluralCategory.one: '(@i == 0 || @i == 1) && @n != 0',
+    }),
+    'lb': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'lg': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'lij': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+    }),
+    'lkt': PluralRuleSet({}),
+    'lld': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+      // e = 0 and i != 0 and i % 1000000 = 0 and v = 0 or e != 0..5
+      PluralCategory.many: '@i != 0 && @i % 1000000 == 0 && @v == 0',
+    }),
+    'ln': PluralRuleSet({
+      // n = 0..1
+      PluralCategory.one: '@n == @i && @n >= 0 && @n <= 1',
+    }),
+    'lo': PluralRuleSet({}),
+    'lt': PluralRuleSet({
+      // n % 10 = 1 and n % 100 != 11..19
+      PluralCategory.one:
+          '@n % 10 == 1 && !(@n == @i && @n % 100 >= 11 && @n % 100 <= 19)',
+      // n % 10 = 2..9 and n % 100 != 11..19
+      PluralCategory.few:
+          '@n == @i && @n % 10 >= 2 && @n % 10 <= 9 && !(@n == @i && @n % 100 >= 11 && @n % 100 <= 19)',
+      // f != 0
+      PluralCategory.many: '@f != 0',
+    }),
+    'lv': PluralRuleSet({
+      // n % 10 = 0 or n % 100 = 11..19 or v = 2 and f % 100 = 11..19
+      PluralCategory.zero:
+          '@n % 10 == 0 || @n == @i && @n % 100 >= 11 && @n % 100 <= 19 || @v == 2 && @f % 100 >= 11 && @f % 100 <= 19',
+      // n % 10 = 1 and n % 100 != 11 or v = 2 and f % 10 = 1 and f % 100 != 11 or v != 2 and f % 10 = 1
+      PluralCategory.one:
+          '@n % 10 == 1 && @n % 100 != 11 || @v == 2 && @f % 10 == 1 && @f % 100 != 11 || @v != 2 && @f % 10 == 1',
+    }),
+    'mas': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'mg': PluralRuleSet({
+      // n = 0..1
+      PluralCategory.one: '@n == @i && @n >= 0 && @n <= 1',
+    }),
+    'mgo': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'mk': PluralRuleSet({
+      // v = 0 and i % 10 = 1 and i % 100 != 11 or f % 10 = 1 and f % 100 != 11
+      PluralCategory.one:
+          '@v == 0 && @i % 10 == 1 && @i % 100 != 11 || @f % 10 == 1 && @f % 100 != 11',
+    }),
+    'ml': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'mn': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'mo': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+      // v != 0 or n = 0 or n != 1 and n % 100 = 1..19
+      PluralCategory.few:
+          '@v != 0 || @n == 0 || @n != 1 && @n == @i && @n % 100 >= 1 && @n % 100 <= 19',
+    }),
+    'mr': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'ms': PluralRuleSet({}),
+    'mt': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+      // n = 2
+      PluralCategory.two: '@n == 2',
+      // n = 0 or n % 100 = 3..10
+      PluralCategory.few:
+          '@n == 0 || @n == @i && @n % 100 >= 3 && @n % 100 <= 10',
+      // n % 100 = 11..19
+      PluralCategory.many: '@n == @i && @n % 100 >= 11 && @n % 100 <= 19',
+    }),
+    'my': PluralRuleSet({}),
+    'nah': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'naq': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+      // n = 2
+      PluralCategory.two: '@n == 2',
+    }),
+    'nb': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'nd': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'ne': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'nl': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+    }),
+    'nn': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'nnh': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'no': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'nqo': PluralRuleSet({}),
+    'nr': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'nso': PluralRuleSet({
+      // n = 0..1
+      PluralCategory.one: '@n == @i && @n >= 0 && @n <= 1',
+    }),
+    'ny': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'nyn': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'om': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'or': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'os': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'osa': PluralRuleSet({}),
+    'pa': PluralRuleSet({
+      // n = 0..1
+      PluralCategory.one: '@n == @i && @n >= 0 && @n <= 1',
+    }),
+    'pap': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'pcm': PluralRuleSet({
+      // i = 0 or n = 1
+      PluralCategory.one: '@i == 0 || @n == 1',
+    }),
+    'pl': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+      // v = 0 and i % 10 = 2..4 and i % 100 != 12..14
+      PluralCategory.few:
+          '@v == 0 && @i % 10 >= 2 && @i % 10 <= 4 && !(@i % 100 >= 12 && @i % 100 <= 14)',
+      // v = 0 and i != 1 and i % 10 = 0..1 or v = 0 and i % 10 = 5..9 or v = 0 and i % 100 = 12..14
+      PluralCategory.many:
+          '@v == 0 && @i != 1 && @i % 10 >= 0 && @i % 10 <= 1 || @v == 0 && @i % 10 >= 5 && @i % 10 <= 9 || @v == 0 && @i % 100 >= 12 && @i % 100 <= 14',
+    }),
+    'prg': PluralRuleSet({
+      // n % 10 = 0 or n % 100 = 11..19 or v = 2 and f % 100 = 11..19
+      PluralCategory.zero:
+          '@n % 10 == 0 || @n == @i && @n % 100 >= 11 && @n % 100 <= 19 || @v == 2 && @f % 100 >= 11 && @f % 100 <= 19',
+      // n % 10 = 1 and n % 100 != 11 or v = 2 and f % 10 = 1 and f % 100 != 11 or v != 2 and f % 10 = 1
+      PluralCategory.one:
+          '@n % 10 == 1 && @n % 100 != 11 || @v == 2 && @f % 10 == 1 && @f % 100 != 11 || @v != 2 && @f % 10 == 1',
+    }),
+    'ps': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'pt': PluralRuleSet({
+      // i = 0..1
+      PluralCategory.one: '@i >= 0 && @i <= 1',
+      // e = 0 and i != 0 and i % 1000000 = 0 and v = 0 or e != 0..5
+      PluralCategory.many: '@i != 0 && @i % 1000000 == 0 && @v == 0',
+    }),
+    'rm': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'ro': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+      // v != 0 or n = 0 or n != 1 and n % 100 = 1..19
+      PluralCategory.few:
+          '@v != 0 || @n == 0 || @n != 1 && @n == @i && @n % 100 >= 1 && @n % 100 <= 19',
+    }),
+    'rof': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'ru': PluralRuleSet({
+      // v = 0 and i % 10 = 1 and i % 100 != 11
+      PluralCategory.one: '@v == 0 && @i % 10 == 1 && @i % 100 != 11',
+      // v = 0 and i % 10 = 2..4 and i % 100 != 12..14
+      PluralCategory.few:
+          '@v == 0 && @i % 10 >= 2 && @i % 10 <= 4 && !(@i % 100 >= 12 && @i % 100 <= 14)',
+      // v = 0 and i % 10 = 0 or v = 0 and i % 10 = 5..9 or v = 0 and i % 100 = 11..14
+      PluralCategory.many:
+          '@v == 0 && @i % 10 == 0 || @v == 0 && @i % 10 >= 5 && @i % 10 <= 9 || @v == 0 && @i % 100 >= 11 && @i % 100 <= 14',
+    }),
+    'rwk': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'sah': PluralRuleSet({}),
+    'saq': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'sat': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+      // n = 2
+      PluralCategory.two: '@n == 2',
+    }),
+    'sc': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+    }),
+    'scn': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+      // e = 0 and i != 0 and i % 1000000 = 0 and v = 0 or e != 0..5
+      PluralCategory.many: '@i != 0 && @i % 1000000 == 0 && @v == 0',
+    }),
+    'sd': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'sdh': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'se': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+      // n = 2
+      PluralCategory.two: '@n == 2',
+    }),
+    'seh': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'ses': PluralRuleSet({}),
+    'sg': PluralRuleSet({}),
+    'sgs': PluralRuleSet({
+      // n % 10 = 1 and n % 100 != 11
+      PluralCategory.one: '@n % 10 == 1 && @n % 100 != 11',
+      // n = 2
+      PluralCategory.two: '@n == 2',
+      // n != 2 and n % 10 = 2..9 and n % 100 != 11..19
+      PluralCategory.few:
+          '@n != 2 && @n == @i && @n % 10 >= 2 && @n % 10 <= 9 && !(@n == @i && @n % 100 >= 11 && @n % 100 <= 19)',
+      // f != 0
+      PluralCategory.many: '@f != 0',
+    }),
+    'sh': PluralRuleSet({
+      // v = 0 and i % 10 = 1 and i % 100 != 11 or f % 10 = 1 and f % 100 != 11
+      PluralCategory.one:
+          '@v == 0 && @i % 10 == 1 && @i % 100 != 11 || @f % 10 == 1 && @f % 100 != 11',
+      // v = 0 and i % 10 = 2..4 and i % 100 != 12..14 or f % 10 = 2..4 and f % 100 != 12..14
+      PluralCategory.few:
+          '@v == 0 && @i % 10 >= 2 && @i % 10 <= 4 && !(@i % 100 >= 12 && @i % 100 <= 14) || @f % 10 >= 2 && @f % 10 <= 4 && !(@f % 100 >= 12 && @f % 100 <= 14)',
+    }),
+    'shi': PluralRuleSet({
+      // i = 0 or n = 1
+      PluralCategory.one: '@i == 0 || @n == 1',
+      // n = 2..10
+      PluralCategory.few: '@n == @i && @n >= 2 && @n <= 10',
+    }),
+    'si': PluralRuleSet({
+      // n = 0,1 or i = 0 and f = 1
+      PluralCategory.one: '(@n == 0 || @n == 1) || @i == 0 && @f == 1',
+    }),
+    'sk': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+      // i = 2..4 and v = 0
+      PluralCategory.few: '@i >= 2 && @i <= 4 && @v == 0',
+      // v != 0
+      PluralCategory.many: '@v != 0',
+    }),
     'sl': PluralRuleSet({
+      // v = 0 and i % 100 = 1
       PluralCategory.one: '@v == 0 && @i % 100 == 1',
+      // v = 0 and i % 100 = 2
       PluralCategory.two: '@v == 0 && @i % 100 == 2',
+      // v = 0 and i % 100 = 3..4 or v != 0
       PluralCategory.few:
           '@v == 0 && @i % 100 >= 3 && @i % 100 <= 4 || @v != 0',
     }),
-    // Baltic. Latvian has a `zero`, which most implementations drop.
-    'lv': PluralRuleSet({
-      PluralCategory.zero:
-          '@v == 0 && @n % 10 == 0 || '
-          '@v == 0 && @n % 100 >= 11 && @n % 100 <= 19 || '
-          '@v == 2 && @f % 100 >= 11 && @f % 100 <= 19',
+    'sma': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+      // n = 2
+      PluralCategory.two: '@n == 2',
+    }),
+    'smi': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+      // n = 2
+      PluralCategory.two: '@n == 2',
+    }),
+    'smj': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+      // n = 2
+      PluralCategory.two: '@n == 2',
+    }),
+    'smn': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+      // n = 2
+      PluralCategory.two: '@n == 2',
+    }),
+    'sms': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+      // n = 2
+      PluralCategory.two: '@n == 2',
+    }),
+    'sn': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'so': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'sq': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'sr': PluralRuleSet({
+      // v = 0 and i % 10 = 1 and i % 100 != 11 or f % 10 = 1 and f % 100 != 11
       PluralCategory.one:
-          '@v == 0 && @n % 10 == 1 && @n % 100 != 11 || '
-          '@v == 2 && @f % 10 == 1 && @f % 100 != 11 || '
-          '@v != 2 && @f % 10 == 1',
-    }),
-    'lt': PluralRuleSet({
-      PluralCategory.one:
-          '@n % 10 == 1 && !(@n % 100 >= 11 && @n % 100 <= 19) && @v == 0',
+          '@v == 0 && @i % 10 == 1 && @i % 100 != 11 || @f % 10 == 1 && @f % 100 != 11',
+      // v = 0 and i % 10 = 2..4 and i % 100 != 12..14 or f % 10 = 2..4 and f % 100 != 12..14
       PluralCategory.few:
-          '@n % 10 >= 2 && @n % 10 <= 9 && '
-          '!(@n % 100 >= 11 && @n % 100 <= 19) && @v == 0',
-      PluralCategory.many: '@f != 0',
+          '@v == 0 && @i % 10 >= 2 && @i % 10 <= 4 && !(@i % 100 >= 12 && @i % 100 <= 14) || @f % 10 >= 2 && @f % 10 <= 4 && !(@f % 100 >= 12 && @f % 100 <= 14)',
     }),
-    // one: n % 10 = 1 and n % 100 != 11; few: n % 10 = 2..4 and
-    // n % 100 != 12..14; many: everything else with no fraction.
-    'be': PluralRuleSet({
-      PluralCategory.one: '@v == 0 && @n % 10 == 1 && @n % 100 != 11',
-      PluralCategory.few:
-          '@v == 0 && @n % 10 >= 2 && @n % 10 <= 4 && '
-          '!(@n % 100 >= 12 && @n % 100 <= 14)',
-      PluralCategory.many:
-          '@v == 0 && @n % 10 == 0 || '
-          '@v == 0 && @n % 10 >= 5 && @n % 10 <= 9 || '
-          '@v == 0 && @n % 100 >= 11 && @n % 100 <= 14',
+    'ss': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
     }),
-    // Catalan matches Italian: one plus the whole millions.
-    'ca': PluralRuleSet({
+    'ssy': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'st': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'su': PluralRuleSet({}),
+    'sv': PluralRuleSet({
+      // i = 1 and v = 0
       PluralCategory.one: '@i == 1 && @v == 0',
-      PluralCategory.many: _millions,
     }),
-    // Filipino: one covers 1, 2, 3 and anything not ending in 4, 6 or 9.
-    'fil': PluralRuleSet({
+    'sw': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+    }),
+    'syr': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'ta': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'te': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'teo': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'th': PluralRuleSet({}),
+    'ti': PluralRuleSet({
+      // n = 0..1
+      PluralCategory.one: '@n == @i && @n >= 0 && @n <= 1',
+    }),
+    'tig': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'tk': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'tl': PluralRuleSet({
+      // v = 0 and i = 1,2,3 or v = 0 and i % 10 != 4,6,9 or v != 0 and f % 10 != 4,6,9
       PluralCategory.one:
-          '@v == 0 && (@i == 1 || @i == 2 || @i == 3) || '
-          '@v == 0 && @i % 10 != 4 && @i % 10 != 6 && @i % 10 != 9 || '
-          '@v != 0 && @f % 10 != 4 && @f % 10 != 6 && @f % 10 != 9',
+          '@v == 0 && (@i == 1 || @i == 2 || @i == 3) || @v == 0 && @i % 10 != 4 && @i % 10 != 6 && @i % 10 != 9 || @v != 0 && @f % 10 != 4 && @f % 10 != 6 && @f % 10 != 9',
     }),
-    // More languages without cardinal categories.
-    'km': PluralRuleSet({}),
-    'my': PluralRuleSet({}),
-    'lo': PluralRuleSet({}),
-    'si': PluralRuleSet({
-      PluralCategory.one: '@n == 0 || @n == 1 || @i == 0 && @f == 1',
+    'tn': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'to': PluralRuleSet({}),
+    'tpi': PluralRuleSet({}),
+    'tr': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'ts': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'tzm': PluralRuleSet({
+      // n = 0..1 or n = 11..99
+      PluralCategory.one:
+          '@n == @i && @n >= 0 && @n <= 1 || @n == @i && @n >= 11 && @n <= 99',
+    }),
+    'ug': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'uk': PluralRuleSet({
+      // v = 0 and i % 10 = 1 and i % 100 != 11
+      PluralCategory.one: '@v == 0 && @i % 10 == 1 && @i % 100 != 11',
+      // v = 0 and i % 10 = 2..4 and i % 100 != 12..14
+      PluralCategory.few:
+          '@v == 0 && @i % 10 >= 2 && @i % 10 <= 4 && !(@i % 100 >= 12 && @i % 100 <= 14)',
+      // v = 0 and i % 10 = 0 or v = 0 and i % 10 = 5..9 or v = 0 and i % 100 = 11..14
+      PluralCategory.many:
+          '@v == 0 && @i % 10 == 0 || @v == 0 && @i % 10 >= 5 && @i % 10 <= 9 || @v == 0 && @i % 100 >= 11 && @i % 100 <= 14',
+    }),
+    'und': PluralRuleSet({}),
+    'ur': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+    }),
+    'uz': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    've': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'vec': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+      // e = 0 and i != 0 and i % 1000000 = 0 and v = 0 or e != 0..5
+      PluralCategory.many: '@i != 0 && @i % 1000000 == 0 && @v == 0',
+    }),
+    'vi': PluralRuleSet({}),
+    'vo': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'vun': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'wa': PluralRuleSet({
+      // n = 0..1
+      PluralCategory.one: '@n == @i && @n >= 0 && @n <= 1',
+    }),
+    'wae': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'wo': PluralRuleSet({}),
+    'xh': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'xog': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'yi': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
+    }),
+    'yo': PluralRuleSet({}),
+    'yue': PluralRuleSet({}),
+    'zh': PluralRuleSet({}),
+    'zu': PluralRuleSet({
+      // i = 0 or n = 1
+      PluralCategory.one: '@i == 0 || @n == 1',
     }),
   };
-
-  /// `many` for the Romance languages: whole millions.
-  ///
-  /// CLDR writes `e = 0 and i != 0 and i % 1000000 = 0 and v = 0`. The `e`
-  /// operand is the exponent of a compact form (`1M` has e = 6); nothing
-  /// here formats compactly before selecting a branch, so e is always 0 and
-  /// the clause is left out rather than carried as a constant true.
-  static const String _millions = '@i != 0 && @i % 1000000 == 0 && @v == 0';
-
-  static const PluralRuleSet _slavic = PluralRuleSet({
-    PluralCategory.one: '@v == 0 && @i % 10 == 1 && @i % 100 != 11',
-    PluralCategory.few:
-        '@v == 0 && @i % 10 >= 2 && @i % 10 <= 4 && '
-        '!(@i % 100 >= 12 && @i % 100 <= 14)',
-    PluralCategory.many:
-        '@v == 0 && @i % 10 == 0 || '
-        '@v == 0 && @i % 10 >= 5 && @i % 10 <= 9 || '
-        '@v == 0 && @i % 100 >= 11 && @i % 100 <= 14',
-  });
-
-  static const PluralRuleSet _westSlavic = PluralRuleSet({
-    PluralCategory.one: '@i == 1 && @v == 0',
-    PluralCategory.few: '@i >= 2 && @i <= 4 && @v == 0',
-    PluralCategory.many: '@v != 0',
-  });
-
-  static const PluralRuleSet _bcs = PluralRuleSet({
-    PluralCategory.one:
-        '@v == 0 && @i % 10 == 1 && @i % 100 != 11 || '
-        '@f % 10 == 1 && @f % 100 != 11',
-    PluralCategory.few:
-        '@v == 0 && @i % 10 >= 2 && @i % 10 <= 4 && '
-        '!(@i % 100 >= 12 && @i % 100 <= 14) || '
-        '@f % 10 >= 2 && @f % 10 <= 4 && !(@f % 100 >= 12 && @f % 100 <= 14)',
-  });
 
   /// Ordinal rules, used by `selectordinal`.
   ///
-  /// A different CLDR table from the cardinal ones, and not derivable from
-  /// them: English is `one/two/few/other` for ordinals but only `one/other`
-  /// for cardinals, while Slovenian is the reverse.
-  ///
-  /// Some of these are written over `n` and some over `i`, exactly as CLDR
-  /// writes them, and the difference is visible: English `1.5` is `other`
-  /// because the rule reads `n % 10 = 1`, while Azerbaijani `1.5` is `one`
-  /// because its rule reads `i % 10 = 1`. Both are nonsense input — there is
-  /// no 1.5th of anything — but they are ICU's nonsense, and matching it is
-  /// cheaper than explaining a difference.
-  ///
-  /// `package:intl` ships no ordinal table, so unlike the cardinal rules
-  /// these cannot be checked against it. They are checked against ICU
-  /// instead, through a vendored dump in `test/data/cldr_ordinals.json`;
-  /// `tool/ordinal_oracle.sh` regenerates it.
-  ///
-  /// A language is listed only when its ordinal rule is known, so that an
-  /// unlisted one produces a diagnostic instead of English behaviour.
+  /// A different CLDR table from the cardinal one: English is
+  /// `one/two/few/other` for ordinals but only `one/other` for
+  /// cardinals. Far fewer languages have ordinal rules, and a
+  /// language missing here produces `unknown_ordinal_language`
+  /// rather than silently borrowing English behaviour.
   static const Map<String, PluralRuleSet> _ordinalRules = {
-    // The widest ordinal rule CLDR has: `few` keys off whole hundreds
-    // below a thousand, so 100 and 1100 are `few` and 1000 is not.
-    'az': PluralRuleSet({
+    'af': PluralRuleSet({}),
+    'am': PluralRuleSet({}),
+    'an': PluralRuleSet({}),
+    'ar': PluralRuleSet({}),
+    'as': PluralRuleSet({
+      // n = 1,5,7,8,9,10
       PluralCategory.one:
-          '@i % 10 == 1 || @i % 10 == 2 || @i % 10 == 5 || '
-          '@i % 10 == 7 || @i % 10 == 8 || '
-          '@i % 100 == 20 || @i % 100 == 50 || @i % 100 == 70 || '
-          '@i % 100 == 80',
+          '(@n == 1 || @n == 5 || @n == 7 || @n == 8 || @n == 9 || @n == 10)',
+      // n = 2,3
+      PluralCategory.two: '(@n == 2 || @n == 3)',
+      // n = 4
+      PluralCategory.few: '@n == 4',
+      // n = 6
+      PluralCategory.many: '@n == 6',
+    }),
+    'ast': PluralRuleSet({}),
+    'az': PluralRuleSet({
+      // i % 10 = 1,2,5,7,8 or i % 100 = 20,50,70,80
+      PluralCategory.one:
+          '(@i % 10 == 1 || @i % 10 == 2 || @i % 10 == 5 || @i % 10 == 7 || @i % 10 == 8) || (@i % 100 == 20 || @i % 100 == 50 || @i % 100 == 70 || @i % 100 == 80)',
+      // i % 10 = 3,4 or i % 1000 = 100,200,300,400,500,600,700,800,900
       PluralCategory.few:
-          '@i % 10 == 3 || @i % 10 == 4 || '
-          '@i % 1000 == 100 || @i % 1000 == 200 || @i % 1000 == 300 || '
-          '@i % 1000 == 400 || @i % 1000 == 500 || @i % 1000 == 600 || '
-          '@i % 1000 == 700 || @i % 1000 == 800 || @i % 1000 == 900',
+          '(@i % 10 == 3 || @i % 10 == 4) || (@i % 1000 == 100 || @i % 1000 == 200 || @i % 1000 == 300 || @i % 1000 == 400 || @i % 1000 == 500 || @i % 1000 == 600 || @i % 1000 == 700 || @i % 1000 == 800 || @i % 1000 == 900)',
+      // i = 0 or i % 10 = 6 or i % 100 = 40,60,90
       PluralCategory.many:
-          '@i == 0 || @i % 10 == 6 || '
-          '@i % 100 == 40 || @i % 100 == 60 || @i % 100 == 90',
+          '@i == 0 || @i % 10 == 6 || (@i % 100 == 40 || @i % 100 == 60 || @i % 100 == 90)',
+    }),
+    'bal': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
     }),
     'be': PluralRuleSet({
+      // n % 10 = 2,3 and n % 100 != 12,13
       PluralCategory.few:
-          '(@n % 10 == 2 || @n % 10 == 3) && '
-          '@n % 100 != 12 && @n % 100 != 13',
+          '(@n % 10 == 2 || @n % 10 == 3) && @n % 100 != 12 && @n % 100 != 13',
     }),
-    // Bengali counts 10 as `one`; Odia, with otherwise the same rule,
-    // does not.
+    'bg': PluralRuleSet({}),
+    'blo': PluralRuleSet({
+      // i = 0
+      PluralCategory.zero: '@i == 0',
+      // i = 1
+      PluralCategory.one: '@i == 1',
+      // i = 2,3,4,5,6
+      PluralCategory.few:
+          '(@i == 2 || @i == 3 || @i == 4 || @i == 5 || @i == 6)',
+    }),
     'bn': PluralRuleSet({
+      // n = 1,5,7,8,9,10
       PluralCategory.one:
-          '@n == 1 || @n == 5 || @n == 7 || @n == 8 || @n == 9 || '
-          '@n == 10',
-      PluralCategory.two: '@n == 2 || @n == 3',
+          '(@n == 1 || @n == 5 || @n == 7 || @n == 8 || @n == 9 || @n == 10)',
+      // n = 2,3
+      PluralCategory.two: '(@n == 2 || @n == 3)',
+      // n = 4
       PluralCategory.few: '@n == 4',
+      // n = 6
       PluralCategory.many: '@n == 6',
     }),
+    'bs': PluralRuleSet({}),
     'ca': PluralRuleSet({
-      PluralCategory.one: '@n == 1 || @n == 3',
+      // n = 1,3
+      PluralCategory.one: '(@n == 1 || @n == 3)',
+      // n = 2
       PluralCategory.two: '@n == 2',
+      // n = 4
       PluralCategory.few: '@n == 4',
     }),
-    // 1st, 2nd, 3rd, 4th. Written over `n`, so 1.5 is `other`: there is
-    // no 1.5th of anything.
+    'ce': PluralRuleSet({}),
+    'cs': PluralRuleSet({}),
+    'cv': PluralRuleSet({}),
+    'cy': PluralRuleSet({
+      // n = 0,7,8,9
+      PluralCategory.zero: '(@n == 0 || @n == 7 || @n == 8 || @n == 9)',
+      // n = 1
+      PluralCategory.one: '@n == 1',
+      // n = 2
+      PluralCategory.two: '@n == 2',
+      // n = 3,4
+      PluralCategory.few: '(@n == 3 || @n == 4)',
+      // n = 5,6
+      PluralCategory.many: '(@n == 5 || @n == 6)',
+    }),
+    'da': PluralRuleSet({}),
+    'de': PluralRuleSet({}),
+    'dsb': PluralRuleSet({}),
+    'el': PluralRuleSet({}),
     'en': PluralRuleSet({
+      // n % 10 = 1 and n % 100 != 11
       PluralCategory.one: '@n % 10 == 1 && @n % 100 != 11',
+      // n % 10 = 2 and n % 100 != 12
       PluralCategory.two: '@n % 10 == 2 && @n % 100 != 12',
+      // n % 10 = 3 and n % 100 != 13
       PluralCategory.few: '@n % 10 == 3 && @n % 100 != 13',
     }),
-    'fil': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    'fr': PluralRuleSet({PluralCategory.one: '@n == 1'}),
+    'es': PluralRuleSet({}),
+    'et': PluralRuleSet({}),
+    'eu': PluralRuleSet({}),
+    'fa': PluralRuleSet({}),
+    'fi': PluralRuleSet({}),
+    'fil': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'fr': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'fy': PluralRuleSet({}),
+    'ga': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'gd': PluralRuleSet({
+      // n = 1,11
+      PluralCategory.one: '(@n == 1 || @n == 11)',
+      // n = 2,12
+      PluralCategory.two: '(@n == 2 || @n == 12)',
+      // n = 3,13
+      PluralCategory.few: '(@n == 3 || @n == 13)',
+    }),
+    'gl': PluralRuleSet({}),
+    'gsw': PluralRuleSet({}),
     'gu': PluralRuleSet({
+      // n = 1
       PluralCategory.one: '@n == 1',
-      PluralCategory.two: '@n == 2 || @n == 3',
+      // n = 2,3
+      PluralCategory.two: '(@n == 2 || @n == 3)',
+      // n = 4
       PluralCategory.few: '@n == 4',
+      // n = 6
       PluralCategory.many: '@n == 6',
     }),
+    'he': PluralRuleSet({}),
     'hi': PluralRuleSet({
+      // n = 1
       PluralCategory.one: '@n == 1',
-      PluralCategory.two: '@n == 2 || @n == 3',
+      // n = 2,3
+      PluralCategory.two: '(@n == 2 || @n == 3)',
+      // n = 4
       PluralCategory.few: '@n == 4',
+      // n = 6
       PluralCategory.many: '@n == 6',
     }),
-    'hu': PluralRuleSet({PluralCategory.one: '@n == 1 || @n == 5'}),
-    'hy': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    // 8, 11, 80 and 800 exactly; 88 and 180 are not.
+    'hr': PluralRuleSet({}),
+    'hsb': PluralRuleSet({}),
+    'hu': PluralRuleSet({
+      // n = 1,5
+      PluralCategory.one: '(@n == 1 || @n == 5)',
+    }),
+    'hy': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'ia': PluralRuleSet({}),
+    'id': PluralRuleSet({}),
+    'ie': PluralRuleSet({}),
+    'is': PluralRuleSet({}),
     'it': PluralRuleSet({
-      PluralCategory.many: '@n == 11 || @n == 8 || @n == 80 || @n == 800',
+      // n = 11,8,80,800
+      PluralCategory.many: '(@n == 11 || @n == 8 || @n == 80 || @n == 800)',
     }),
-    // `many` swallows most of the first hundred; `one` is only 1.
+    'ja': PluralRuleSet({}),
     'ka': PluralRuleSet({
+      // i = 1
       PluralCategory.one: '@i == 1',
+      // i = 0 or i % 100 = 2..20,40,60,80
       PluralCategory.many:
-          '@i == 0 || @i % 100 >= 2 && @i % 100 <= 20 || '
-          '@i % 100 == 40 || @i % 100 == 60 || @i % 100 == 80',
+          '@i == 0 || (@i % 100 >= 2 && @i % 100 <= 20 || @i % 100 == 40 || @i % 100 == 60 || @i % 100 == 80)',
     }),
-    // `many` for 6, 9 and whole tens, but not for zero.
     'kk': PluralRuleSet({
+      // n % 10 = 6 or n % 10 = 9 or n % 10 = 0 and n != 0
       PluralCategory.many:
           '@n % 10 == 6 || @n % 10 == 9 || @n % 10 == 0 && @n != 0',
     }),
-    'lo': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    // Like English but over `i`, and with a `many` for 7 and 8.
-    'mk': PluralRuleSet({
-      PluralCategory.one: '@i % 10 == 1 && @i % 100 != 11',
-      PluralCategory.two: '@i % 10 == 2 && @i % 100 != 12',
+    'km': PluralRuleSet({}),
+    'kn': PluralRuleSet({}),
+    'ko': PluralRuleSet({}),
+    'kok': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+      // n = 2,3
+      PluralCategory.two: '(@n == 2 || @n == 3)',
+      // n = 4
+      PluralCategory.few: '@n == 4',
+    }),
+    'kw': PluralRuleSet({
+      // n = 1..4 or n % 100 = 1..4,21..24,41..44,61..64,81..84
+      PluralCategory.one:
+          '@n == @i && @n >= 1 && @n <= 4 || (@n == @i && @n % 100 >= 1 && @n % 100 <= 4 || @n == @i && @n % 100 >= 21 && @n % 100 <= 24 || @n == @i && @n % 100 >= 41 && @n % 100 <= 44 || @n == @i && @n % 100 >= 61 && @n % 100 <= 64 || @n == @i && @n % 100 >= 81 && @n % 100 <= 84)',
+      // n = 5 or n % 100 = 5
+      PluralCategory.many: '@n == 5 || @n % 100 == 5',
+    }),
+    'ky': PluralRuleSet({}),
+    'lij': PluralRuleSet({
+      // n = 11,8,80..89,800..899
       PluralCategory.many:
-          '(@i % 10 == 7 || @i % 10 == 8) && '
-          '@i % 100 != 17 && @i % 100 != 18',
+          '(@n == 11 || @n == 8 || @n == @i && @n >= 80 && @n <= 89 || @n == @i && @n >= 800 && @n <= 899)',
+    }),
+    'lld': PluralRuleSet({
+      // n = 11,8,80,800
+      PluralCategory.many: '(@n == 11 || @n == 8 || @n == 80 || @n == 800)',
+    }),
+    'lo': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'lt': PluralRuleSet({}),
+    'lv': PluralRuleSet({}),
+    'mk': PluralRuleSet({
+      // i % 10 = 1 and i % 100 != 11
+      PluralCategory.one: '@i % 10 == 1 && @i % 100 != 11',
+      // i % 10 = 2 and i % 100 != 12
+      PluralCategory.two: '@i % 10 == 2 && @i % 100 != 12',
+      // i % 10 = 7,8 and i % 100 != 17,18
+      PluralCategory.many:
+          '(@i % 10 == 7 || @i % 10 == 8) && @i % 100 != 17 && @i % 100 != 18',
+    }),
+    'ml': PluralRuleSet({}),
+    'mn': PluralRuleSet({}),
+    'mo': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
     }),
     'mr': PluralRuleSet({
+      // n = 1
       PluralCategory.one: '@n == 1',
-      PluralCategory.two: '@n == 2 || @n == 3',
+      // n = 2,3
+      PluralCategory.two: '(@n == 2 || @n == 3)',
+      // n = 4
       PluralCategory.few: '@n == 4',
     }),
-    'ms': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    // one: n = 1..4. A CLDR range matches integers only, hence `@v == 0`.
-    'ne': PluralRuleSet({PluralCategory.one: '@v == 0 && @n >= 1 && @n <= 4'}),
+    'ms': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'my': PluralRuleSet({}),
+    'nb': PluralRuleSet({}),
+    'ne': PluralRuleSet({
+      // n = 1..4
+      PluralCategory.one: '@n == @i && @n >= 1 && @n <= 4',
+    }),
+    'nl': PluralRuleSet({}),
+    'no': PluralRuleSet({}),
     'or': PluralRuleSet({
-      PluralCategory.one: '@n == 1 || @n == 5 || @n == 7 || @n == 8 || @n == 9',
-      PluralCategory.two: '@n == 2 || @n == 3',
+      // n = 1,5,7..9
+      PluralCategory.one:
+          '(@n == 1 || @n == 5 || @n == @i && @n >= 7 && @n <= 9)',
+      // n = 2,3
+      PluralCategory.two: '(@n == 2 || @n == 3)',
+      // n = 4
       PluralCategory.few: '@n == 4',
+      // n = 6
       PluralCategory.many: '@n == 6',
     }),
-    'ro': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-    'sq': PluralRuleSet({
+    'pa': PluralRuleSet({}),
+    'pl': PluralRuleSet({}),
+    'prg': PluralRuleSet({}),
+    'ps': PluralRuleSet({}),
+    'pt': PluralRuleSet({}),
+    'ro': PluralRuleSet({
+      // n = 1
       PluralCategory.one: '@n == 1',
+    }),
+    'ru': PluralRuleSet({}),
+    'sc': PluralRuleSet({
+      // n = 11,8,80,800
+      PluralCategory.many: '(@n == 11 || @n == 8 || @n == 80 || @n == 800)',
+    }),
+    'scn': PluralRuleSet({
+      // n = 11,8,80..89,800..899
+      PluralCategory.many:
+          '(@n == 11 || @n == 8 || @n == @i && @n >= 80 && @n <= 89 || @n == @i && @n >= 800 && @n <= 899)',
+    }),
+    'sd': PluralRuleSet({}),
+    'sh': PluralRuleSet({}),
+    'si': PluralRuleSet({}),
+    'sk': PluralRuleSet({}),
+    'sl': PluralRuleSet({}),
+    'sq': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+      // n % 10 = 4 and n % 100 != 14
       PluralCategory.many: '@n % 10 == 4 && @n % 100 != 14',
     }),
+    'sr': PluralRuleSet({}),
     'sv': PluralRuleSet({
+      // n % 10 = 1,2 and n % 100 != 11,12
       PluralCategory.one:
-          '(@n % 10 == 1 || @n % 10 == 2) && '
-          '@n % 100 != 11 && @n % 100 != 12',
+          '(@n % 10 == 1 || @n % 10 == 2) && @n % 100 != 11 && @n % 100 != 12',
     }),
-    'uk': PluralRuleSet({PluralCategory.few: '@n % 10 == 3 && @n % 100 != 13'}),
-    'vi': PluralRuleSet({PluralCategory.one: '@n == 1'}),
-
-    // Languages whose ordinals have no categories at all: one form,
-    // whatever the number. Listed rather than defaulted, so that a
-    // language absent from this map is absent on purpose.
-    'af': _ordinalOther,
-    'am': _ordinalOther,
-    'ar': _ordinalOther,
-    'bg': _ordinalOther,
-    'bs': _ordinalOther,
-    'cs': _ordinalOther,
-    'da': _ordinalOther,
-    'de': _ordinalOther,
-    'el': _ordinalOther,
-    'es': _ordinalOther,
-    'et': _ordinalOther,
-    'eu': _ordinalOther,
-    'fa': _ordinalOther,
-    'fi': _ordinalOther,
-    'gl': _ordinalOther,
-    'he': _ordinalOther,
-    'hr': _ordinalOther,
-    'id': _ordinalOther,
-    'is': _ordinalOther,
-    'ja': _ordinalOther,
-    'km': _ordinalOther,
-    'kn': _ordinalOther,
-    'ko': _ordinalOther,
-    'ky': _ordinalOther,
-    'lt': _ordinalOther,
-    'lv': _ordinalOther,
-    'ml': _ordinalOther,
-    'mn': _ordinalOther,
-    'my': _ordinalOther,
-    'nb': _ordinalOther,
-    'nl': _ordinalOther,
-    'no': _ordinalOther,
-    'pl': _ordinalOther,
-    'ps': _ordinalOther,
-    'pt': _ordinalOther,
-    'ru': _ordinalOther,
-    'si': _ordinalOther,
-    'sk': _ordinalOther,
-    'sl': _ordinalOther,
-    'sr': _ordinalOther,
-    'sw': _ordinalOther,
-    'ta': _ordinalOther,
-    'te': _ordinalOther,
-    'th': _ordinalOther,
-    'tr': _ordinalOther,
-    'ur': _ordinalOther,
-    'uz': _ordinalOther,
-    'zh': _ordinalOther,
-    'zu': _ordinalOther,
+    'sw': PluralRuleSet({}),
+    'ta': PluralRuleSet({}),
+    'te': PluralRuleSet({}),
+    'th': PluralRuleSet({}),
+    'tk': PluralRuleSet({
+      // n % 10 = 6,9 or n = 10
+      PluralCategory.few: '(@n % 10 == 6 || @n % 10 == 9) || @n == 10',
+    }),
+    'tl': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'tpi': PluralRuleSet({}),
+    'tr': PluralRuleSet({}),
+    'uk': PluralRuleSet({
+      // n % 10 = 3 and n % 100 != 13
+      PluralCategory.few: '@n % 10 == 3 && @n % 100 != 13',
+    }),
+    'und': PluralRuleSet({}),
+    'ur': PluralRuleSet({}),
+    'uz': PluralRuleSet({}),
+    'vec': PluralRuleSet({
+      // n = 11,8,80,800
+      PluralCategory.many: '(@n == 11 || @n == 8 || @n == 80 || @n == 800)',
+    }),
+    'vi': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+    }),
+    'yue': PluralRuleSet({}),
+    'zh': PluralRuleSet({}),
+    'zu': PluralRuleSet({}),
   };
 
-  static const PluralRuleSet _ordinalOther = PluralRuleSet({});
-
-  /// Cardinal rules for [language], or `null` when it is not in the table.
+  /// Cardinal rules for [language], or `null` when CLDR has none.
   static PluralRuleSet? forLanguage(String language) => _rules[language];
 
-  /// Ordinal rules for [language], or `null` when they are not known.
+  /// Ordinal rules for [language], or `null` when CLDR has none.
   static PluralRuleSet? ordinalForLanguage(String language) =>
       _ordinalRules[language];
 

@@ -109,18 +109,22 @@ void main() {
       expect(codesOf(result), contains('unused_plural_category'));
     });
 
-    test('rejects plurals in a language without known rules', () {
-      // Welsh has six categories and is not in the table. Adding it is what
-      // should break this test; pick another absent language then.
-      expect(CldrPluralRules.forLanguage('cy'), isNull);
+    test('rejects plurals in a language CLDR does not publish', () {
+      // The table is the whole of CLDR, so this needs a language CLDR has no
+      // rules for at all. Klingon is a real ISO 639-3 code and is not in it.
+      expect(CldrPluralRules.forLanguage('tlh'), isNull);
       final result = runGenerator({
         'en.json': '{"n": "{count, plural, other{# items}}"}',
-        'cy.json': '{"n": "{count, plural, other{# eitem}}"}',
+        'tlh.json': '{"n": "{count, plural, other{# nuq}}"}',
       });
       final diagnostic = result.diagnostics.firstWhere(
         (d) => d.code == 'unknown_plural_language',
       );
-      expect(diagnostic.details, contains('Supported languages'));
+      // The details name the CLDR release rather than listing every language
+      // in it, which at two hundred entries would bury the actual advice.
+      expect(diagnostic.details, contains('CLDR'));
+      expect(diagnostic.details, contains('Check the locale tag'));
+      expect(diagnostic.details, isNot(contains('Supported languages')));
     });
   });
 
