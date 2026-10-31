@@ -6,7 +6,8 @@
 import 'package:intl/intl.dart';
 import 'package:l10n_plus/l10n_plus.dart';
 
-export 'package:l10n_plus/l10n_plus.dart' show L10nLocale, L10nOverrides;
+export 'package:l10n_plus/l10n_plus.dart'
+    show L10nLocale, L10nOverrideMismatch, L10nOverrides;
 
 final NumberFormat _enNumberCurrencyUsd = NumberFormat.currency(
   locale: 'en',
@@ -20,15 +21,37 @@ final NumberFormat _ruNumberCurrencyUsd = NumberFormat.currency(
 /// Every locale this app has translations for.
 enum AppLocale implements AppLocaleBase {
   /// `en`
-  en(L10nLocale('en')),
+  en(L10nLocale('en'), '96f95d5960a70343'),
 
   /// `ru`
-  ru(L10nLocale('ru'));
+  ru(L10nLocale('ru'), 'f8f0adc8ea5c260d');
 
-  const AppLocale(this.l10nLocale);
+  const AppLocale(this.l10nLocale, this.overrideFingerprint);
 
   @override
   final L10nLocale l10nLocale;
+
+  /// The overridable surface this build compiled for this locale.
+  ///
+  /// The keys, the branches, the placeholders each branch substitutes and
+  /// the numbering of the nested choices, as 16 hex digits. A bundle states
+  /// the one `check-overrides --stamp` checked it against, and
+  /// [installOverrides] refuses any other.
+  final String overrideFingerprint;
+
+  /// Installs [messages] as the runtime overrides of this locale.
+  ///
+  /// [messages] is a decoded bundle: dotted translation keys to a text, or to
+  /// a map of branch texts, beside the `@@fingerprint` `check-overrides`
+  /// wrote. Throws [L10nOverrideMismatch] and installs nothing when that
+  /// fingerprint is not [overrideFingerprint] — the application then keeps
+  /// rendering what it compiled, which is the right text for the build that is
+  /// running.
+  void installOverrides(Map<String, Object> messages) => L10nOverrides.install(
+    l10nLocale,
+    messages,
+    fingerprint: overrideFingerprint,
+  );
 
   /// The translations of this locale.
   AppLocalizations get translations => switch (this) {

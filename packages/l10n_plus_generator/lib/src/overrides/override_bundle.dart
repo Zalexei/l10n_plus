@@ -77,12 +77,20 @@ final class OverrideBundleMessage {
 /// work on messages; this is a file an application downloads, and its shape is
 /// the shape `L10nOverrides.install` takes — flat dotted keys, and either a
 /// text or a map of branches.
+///
+/// Two entries are not messages: `@@locale`, which says which locale's plural
+/// categories the branches are judged against, and `@@fingerprint`, which says
+/// which build's messages they were judged against at all.
 final class OverrideBundle {
   /// Creates a bundle.
   OverrideBundle({
     required this.localeTag,
     required this.localeSpan,
     required this.messages,
+    this.fingerprint,
+    this.fingerprintSpan,
+    this.rootSpan,
+    this.firstMemberSpan,
   });
 
   /// The locale the bundle is for, as a file tag.
@@ -93,6 +101,20 @@ final class OverrideBundle {
 
   /// Every message, in file order.
   final List<OverrideBundleMessage> messages;
+
+  /// The overridable surface the bundle says it was checked against.
+  ///
+  /// `null` when the file states none, which is a bundle nothing checked.
+  final String? fingerprint;
+
+  /// Where [fingerprint] is stated, for the diagnostic and for `--stamp`.
+  final SourceSpan? fingerprintSpan;
+
+  /// The whole root object, for a diagnostic with nowhere better to point.
+  final SourceSpan? rootSpan;
+
+  /// Where the first member's key is, so `--stamp` can match its indentation.
+  final SourceSpan? firstMemberSpan;
 
   /// The key an override bundle declares its locale with.
   ///
@@ -153,6 +175,8 @@ final class OverrideBundle {
 
     String? localeTag;
     SourceSpan? localeSpan;
+    String? fingerprint;
+    SourceSpan? fingerprintSpan;
     final messages = <OverrideBundleMessage>[];
 
     for (final member in root.entries) {
@@ -182,6 +206,24 @@ final class OverrideBundle {
           continue;
         }
         localeTag = locale.toFileTag();
+        continue;
+      }
+      if (member.key == L10nOverrides.fingerprintKey) {
+        final value = member.value;
+        if (value is! JsonString) {
+          diagnostics.add(
+            Diagnostic.error(
+              code: 'invalid_override',
+              message:
+                  '"${L10nOverrides.fingerprintKey}" must be the fingerprint '
+                  'string "check-overrides --stamp" wrote.',
+              span: value.span,
+            ),
+          );
+          continue;
+        }
+        fingerprint = value.value;
+        fingerprintSpan = value.span;
         continue;
       }
       if (member.key.startsWith('@')) {
@@ -289,6 +331,10 @@ final class OverrideBundle {
       localeTag: localeTag,
       localeSpan: localeSpan,
       messages: messages,
+      fingerprint: fingerprint,
+      fingerprintSpan: fingerprintSpan,
+      rootSpan: root.span,
+      firstMemberSpan: root.entries.isEmpty ? null : root.entries.first.keySpan,
     );
   }
 

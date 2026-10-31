@@ -14,7 +14,7 @@ would have, minus pub.dev.
 | `marketplace/` | Plural and select heavy. Five languages with five different plural systems: `ar` (six categories), `pl` (few/many), `sl` (a dual), `ja` (none), `en`. Compact numbers, offsets, `format_plural_numbers: true`. |
 | `bigapp/` | Flutter. 810 messages over nine feature namespaces, `file_pattern: "{namespace}_{locale}"`, `file_per_locale: true`, four locales one of which is a partial rollout under `fill_missing_from_base`. |
 | `tms/` | An ARB bundle shaped the way a TMS exports one: flat dotted keys, `@@locale`, `@key` metadata, `intl_*{locale}`, one locale half translated. |
-| `probes/` | `./probe.sh` replays nineteen deliberate mistakes and prints the diagnostic each one produces — except probe 18, which shows a declaration that used to be dropped and is now honoured. Probe 19 checks a runtime override bundle against the locale's own CLDR categories. `transcript.txt` is its output. |
+| `probes/` | `./probe.sh` replays twenty deliberate mistakes and prints the diagnostic each one produces — except probe 18, which shows a declaration that used to be dropped and is now honoured. Probe 19 checks a runtime override bundle against the locale's own CLDR categories, and is refused the stamp it asks for; probe 20 stamps a good bundle, moves a nested choice and is refused. `transcript.txt` is its output. |
 
 ## Running everything
 

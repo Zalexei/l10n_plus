@@ -55,7 +55,7 @@ void main() {
     expect(find.text('1 transaction'), findsOneWidget);
     expect(find.text('5 transactions'), findsOneWidget);
 
-    controller.installOverrides(en, {
+    L10nOverrides.install(en, {
       'auth.login.title': 'Sign in',
       'wallet.transactions': {'one': '# payment', 'other': '# payments'},
     });
@@ -72,7 +72,7 @@ void main() {
 
   testWidgets('clearing puts the compiled text back', (tester) async {
     final controller = await pump(tester);
-    controller.installOverrides(en, {'auth.login.title': 'Sign in'});
+    L10nOverrides.install(en, {'auth.login.title': 'Sign in'});
     await tester.pump();
     expect(find.text('Sign in'), findsOneWidget);
 
@@ -85,7 +85,7 @@ void main() {
     tester,
   ) async {
     final controller = await pump(tester);
-    controller.installOverrides(ru, {'auth.login.title': 'Вход'});
+    L10nOverrides.install(ru, {'auth.login.title': 'Вход'});
     await tester.pump();
     expect(find.text('Log in'), findsOneWidget);
 
@@ -99,7 +99,7 @@ void main() {
     // The roadmap expected this feature to make it asynchronous. It does not:
     // fetching happens before installing, in the application's own code.
     final controller = await pump(tester);
-    controller.installOverrides(ru, {
+    L10nOverrides.install(ru, {
       'wallet.transactions': {
         'one': '# платёж',
         'few': '# платежа',
@@ -113,10 +113,14 @@ void main() {
     expect(find.text('5 платежей'), findsOneWidget);
   });
 
-  testWidgets('installing through the store repaints too', (tester) async {
-    // The controller's method is a convenience; the guarantee is that the
-    // store notifies, so an application reaching for it directly is not
-    // quietly left on stale text.
+  testWidgets('any installer repaints, because the store notifies', (
+    tester,
+  ) async {
+    // The controller has no `installOverrides` of its own: a bundle is
+    // installed through the generated `AppLocale.x.installOverrides`, which
+    // is where the fingerprint to check it against is a constant. The repaint
+    // does not depend on who called — the controller subscribes to the store,
+    // not to a method of its own.
     await pump(tester);
     L10nOverrides.install(en, {'auth.login.title': 'Sign in'});
     await tester.pump();

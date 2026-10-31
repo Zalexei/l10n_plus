@@ -245,8 +245,8 @@ void main() {
       expect(
         core,
         contains(
-          "export 'package:l10n_plus/l10n_plus.dart' show "
-          'L10nLocale, L10nOverrides;',
+          "export 'package:l10n_plus/l10n_plus.dart'\n"
+          '    show L10nLocale, L10nOverrideMismatch, L10nOverrides;',
         ),
       );
     });
@@ -295,8 +295,16 @@ flutter:
     // different thing from the string keyed map this library exists to avoid:
     // the member is still a method, its arguments are still typed, and a
     // misspelled key is still a compile error.
+    //
+    // `installOverrides` names a string keyed map once, as the parameter a
+    // decoded bundle arrives in. That one is allowed and nothing else is: a
+    // *stored* map of keys to text is the table a run time lookup would need,
+    // and there is none.
+    const parameter = 'void installOverrides(Map<String, Object> messages)';
+    expect(_file(_run(), 'app_localizations.g.dart'), contains(parameter));
     for (final file in _run().files) {
-      expect(file.contents, isNot(contains('Map<String')), reason: file.path);
+      final rest = file.contents.replaceFirst(parameter, '');
+      expect(rest, isNot(contains('Map<String')), reason: file.path);
       expect(file.contents, isNot(contains('jsonDecode')), reason: file.path);
       expect(file.contents, isNot(contains('dynamic ')), reason: file.path);
     }

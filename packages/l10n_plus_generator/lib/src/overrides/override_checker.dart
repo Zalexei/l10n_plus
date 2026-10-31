@@ -5,6 +5,7 @@ import '../diagnostic.dart';
 import '../plural/cldr_plural_rules.dart';
 import '../rich/rich_key.dart';
 import 'override_bundle.dart';
+import 'override_fingerprint.dart';
 import 'override_schema.dart';
 
 /// Validates an override bundle against the lookups the project emitted.
@@ -26,10 +27,15 @@ abstract final class OverrideChecker {
   /// Reports as much as it can rather than stopping at the first problem: a
   /// bundle comes back from one round trip, and a report naming one of six
   /// mistakes costs six round trips.
+  /// [requireFingerprint] is false when the caller is about to write one:
+  /// `--stamp` re-checks a bundle against this build and signs it, so
+  /// complaining that it is unsigned would be a complaint about the thing the
+  /// command is doing.
   static void check({
     required OverrideBundle bundle,
     required OverrideCatalog catalog,
     required DiagnosticCollector diagnostics,
+    bool requireFingerprint = true,
   }) {
     final schema = catalog.forLocale(bundle.localeTag);
     if (schema == null) {
@@ -47,9 +53,73 @@ abstract final class OverrideChecker {
       return;
     }
 
+    if (requireFingerprint) {
+      _checkFingerprint(
+        bundle: bundle,
+        schema: schema,
+        diagnostics: diagnostics,
+      );
+    }
+
     for (final message in bundle.messages) {
       _checkMessage(message: message, schema: schema, diagnostics: diagnostics);
     }
+  }
+
+  /// Reports a bundle that was checked against a different build, or none.
+  ///
+  /// The one check here that is not about the bundle's contents. Everything
+  /// else this class does is an answer about the project as it stands now, and
+  /// a bundle carries no record of the project it was written for — so a
+  /// message that gained a nested choice leaves yesterday's bundle naming
+  /// branches that all still exist and mean something else. The fingerprint is
+  /// that record.
+  static void _checkFingerprint({
+    required OverrideBundle bundle,
+    required OverrideSchema schema,
+    required DiagnosticCollector diagnostics,
+  }) {
+    final expected = OverrideFingerprint.of(schema);
+    final declared = bundle.fingerprint;
+    if (declared == null) {
+      diagnostics.add(
+        Diagnostic.error(
+          code: 'missing_override_fingerprint',
+          message:
+              'The bundle does not say which build it was checked '
+              'against.',
+          span: bundle.firstMemberSpan ?? bundle.rootSpan,
+          details:
+              'Every other answer in this report is an answer about this '
+              'project as it stands, and a bundle outlives a build. Branches '
+              'of a nested choice are addressed by position — "0/one" is the '
+              'first choice\'s "one" branch — so a message that gains a '
+              'choice renumbers the ones after it while every name in an old '
+              'bundle still exists.\n'
+              'Write it with --stamp, or by hand:\n'
+              '  "${L10nOverrides.fingerprintKey}": "$expected"',
+        ),
+      );
+      return;
+    }
+    if (declared == expected) return;
+    diagnostics.add(
+      Diagnostic.error(
+        code: 'override_fingerprint_mismatch',
+        message: 'This bundle was checked against another build.',
+        span: bundle.fingerprintSpan,
+        details:
+            'It states the surface $declared, and this build compiled '
+            '$expected: a key, a branch, a placeholder or the position of a '
+            'nested choice is not what it was when the bundle was written. '
+            'The texts may every one of them still be right — nothing in them '
+            'can say so, which is why this is checked here and refused by '
+            '"installOverrides" rather than discovered on a screen.\n'
+            'Re-run with --stamp once the rest of this report is clean: it '
+            'checks the bundle against this build and writes the new '
+            'fingerprint.',
+      ),
+    );
   }
 
   static void _checkMessage({

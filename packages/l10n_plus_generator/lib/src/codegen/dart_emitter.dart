@@ -2,6 +2,7 @@ import '../ast/message_ast.dart';
 import '../ast/rich_ast.dart';
 import '../config.dart';
 import '../model/localization_model.dart';
+import '../overrides/override_fingerprint.dart';
 import '../overrides/override_schema.dart';
 import '../plural/cldr_plural_rules.dart';
 import 'intl_formatters.dart';
@@ -185,17 +186,23 @@ final class DartEmitter {
     _formatters.clear();
     _overrideMessages.clear();
 
-    // The body is rendered first because it decides which formatters, and
-    // therefore which imports, the header needs.
+    // The implementations are rendered first because they decide which
+    // formatters — and therefore which imports — the header needs, and with
+    // `runtime_overrides` on, what the locale enum states as each locale's
+    // fingerprint: the slots it is taken over are recorded while the lookups
+    // are being written. `emitSplit` emits them first for the same reason.
+    final implementations = StringBuffer();
+    for (final locale in model.locales) {
+      _writeImplementation(implementations, model.root, locale);
+    }
+
     final body = StringBuffer();
     _writeLocaleEnum(body);
     for (final selectEnum in model.enums) {
       _writeSelectEnum(body, selectEnum);
     }
     _writeInterfaces(body, model.root);
-    for (final locale in model.locales) {
-      _writeImplementation(body, model.root, locale);
-    }
+    body.write(implementations);
 
     final buffer = StringBuffer();
     _writeHeader(buffer);
@@ -243,7 +250,7 @@ final class DartEmitter {
   /// not need a second import to do it.
   String get _exportedNames => [
     'L10nLocale',
-    if (config.runtimeOverrides) 'L10nOverrides',
+    if (config.runtimeOverrides) ...['L10nOverrideMismatch', 'L10nOverrides'],
     if (_hasRichMessages) ...['L10nSpan', 'L10nTagSpan', 'L10nTextSpan'],
   ].join(', ');
 
@@ -453,24 +460,96 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
     return binding.fieldName;
   }
 
+  /// This build's overridable surface, per locale file tag.
+  ///
+  /// Empty unless `runtime_overrides` is on, and read only after the
+  /// implementations have been emitted — the lookups are what it is taken
+  /// over.
+  Map<String, String> get _overrideFingerprints => {
+    for (final schema in overrides.locales)
+      schema.localeTag: OverrideFingerprint.of(schema),
+  };
+
   void _writeLocaleEnum(StringBuffer buffer) {
     final name = model.localeEnumName;
+    final overridable = config.runtimeOverrides;
+    final fingerprints = _overrideFingerprints;
     buffer
       ..writeln('/// Every locale this app has translations for.')
       ..writeln('enum $name implements AppLocaleBase {');
     for (final locale in model.locales) {
+      final fingerprint = overridable ? ", '${fingerprints[locale.tag]}'" : '';
       buffer
         ..writeln('  /// `${locale.locale.toLanguageTag()}`')
-        ..writeln('  ${locale.dartName}(${_localeLiteral(locale)}),');
+        ..writeln(
+          '  ${locale.dartName}(${_localeLiteral(locale)}$fingerprint),',
+        );
     }
     buffer
       ..writeln(';')
       ..writeln()
-      ..writeln('  const $name(this.l10nLocale);')
+      ..writeln(
+        overridable
+            ? '  const $name(this.l10nLocale, this.overrideFingerprint);'
+            : '  const $name(this.l10nLocale);',
+      )
       ..writeln()
       ..writeln('  @override')
       ..writeln('  final L10nLocale l10nLocale;')
-      ..writeln()
+      ..writeln();
+    if (overridable) {
+      buffer
+        ..writeln(
+          '  /// The overridable surface this build compiled for this locale.',
+        )
+        ..writeln('  ///')
+        ..writeln(
+          '  /// The keys, the branches, the placeholders each branch '
+          'substitutes and',
+        )
+        ..writeln(
+          '  /// the numbering of the nested choices, as 16 hex digits. '
+          'A bundle states',
+        )
+        ..writeln(
+          '  /// the one `check-overrides --stamp` checked it against, and',
+        )
+        ..writeln('  /// [installOverrides] refuses any other.')
+        ..writeln('  final String overrideFingerprint;')
+        ..writeln()
+        ..writeln(
+          '  /// Installs [messages] as the runtime overrides of this locale.',
+        )
+        ..writeln('  ///')
+        ..writeln(
+          '  /// [messages] is a decoded bundle: dotted translation keys to a '
+          'text, or to',
+        )
+        ..writeln(
+          '  /// a map of branch texts, beside the `@@fingerprint` '
+          '`check-overrides`',
+        )
+        ..writeln(
+          '  /// wrote. Throws [L10nOverrideMismatch] and installs nothing '
+          'when that',
+        )
+        ..writeln(
+          '  /// fingerprint is not [overrideFingerprint] — the application '
+          'then keeps',
+        )
+        ..writeln(
+          '  /// rendering what it compiled, which is the right text for the '
+          'build that is',
+        )
+        ..writeln('  /// running.')
+        ..writeln(
+          '  void installOverrides(Map<String, Object> messages) => '
+          'L10nOverrides.install(l10nLocale, messages, '
+          'fingerprint: overrideFingerprint);',
+        )
+        ..writeln();
+    }
+    buffer
       ..writeln('  /// The translations of this locale.')
       ..writeln('  ${model.className} get translations => switch (this) {');
     for (final locale in model.locales) {
@@ -756,6 +835,7 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
             isRich: message.isRich,
             slots: List.of(context.slots),
             pluralCategories: Map.of(context.pluralCategories),
+            choices: Map.of(context.choiceSelectors),
           ),
         );
       }
@@ -1073,6 +1153,8 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
         final argument = context.argument(select.argument);
         final selectEnum = argument?.selectEnum;
         if (argument == null || selectEnum == null) return ["return '';"];
+        context.choiceSelectors[context.choicePrefix] =
+            '${select.argument}:select';
         if (!config.runtimeOverrides) {
           final lines = <String>['return switch (${argument.dartName}) {'];
           for (final value in selectEnum.values) {
@@ -1118,6 +1200,10 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
         final selector = plural.offset == 0
             ? argument.dartName
             : '\$${argument.dartName}Offset';
+        // Recorded before the branches are walked: a branch may nest a choice
+        // of its own, which pushes a prefix of its own.
+        context.choiceSelectors[context.choicePrefix] =
+            '${plural.argument}:${plural.type.name}';
         context.pushNumberSign(plural.argument, selector);
 
         final lines = <String>[];
@@ -1322,6 +1408,13 @@ final class _MessageContext {
 
   /// The categories the locale can produce, per choice path prefix.
   final Map<String, Set<String>> pluralCategories = {};
+
+  /// What each choice selects on, per choice path prefix.
+  ///
+  /// `argument:kind`, recorded for the fingerprint. The branch names alone do
+  /// not identify a nested choice: two plurals with the same categories have
+  /// the same slot names in either order, and the order is what `0/` means.
+  final Map<String, String> choiceSelectors = {};
 
   /// The branch path prefix of the choice being emitted.
   String get choicePrefix => _choices.isEmpty ? '' : '${_choices.last}';

@@ -149,8 +149,35 @@ EOF
   gen > /dev/null
   print '{"@@locale": "ru", "items": {"one": "# штука", "two": "# штуки", "other": "# штук"}}' \
     > overrides_ru.json
-  dart run l10n_plus_generator check-overrides --from=overrides_ru.json 2>&1
+  dart run l10n_plus_generator check-overrides --from=overrides_ru.json --stamp 2>&1
   print -r -- "exit=$?"
+  # --stamp was asked for and refused: a fingerprint says this bundle was
+  # validated against this build, and this one was not.
+  print -r -- "bundle after: $(cat overrides_ru.json)"
   rm -f overrides_ru.json; }
+
+probe 20 "an override stamped for a build whose nested choices have moved" && {
+  config <<'EOF'
+input_directory: translations
+output_directory: lib/l10n
+base_locale: en
+fallback_locale: en
+runtime_overrides: true
+flutter:
+  enabled: false
+EOF
+  print '{"m": "You have {a, plural, one{# card} other{# cards}}"}' > translations/en.json
+  gen > /dev/null
+  print '{"@@locale": "en", "m": {"0/one": "# card saved", "0/other": "# cards saved"}}' \
+    > overrides_en.json
+  dart run l10n_plus_generator check-overrides --from=overrides_en.json --stamp 2>&1
+  # A release puts another plural ahead of the one the bundle addresses. Every
+  # branch name in the bundle still exists; "0/one" is now the other choice's.
+  print '{"m": "You have {b, plural, one{# bag} other{# bags}} and {a, plural, one{# card} other{# cards}}"}' \
+    > translations/en.json
+  gen > /dev/null
+  dart run l10n_plus_generator check-overrides --from=overrides_en.json 2>&1
+  print -r -- "exit=$?"
+  rm -f overrides_en.json; }
 
 reset

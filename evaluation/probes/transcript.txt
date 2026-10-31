@@ -292,3 +292,21 @@ error[unknown_override_branch]: "two" is not a branch of "items" in ru.
 1 error(s), 0 warning(s).
 An override is text; the shape around it is the one the application compiled.
 exit=1
+bundle after: {"@@locale": "ru", "items": {"one": "# штука", "two": "# штуки", "other": "# штук"}}
+
+######## 20. an override stamped for a build whose nested choices have moved ########
+stamped overrides_en.json
+1 of 1 message(s) overridden in "en", 2 text(s). No errors.
+Overridable surface of "en": d05646da88d7801a
+overrides_en.json:1:19
+error[override_fingerprint_mismatch]: This bundle was checked against another build.
+  It states the surface d05646da88d7801a, and this build compiled 9fa5e374023e60da: a key, a branch, a placeholder or the position of a nested choice is not what it was when the bundle was written. The texts may every one of them still be right — nothing in them can say so, which is why this is checked here and refused by "installOverrides" rather than discovered on a screen.
+  Re-run with --stamp once the rest of this report is clean: it checks the bundle against this build and writes the new fingerprint.
+  ╷
+1 │ {"@@fingerprint": "d05646da88d7801a", "@@locale": "en", "m": {"0/one": "# card saved", "0/other": "# cards saved"}}
+  │                   ^^^^^^^^^^^^^^^^^^
+  ╵
+
+1 error(s), 0 warning(s).
+An override is text; the shape around it is the one the application compiled.
+exit=1

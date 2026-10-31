@@ -947,7 +947,7 @@ Fetch a bundle however your application already fetches things, and install it:
 
 ```dart
 final json = await myApi.translations('ru');     // yours: HTTP, cache, auth
-controller.installOverrides(const L10nLocale('ru'), json);
+AppLocale.ru.installOverrides(json);
 ```
 
 Every screen reading translations repaints. `setLocale` is still synchronous,
@@ -984,7 +984,7 @@ around it.
 ### Check the bundle before it ships
 
 ```bash
-dart run l10n_plus_generator check-overrides --from=overrides_ru.json
+dart run l10n_plus_generator check-overrides --from=overrides_ru.json --stamp
 ```
 
 ```
@@ -994,14 +994,55 @@ error[unknown_override_branch]: "two" is not a branch of "items" in ru.
 ```
 
 It also catches a key the project does not define, a placeholder the message
-does not take, `#` in a message with no count, and ICU inside an override — ten
-errors in all, each one a mistake a bundle can be fixed for before anybody sees
-it. Run it in the job that publishes the bundle, not only locally: at run time
-nothing throws, and an unknown `{token}` is left standing in the string, because
-a wrong override must not crash an application that is already in somebody's
-hands.
+does not take, `#` in a message with no count, and ICU inside an override —
+twelve errors in all, each one a mistake a bundle can be fixed for before
+anybody sees it. Run it in the job that publishes the bundle, not only locally:
+at run time nothing throws, and an unknown `{token}` is left standing in the
+string, because a wrong override must not crash an application that is already
+in somebody's hands.
 
 A rich message cannot be overridden: its spans are structure, not text.
+
+### The bundle says which build it was checked against
+
+Every answer above is an answer about your project as it stands, and a bundle
+outlives a build. The branches of a nested choice are addressed by position, so
+a release that puts another plural ahead of one renumbers it — and every name in
+last week's bundle still exists, so the check still passes and the text of one
+choice has quietly become the text of another:
+
+```
+compiled:  You have 1 wallet with 1 card linked
+installed: You have 1 saved card with 1 card linked
+```
+
+So `--stamp` writes into the checked bundle the surface it was checked against:
+
+```json
+{"@@fingerprint": "59d2616f9e765ee8", "@@locale": "ru", ...}
+```
+
+`installOverrides` carries this build's own, as a constant in the generated
+file, and refuses any other — `L10nOverrideMismatch`, nothing installed, the app
+still on the text it compiled, which is the right text for the build that is
+running. Catch it where you fetch:
+
+```dart
+try {
+  AppLocale.ru.installOverrides(json);
+} on L10nOverrideMismatch catch (error) {
+  log(error);                      // ship a bundle re-stamped for this build
+}
+```
+
+The fingerprint covers the keys, the branches, the placeholders each branch
+substitutes and the numbering of the nested choices — never the text, so the
+rewording release an override exists to avoid waiting for does not invalidate
+anybody's bundle. It is one value per locale, so a release that *adds* a message
+does: re-run the check with `--stamp`, which is the release that had to re-check
+its bundles anyway. It identifies, it does not authenticate — anybody who can
+replace the bundle can replace the fingerprint in it, and the download is TLS's
+business.
 
 With the option off — the default — none of this is generated and your output is
 byte for byte what it was. With it on, a message read costs 1.8 ns more while

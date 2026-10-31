@@ -632,6 +632,73 @@ Diagnostics went from 72 codes to **81**: `rich_tag_mismatch`,
   alongside rich text, and the first of them is the item below worth more than
   everything in this milestone.
 
+## Milestone 30 — a bundle says which build it is for (done)
+
+The hole Milestone 29 left open, and the only one of its four that could ship
+wrong text with every check passing.
+
+* **The defect.** A nested choice is addressed by position: `0/one` is the `one`
+  branch of a message's first nested choice, `{#0}` is that choice's rendering
+  in the text around it. A release that puts another plural ahead of it moves
+  everything after it, and every name in the old bundle still exists — so
+  `check-overrides` passes and the words of one choice become the words of
+  another. Reproduced on a real project before writing anything:
+
+  ```
+  compiled:  You have 1 wallet with 1 card linked
+  installed: You have 1 saved card with 1 card linked
+  ```
+
+* **The fix.** `check-overrides --stamp` writes the surface it checked into the
+  bundle as `@@fingerprint`, and the generated
+  `AppLocale.ru.installOverrides(bundle)` carries this build's own as a constant
+  and throws `L10nOverrideMismatch` for any other, installing nothing. The
+  application keeps rendering what it compiled, which is the correct text for
+  the build that is running.
+* **What it covers is what can change meaning:** the keys, each message's
+  slots, the tokens each slot substitutes, and the argument each choice selects
+  on. Not the text — a reword is the release an override exists to avoid waiting
+  for. Not the language's CLDR categories either, though the branch check reads
+  them: an upgrade that leaves the emitted branches alone leaves every bundle
+  correct, and a false refusal costs an application its live text. Nothing in it
+  depends on order except the numbering of the nested choices, which is the case
+  it exists for.
+* **Coarse on purpose.** One value per locale, so a release that adds a message
+  invalidates that locale's bundles although their entries are all still valid.
+  The exact alternative is a hash beside every string in a file a translator's
+  tooling carries; this one costs a `--stamp` in a release that had to re-check
+  its bundles anyway.
+* **It identifies, it does not authenticate.** FNV-1a, 64 bits, 16 hex digits,
+  20 hand-written lines and no new dependency. Anybody who can replace the
+  bundle can replace the fingerprint in it; the download's integrity is TLS's.
+* **The runtime still installs an unfingerprinted bundle.** The check refuses
+  one, with the line to paste, because that is where this project refuses
+  things. The runtime does not, because its job is never to make a running
+  application worse, and because `install` is also what a test calls. Build time
+  decides what may ship; run time decides what is safe to do with what shipped.
+* **`L10nController.installOverrides` is gone.** It was sugar for the store, and
+  the fingerprint is not reachable through the `AppLocaleBase` bound, so it
+  would have had to take the hash as an argument — longer than the call it
+  saved. The repaint never depended on it: the controller subscribes to the
+  store, not to a method of its own.
+* **Two more codes**, so the registry is at **93**:
+  `missing_override_fingerprint` and `override_fingerprint_mismatch`. Probe 19
+  now asks for a stamp on a bundle with a bad branch and does not get one; probe
+  20 stamps a good bundle, moves a choice and is refused.
+* **Nothing in the hot path.** The comparison happens once, at install, so the
+  generated message bodies are unchanged and the benchmark is where it was: 3.7
+  ns for a getter, 5.8 with an empty store, 28.8 with a bundle installed.
+
+### What this one leaves open
+
+* **A fingerprint is per locale, so a twelve-language rollout re-stamps twelve
+  files** — and `check-overrides` still takes one file at a time, so that is
+  twelve invocations.
+* **Nothing serves bundles by fingerprint.** It is the natural cache key for a
+  CDN path, and saying so in the README is as far as this goes.
+* **An unfingerprinted bundle is still installable**, deliberately, as above. A
+  project that wants it refused has to refuse it in the code that fetches.
+
 ## Milestone 29 — translations change without a release (done)
 
 The one item the competitive review called worth more than everything else on
@@ -652,7 +719,8 @@ generated one.
   key.
 * **`check-overrides`.** OTA moves a class of error back to run time, in a
   library whose whole argument is the opposite, so a bundle is validated against
-  the project first — ten error codes, and the one that matters is a branch name
+  the project first — ten error codes then, twelve now, and the one that
+  matters is a branch name
   checked against the categories of *that choice*: `two` is wrong in an English
   cardinal plural and right in an English ordinal, `one` is right for a Russian
   cardinal and wrong for a Russian ordinal. Probe 19 replays it. At run time
@@ -664,7 +732,8 @@ generated one.
 * **No HTTP.** Fetching, caching, credentials and retry are the application's;
   `installOverrides` takes a map and notifies, so the screens reading
   translations repaint.
-* **Ten more codes**, so the registry is at **91**: `invalid_override`,
+* **Ten more codes**, taking the registry to **91** (and 93 after Milestone
+  30): `invalid_override`,
   `unknown_override_locale`, `unknown_override_key`, `unknown_override_branch`,
   `unknown_override_placeholder`, `override_needs_branches`,
   `override_takes_no_branches`, `override_unexpected_number_sign`,
@@ -684,11 +753,7 @@ generated one.
 
 ### What is still open after it
 
-* **No bundle fingerprint.** Nested choices are numbered positionally, so
-  reordering or inserting one silently renumbers the slots, and a bundle built
-  for the old numbering still validates because the branch still exists. A hash
-  of the slot set, written into the bundle and checked at install, would close
-  it.
+* ~~**No bundle fingerprint.**~~ **Closed in Milestone 30.**
 * **`check-overrides` takes one file**, so a rollout in twelve languages is
   twelve invocations.
 * **Untested combinations:** `fill_missing_from_base` together with overrides,

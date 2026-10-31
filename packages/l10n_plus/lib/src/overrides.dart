@@ -29,8 +29,13 @@ import 'locale.dart';
 /// the project before shipping it:
 ///
 /// ```sh
-/// dart run l10n_plus_generator check-overrides --from=overrides_en.json
+/// dart run l10n_plus_generator check-overrides --from=overrides_en.json --stamp
 /// ```
+///
+/// `--stamp` writes the checked surface into the bundle as `@@fingerprint`,
+/// and the generated `AppLocale.en.installOverrides(bundle)` passes this
+/// build's own, so a bundle checked against another build is refused rather
+/// than quietly applied to messages that have moved. See [install].
 ///
 /// ## Why global mutable state is acceptable here
 ///
@@ -85,11 +90,49 @@ abstract final class L10nOverrides {
   ///
   /// The outer map is copied, so the caller may keep mutating theirs. Each
   /// branch map is not: it is read on every lookup, so changing one afterwards
-  /// changes what renders.
-  static void install(L10nLocale locale, Map<String, Object> messages) {
-    _byLocale[locale] = Map<String, Object>.of(messages);
+  /// changes what renders. A key beginning with `@` is metadata rather than a
+  /// message — [fingerprintKey] and ARB's `@@locale` — and is not stored.
+  ///
+  /// [fingerprint] is the overridable surface this build compiled, which the
+  /// generated `installOverrides` passes from a constant in the generated
+  /// file. When it is given and the bundle states one of its own under
+  /// [fingerprintKey], the two must be equal or nothing is installed and
+  /// [L10nOverrideMismatch] is thrown: a bundle checked against a different
+  /// build can silently mean something else, which is the one way an override
+  /// can be wrong without being wrong in the bundle.
+  ///
+  /// Nothing is checked when either side is absent. A bundle that states no
+  /// fingerprint is a bundle nothing checked, and refusing it here would be a
+  /// second enforcement point for a rule this project enforces at build time:
+  /// `check-overrides` reports a bundle with no fingerprint and `--stamp`
+  /// writes one. Omitting [fingerprint] is the caller saying so — a test
+  /// installing three strings has no build to speak of.
+  static void install(
+    L10nLocale locale,
+    Map<String, Object> messages, {
+    String? fingerprint,
+  }) {
+    final declared = messages[fingerprintKey];
+    if (fingerprint != null && declared is String && declared != fingerprint) {
+      throw L10nOverrideMismatch(
+        locale: locale,
+        declared: declared,
+        expected: fingerprint,
+      );
+    }
+    _byLocale[locale] = {
+      for (final entry in messages.entries)
+        if (!entry.key.startsWith('@')) entry.key: entry.value,
+    };
     _notify();
   }
+
+  /// The key a bundle states its [install] fingerprint under.
+  ///
+  /// `@@fingerprint`, beside ARB's `@@locale`: both say what the file is for
+  /// rather than what it says, and a tool that round trips the file keeps them
+  /// without being taught either one.
+  static const String fingerprintKey = '@@fingerprint';
 
   /// Removes the overrides of [locale], or of every locale when it is omitted.
   ///
@@ -249,4 +292,45 @@ abstract final class L10nOverrides {
     }
     return true;
   }
+}
+
+/// Thrown by [L10nOverrides.install] for a bundle built against another build.
+///
+/// The bundle is not stale in the sense of being old text: it is text written
+/// for a different set of messages. `check-overrides` validated it against the
+/// placeholders, branches and nested choice numbers of the build it was
+/// checked against, and those are positional — insert a plural into a message
+/// and the `0/one` of yesterday's bundle addresses a different choice today.
+/// Nothing in the text says so, which is why the build says so instead.
+///
+/// Nothing is installed when this is thrown, so the application keeps
+/// rendering what it compiled — the correct text for the build that is
+/// running. Catch it where the bundle is fetched, report it, and ship a bundle
+/// re-checked against this build:
+///
+/// ```sh
+/// dart run l10n_plus_generator check-overrides --from=overrides_ru.json --stamp
+/// ```
+final class L10nOverrideMismatch implements Exception {
+  /// Creates a mismatch.
+  const L10nOverrideMismatch({
+    required this.locale,
+    required this.declared,
+    required this.expected,
+  });
+
+  /// The locale the bundle was being installed for.
+  final L10nLocale locale;
+
+  /// The fingerprint the bundle states.
+  final String declared;
+
+  /// The fingerprint this build compiled for [locale].
+  final String expected;
+
+  @override
+  String toString() =>
+      'L10nOverrideMismatch: the ${locale.toLanguageTag()} override bundle '
+      'was checked against the overridable surface $declared, and this build '
+      'compiled $expected. Nothing was installed.';
 }

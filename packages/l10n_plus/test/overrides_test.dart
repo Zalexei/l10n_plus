@@ -239,4 +239,59 @@ void main() {
       expect(L10nOverrides.fill('{a}', {'a': '{b}', 'b': 'x'}), '{b}');
     });
   });
+
+  group('the fingerprint', () {
+    const key = L10nOverrides.fingerprintKey;
+
+    test('metadata is not a message, so it is not stored', () {
+      L10nOverrides.install(en, {key: 'abc', '@@locale': 'en', 'a.b': 'Hello'});
+      expect(L10nOverrides.text(en, 'a.b'), 'Hello');
+      expect(L10nOverrides.text(en, key), isNull);
+      expect(L10nOverrides.text(en, '@@locale'), isNull);
+    });
+
+    test('a bundle for this build is installed', () {
+      L10nOverrides.install(en, {
+        key: 'abc',
+        'a.b': 'Hello',
+      }, fingerprint: 'abc');
+      expect(L10nOverrides.text(en, 'a.b'), 'Hello');
+    });
+
+    test('a bundle for another build is refused, and nothing is kept', () {
+      L10nOverrides.install(en, {'a.b': 'Hello'});
+      expect(
+        () => L10nOverrides.install(en, {
+          key: 'older',
+          'a.b': 'Hi',
+        }, fingerprint: 'abc'),
+        throwsA(isA<L10nOverrideMismatch>()),
+      );
+      // Install replaces, so a refusal that had got halfway would have
+      // dropped what was there. The previous bundle is untouched.
+      expect(L10nOverrides.text(en, 'a.b'), 'Hello');
+    });
+
+    test('the mismatch says both surfaces and which locale', () {
+      final error = L10nOverrideMismatch(
+        locale: ru,
+        declared: 'older',
+        expected: 'abc',
+      );
+      expect('$error', contains('ru'));
+      expect('$error', contains('older'));
+      expect('$error', contains('abc'));
+    });
+
+    test('nothing is checked when either side states nothing', () {
+      // A bundle that states no surface was checked by nothing, and
+      // `check-overrides` is where this project refuses that. A caller that
+      // passes none — a test installing three strings — has no build to
+      // speak of.
+      L10nOverrides.install(en, {'a.b': 'Hello'}, fingerprint: 'abc');
+      expect(L10nOverrides.text(en, 'a.b'), 'Hello');
+      L10nOverrides.install(ru, {key: 'anything', 'a.b': 'Привет'});
+      expect(L10nOverrides.text(ru, 'a.b'), 'Привет');
+    });
+  });
 }

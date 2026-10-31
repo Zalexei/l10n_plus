@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:args/args.dart';
+import 'package:l10n_plus/l10n_plus.dart';
 import 'package:l10n_plus_generator/l10n_plus_generator.dart';
 import 'package:path/path.dart' as p;
 
@@ -61,6 +62,15 @@ Future<void> main(List<String> arguments) async {
           'Let "import" change the translation files. Without it the import '
           'prints what it would change and writes nothing.',
     )
+    ..addFlag(
+      'stamp',
+      negatable: false,
+      help:
+          'Let "check-overrides" write this build\'s fingerprint into the '
+          'bundle it just checked. Without it a bundle that states none is an '
+          'error, because nothing would stop it being installed into another '
+          'build.',
+    )
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this usage.');
 
   final ArgResults results;
@@ -111,6 +121,7 @@ Future<void> main(List<String> arguments) async {
     ('out', results.option('out') != null, {'export'}),
     ('from', results.option('from') != null, {'import', 'check-overrides'}),
     ('write', results.flag('write'), {'import'}),
+    ('stamp', results.flag('stamp'), {'check-overrides'}),
   ]) {
     if (!misplaced.$2 || misplaced.$3.contains(command)) continue;
     stderr.writeln(
@@ -157,6 +168,7 @@ Future<void> main(List<String> arguments) async {
     out: results.option('out'),
     from: from,
     write: results.flag('write'),
+    stamp: results.flag('stamp'),
   );
   if (!watch) exit(outcome.exitCode);
 
@@ -188,6 +200,7 @@ _RunOutcome _runCommand({
   String? out,
   String? from,
   bool write = false,
+  bool stamp = false,
 }) {
   final configFile = File(configPath);
   if (!configFile.existsSync()) {
@@ -258,7 +271,12 @@ _RunOutcome _runCommand({
 
   if (command == 'check-overrides') {
     return _RunOutcome(
-      _checkOverrides(result: result, from: from!, highlight: highlight),
+      _checkOverrides(
+        result: result,
+        from: from!,
+        highlight: highlight,
+        stamp: stamp,
+      ),
       config,
     );
   }
@@ -305,6 +323,7 @@ int _checkOverrides({
   required GenerationResult result,
   required String from,
   required bool highlight,
+  required bool stamp,
 }) {
   if (result.overrides.isEmpty) {
     _report([
@@ -346,8 +365,9 @@ int _checkOverrides({
   }
 
   final diagnostics = DiagnosticCollector();
+  final content = file.readAsStringSync();
   final bundle = OverrideBundle.read(
-    content: file.readAsStringSync(),
+    content: content,
     uri: file.uri,
     path: file.path,
     diagnostics: diagnostics,
@@ -357,6 +377,11 @@ int _checkOverrides({
       bundle: bundle,
       catalog: result.overrides,
       diagnostics: diagnostics,
+      // With --stamp the fingerprint is an output rather than an input, so
+      // the two diagnostics about it would be complaints about the work this
+      // run is here to do. Everything else is still checked, and nothing is
+      // written if any of it fails: a stamp says this bundle was validated.
+      requireFingerprint: !stamp,
     );
   }
   _report(diagnostics.diagnostics, highlight: highlight);
@@ -374,12 +399,67 @@ int _checkOverrides({
     0,
     (total, message) => total + message.texts.length,
   );
-  final defined = result.overrides.forLocale(bundle.localeTag)!.messages.length;
+  final schema = result.overrides.forLocale(bundle.localeTag)!;
+  final fingerprint = OverrideFingerprint.of(schema);
+  if (stamp) {
+    final stamped = _stamp(
+      content: content,
+      bundle: bundle,
+      fingerprint: fingerprint,
+    );
+    if (stamped == null) {
+      stdout.writeln('unchanged ${file.path}');
+    } else {
+      file.writeAsStringSync(stamped);
+      stdout.writeln('stamped ${file.path}');
+    }
+  }
   stdout.writeln(
-    '${bundle.messages.length} of $defined message(s) overridden in '
-    '"${bundle.localeTag}", $texts text(s). No errors.',
+    '${bundle.messages.length} of ${schema.messages.length} message(s) '
+    'overridden in "${bundle.localeTag}", $texts text(s). No errors.',
   );
+  stdout.writeln('Overridable surface of "${bundle.localeTag}": $fingerprint');
   return 0;
+}
+
+/// Writes [fingerprint] into [content], or returns `null` when it is there.
+///
+/// An edit rather than a re-serialization, for the reason `import` edits
+/// instead of rewriting: the file belongs to whoever wrote it, and reformatting
+/// it to this tool's taste would turn one changed character into a diff nobody
+/// can review.
+String? _stamp({
+  required String content,
+  required OverrideBundle bundle,
+  required String fingerprint,
+}) {
+  if (bundle.fingerprint == fingerprint) return null;
+  final stated = bundle.fingerprintSpan;
+  if (stated != null) {
+    return content.replaceRange(
+      stated.start.offset,
+      stated.end.offset,
+      '"$fingerprint"',
+    );
+  }
+  final root = bundle.rootSpan;
+  if (root == null) return null;
+  // First, so it is the first thing read in a file that is read by people as
+  // often as by programs, and laid out the way the file already lays its own
+  // members out: beside the next one when that one shares the brace's line,
+  // and on a line of its own at its indentation otherwise.
+  final first = bundle.firstMemberSpan;
+  final entry = '"${L10nOverrides.fingerprintKey}": "$fingerprint"';
+  final at = root.start.offset + 1;
+  final String insertion;
+  if (first == null) {
+    insertion = entry;
+  } else if (first.start.line == root.start.line) {
+    insertion = '$entry, ';
+  } else {
+    insertion = '\n${' ' * first.start.column}$entry,';
+  }
+  return content.replaceRange(at, at, insertion);
 }
 
 /// Directory `export --format=arb` writes into when `--out` says nothing.
@@ -806,6 +886,7 @@ Translator workflow:
 
 Runtime overrides:
   dart run l10n_plus_generator check-overrides --from=overrides_en.json
+  dart run l10n_plus_generator check-overrides --from=overrides_en.json --stamp
 
   A bundle is JSON, flat, keyed by the dotted translation key: a string for a
   message with one form, and one string per branch for a plural or a select.
@@ -828,6 +909,17 @@ Runtime overrides:
   the branch is one this locale can produce -- "few" is real in Russian and a
   mistake in English -- whether the placeholders are ones the message takes,
   and whether a rich message is being asked to be text.
+
+  Those answers are about the project as it stands, and a bundle outlives a
+  build: branches of a nested choice are addressed by position, so a message
+  that gains a choice renumbers the ones after it while every name in an old
+  bundle still exists. So a checked bundle carries the surface it was checked
+  against, which --stamp writes:
+
+    {"@@fingerprint": "6c1dd0a2f8e34b19", "@@locale": "en", ...}
+
+  The generated AppLocale.en.installOverrides(bundle) passes this build's own
+  and refuses any other, leaving the application on the text it compiled.
 
 Options:
 ${parser.usage}''';

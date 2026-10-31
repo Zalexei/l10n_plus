@@ -32,6 +32,7 @@ export 'src/interchange/importer.dart'
 export 'src/overrides/override_bundle.dart'
     show OverrideBundle, OverrideBundleMessage, OverrideBundleText;
 export 'src/overrides/override_checker.dart' show OverrideChecker;
+export 'src/overrides/override_fingerprint.dart' show OverrideFingerprint;
 export 'src/overrides/override_schema.dart'
     show OverrideCatalog, OverrideMessage, OverrideSchema, OverrideSlot;
 export 'src/pipeline.dart'

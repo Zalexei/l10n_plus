@@ -88,33 +88,32 @@ final class L10nController<L extends AppLocaleBase, T extends BaseTranslations>
     _set(_resolveSystem(systemLocales));
   }
 
-  /// Installs runtime overrides for [locale] and repaints what reads them.
+  /// Removes the overrides of [locale], or of every locale, and repaints.
   ///
-  /// The store is global, so `L10nOverrides.install` does the same thing. This
-  /// exists because the controller is what the widget tree listens to, and
-  /// because an application that reached for the store directly would have to
-  /// be told to notify something — which is the step people forget.
+  /// There is no `installOverrides` here to match it. Installing is the
+  /// generated `AppLocale.ru.installOverrides(bundle)`, because that is where
+  /// the locale's own fingerprint is a compile time constant and a bundle
+  /// stamped for another build can be refused. A controller method would have
+  /// had to take the fingerprint as an argument to do the same thing, which
+  /// is longer than the call it was sugar for.
   ///
-  /// [locale] is the bundle's locale, not this controller's: an application
-  /// may install the language the user is about to switch to.
+  /// Installing through the generated method still repaints: the controller
+  /// subscribes to the store itself, so who calls it makes no difference.
   ///
-  /// **No fetching.** Downloading the bundle, caching it, authenticating the
-  /// request and deciding when to trust it are the application's, because they
-  /// are its policy and because this library has no dependencies to spend on
-  /// them. Validate the bundle before it ships:
+  /// **No fetching, either way.** Downloading the bundle, caching it,
+  /// authenticating the request and deciding when to trust it are the
+  /// application's, because they are its policy and because this library has
+  /// no dependencies to spend on them. Validate — and stamp — the bundle
+  /// before it ships:
   ///
   /// ```sh
-  /// dart run l10n_plus_generator check-overrides --from=overrides_en.json
+  /// dart run l10n_plus_generator check-overrides --from=overrides_en.json --stamp
   /// ```
   ///
   /// [setLocale] stays synchronous. The roadmap expected this feature to make
   /// it asynchronous; it does not, because the fetch happens before the
   /// install, in the application's own code, and the install itself is a map
   /// assignment.
-  void installOverrides(L10nLocale locale, Map<String, Object> messages) =>
-      L10nOverrides.install(locale, messages);
-
-  /// Removes the overrides of [locale], or of every locale, and repaints.
   void clearOverrides([L10nLocale? locale]) => L10nOverrides.clear(locale);
 
   /// Repaints every reader when the override store changes.

@@ -1166,9 +1166,10 @@ that does not carry the key, 28.5 ns for two lookups. Measured in
 `current` accessor over global mutable state, and the objection there is real: a
 widget reading an ambient value creates no dependency, renders once, and then
 keeps the old language after a switch. It does not apply here, because
-installing *notifies* — `L10nController.installOverrides` subscribes, so every
-reader repaints — and because overrides are a property of the application rather
-than of a subtree, so there is no second copy to disagree with. The hazard that
+installing *notifies* — `L10nController` subscribes to the store itself, so
+every reader repaints whoever installed — and because overrides are a property
+of the application rather than of a subtree, so there is no second copy to
+disagree with. The hazard that
 does apply is the ordinary one: a store installed by one test is still installed
 in the next, which `clear()` in a `tearDown` answers.
 
@@ -1184,8 +1185,8 @@ mistake in an English cardinal plural and correct in an English ordinal; `one`
 is right for a Russian cardinal and wrong for a Russian ordinal, which has only
 `other`. Probe 19 replays it.
 
-Ten codes, all errors, and all of them failures a bundle can be fixed for before
-anyone sees it: a key the project does not define (with the nearest key offered),
+Twelve codes, all errors, and all of them failures a bundle can be fixed for
+before anyone sees it: a key the project does not define (with the nearest key offered),
 a placeholder the message does not take, `#` where there is no count, text that
 contains ICU — which means the author expected rules that will be ignored — a
 rich message, which is structure rather than text, and the shape confusions in
@@ -1196,6 +1197,78 @@ At run time, by contrast, nothing throws: an unknown token is left standing in
 the string. A wrong override must not crash an application that is already in
 somebody's hands, and the check is what makes that a safe default rather than a
 shrug.
+
+### The fingerprint: the one thing the bundle cannot be asked about
+
+Every answer above is an answer about the project *as it stands*, and a bundle
+outlives a build. Branches of a nested choice are addressed by position —
+`0/one` is the `one` branch of a message's first nested choice, `{#0}` is that
+choice's rendering in the text around it — so a release that puts another plural
+ahead of it renumbers everything after it. Every name in the old bundle still
+exists, so every check above still passes, and the words of one choice are now
+the words of another. Measured on a real project, the same bundle before and
+after such a release:
+
+```
+compiled:  You have 1 wallet with 1 card linked
+installed: You have 1 saved card with 1 card linked
+```
+
+Nothing in the bundle can say which build it meant, so the build says it.
+`check-overrides --stamp` writes the surface it checked the bundle against into
+the bundle as `@@fingerprint`; the generated `AppLocale.ru.installOverrides`
+carries this build's own as a constant and throws `L10nOverrideMismatch` for any
+other, installing nothing. The application then renders what it compiled, which
+is the right text for the build that is running — the same "a wrong override
+must not make things worse" rule as the standing `{token}`.
+
+**What it covers is what can change meaning, not what can change.** The keys,
+each message's slots, the tokens each slot substitutes, and what each choice
+selects on. Not the text: a reword is the release an override exists to avoid
+waiting for, and invalidating every bundle over one would defeat the feature.
+Not the CLDR categories of the language either, though the branch check consults
+them — a CLDR upgrade that leaves the emitted branches alone leaves every bundle
+correct, and a false refusal costs an application its live text.
+
+Nothing in it depends on order: messages are sorted by key and slots by branch
+name, so moving a message or reordering a plural's branches invalidates nothing.
+The one order that *is* captured is the numbering of the nested choices, which
+lives inside the branch names and the `#n` tokens, because that is the case this
+exists for. Two nested choices of the same categories have the same slot names
+in either order, which is why the canonical form also records the argument each
+choice selects on — swap `{a, plural, …}` and `{b, plural, …}` in one message
+and nothing else in the surface moves.
+
+**Coarse on purpose.** One value per locale, so a release that adds a message
+invalidates that locale's bundles although their entries are all still valid.
+The alternative is a per-message hash, which is exact and puts a hash beside
+every string in a file a translator's tooling has to carry; the coarse version
+costs one `--stamp` in a release that had to re-check its bundles anyway. The
+locale tag is inside the value, so a bundle cannot be installed for a locale it
+was not checked against — `en` and `en_GB` usually do have the same messages.
+
+**It identifies, it does not authenticate.** FNV-1a over the canonical form, 64
+bits, 16 hex digits, hand rolled in 20 lines. The threat is drift between a
+bundle and a build, not forgery: anybody who can replace the bundle an
+application downloads can replace the fingerprint inside it, and the integrity
+of that download is TLS's job. A cryptographic digest truncated to the same 16
+digits would say exactly as much and cost a dependency.
+
+**`--stamp` is the check signing what it checked**, not a convenience for typing
+hashes. It writes only when every other check passes, and it edits the file in
+place — the value's own span when there is one, otherwise an entry inserted
+after the brace, laid out the way the file lays out its own members — for the
+reason `import` edits instead of rewriting: the file belongs to whoever wrote
+it. Probe 19 asks for a stamp on a bundle with a bad branch and does not get
+one; probe 20 stamps a good bundle, moves a choice, and is refused.
+
+**A bundle that states no fingerprint is still installed.** The check refuses
+one — `missing_override_fingerprint`, with the line to paste — because that is
+where this project refuses things, and because a stamp is one flag away. The
+runtime does not, because its job is never to make a running application worse,
+and because `install` is also what a test and an in-Dart assembly call, where
+there is no build to speak of. Build time decides what may ship; run time
+decides what is safe to do with what shipped.
 
 ### `date` is permissive about skeletons, `time` is not
 

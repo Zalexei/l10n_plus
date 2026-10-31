@@ -55,11 +55,22 @@ const Map<String, String> _project = {
 ''',
 };
 
+/// The overridable surface of [locale] in [project].
+String _fingerprint(String locale, {Map<String, String> project = _project}) {
+  final result = runGenerator(project, configYaml: _config);
+  return OverrideFingerprint.of(result.overrides.forLocale(locale)!);
+}
+
 /// Reports of checking [bundle] against [_project].
+///
+/// [requireFingerprint] is off here, so each test below reads as the one
+/// mistake it is about. The fingerprint is a statement about the build rather
+/// than about the bundle's contents, and it has a group of its own.
 List<Diagnostic> _check(
   String bundle, {
   String path = 'overrides_en.json',
   Map<String, String> project = _project,
+  bool requireFingerprint = false,
 }) {
   final result = runGenerator(project, configYaml: _config);
   expect(errorsOf(result), isEmpty, reason: result.diagnostics.join('\n'));
@@ -76,6 +87,7 @@ List<Diagnostic> _check(
       bundle: read,
       catalog: result.overrides,
       diagnostics: diagnostics,
+      requireFingerprint: requireFingerprint,
     );
   }
   return diagnostics.diagnostics;
@@ -448,6 +460,162 @@ void main() {
     ]) {
       expect(DiagnosticCodes.alwaysErrors, contains(code), reason: code);
     }
+  });
+
+  group('the fingerprint', () {
+    const plain = {
+      'en.json': '{"m": "You have {a, plural, one{# card} other{# cards}}"}',
+    };
+
+    test('a bundle that states none is refused, with the one to write', () {
+      final report = _check(
+        '{"@@locale": "en", "title": "Sign in"}',
+        requireFingerprint: true,
+      );
+      expect(report.map((d) => d.code), ['missing_override_fingerprint']);
+      expect(report.single.details, contains(_fingerprint('en')));
+    });
+
+    test('a bundle that states this build passes', () {
+      expect(
+        _check(
+          '{"@@fingerprint": "${_fingerprint('en')}", '
+          '"@@locale": "en", "title": "Sign in"}',
+          requireFingerprint: true,
+        ),
+        isEmpty,
+      );
+    });
+
+    test('a bundle that states another build is refused', () {
+      final report = _check(
+        '{"@@fingerprint": "0123456789abcdef", '
+        '"@@locale": "en", "title": "Sign in"}',
+        requireFingerprint: true,
+      );
+      expect(report.map((d) => d.code), ['override_fingerprint_mismatch']);
+      expect(report.single.details, contains('0123456789abcdef'));
+      expect(report.single.details, contains(_fingerprint('en')));
+    });
+
+    test('an inserted choice renumbers the slots, and only this says so', () {
+      // The defect the fingerprint exists for. A nested choice is addressed
+      // by position, so inserting one ahead of it moves every name along —
+      // and every name the old bundle uses still exists, so every other
+      // check in this file still passes against the new build while the text
+      // of one choice has become the text of another.
+      const inserted = {
+        'en.json':
+            '{"m": "You have {b, plural, one{# bag} other{# bags}} and '
+            '{a, plural, one{# card} other{# cards}}"}',
+      };
+      const bundle =
+          '{"@@locale": "en", "m": {"0/one": "# thing", "0/other": "# things"}}';
+
+      expect(_check(bundle, project: plain), isEmpty);
+      expect(_check(bundle, project: inserted), isEmpty);
+      expect(
+        _fingerprint('en', project: plain),
+        isNot(_fingerprint('en', project: inserted)),
+      );
+    });
+
+    test('swapping two choices of the same shape changes it', () {
+      // Nothing about the slots differs here: both messages have 0/one,
+      // 0/other, 1/one and 1/other, and the same tokens around them. What
+      // differs is which argument each choice selects on, which is why the
+      // canonical form records it.
+      const before = {
+        'en.json':
+            '{"m": "{a, plural, one{# x} other{# xs}} and '
+            '{b, plural, one{# y} other{# ys}}"}',
+      };
+      const after = {
+        'en.json':
+            '{"m": "{b, plural, one{# y} other{# ys}} and '
+            '{a, plural, one{# x} other{# xs}}"}',
+      };
+      expect(
+        _fingerprint('en', project: before),
+        isNot(_fingerprint('en', project: after)),
+      );
+    });
+
+    test('a reword leaves it alone, which is the point of the feature', () {
+      expect(
+        _fingerprint('en', project: const {'en.json': '{"title": "Log in"}'}),
+        _fingerprint('en', project: const {'en.json': '{"title": "Sign in"}'}),
+      );
+    });
+
+    test('so does reordering the messages', () {
+      expect(
+        _fingerprint('en', project: const {'en.json': '{"a": "A", "b": "B"}'}),
+        _fingerprint('en', project: const {'en.json': '{"b": "B", "a": "A"}'}),
+      );
+    });
+
+    test('so does adding a rich message, which nothing can override', () {
+      expect(
+        _fingerprint('en', project: const {'en.json': '{"a": "A"}'}),
+        _fingerprint(
+          'en',
+          project: const {'en.json': '{"a": "A", "t(rich)": "<b>x</b>"}'},
+        ),
+      );
+    });
+
+    test('adding a plain key changes it, coarsely and on purpose', () {
+      // One value per locale, so a release that adds a message invalidates
+      // that locale's bundles even though their entries are all still right.
+      // The cost is one --stamp in a release that had to re-check its
+      // bundles anyway; the alternative is a hash beside every string in a
+      // file a translator's tooling carries.
+      expect(
+        _fingerprint('en', project: const {'en.json': '{"a": "A"}'}),
+        isNot(
+          _fingerprint(
+            'en',
+            project: const {'en.json': '{"a": "A", "b": "B"}'},
+          ),
+        ),
+      );
+    });
+
+    test('two locales of the same shape still differ', () {
+      // So a bundle cannot be installed for a locale it was not checked
+      // against: en and en_GB usually do have the same messages.
+      const two = {
+        'en.json': '{"title": "Log in"}',
+        'ru.json': '{"title": "Войти"}',
+      };
+      expect(
+        _fingerprint('en', project: two),
+        isNot(_fingerprint('ru', project: two)),
+      );
+    });
+
+    test('the canonical form carries no text, so it can be read', () {
+      // Printed by nothing in the pipeline, and public for the test that
+      // needs to say *how* two surfaces differ rather than that they do.
+      final result = runGenerator(plain, configYaml: _config);
+      final canonical = OverrideFingerprint.canonical(
+        result.overrides.forLocale('en')!,
+      );
+      expect(canonical, contains(OverrideFingerprint.version));
+      expect(canonical, contains('Km'));
+      expect(canonical, contains('C0|a:cardinal'));
+      expect(canonical, isNot(contains('You have')));
+    });
+
+    test('both codes are errors, like every other override code', () {
+      for (final code in [
+        'missing_override_fingerprint',
+        'override_fingerprint_mismatch',
+      ]) {
+        expect(DiagnosticCodes.alwaysErrors, contains(code), reason: code);
+      }
+    });
   });
 
   test('a project with the option off emits no slots to check against', () {

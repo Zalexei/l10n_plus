@@ -251,4 +251,52 @@ void main() {
     bundle['auth.login.title'] = 'Something else';
     expect(enT.auth.login.title, 'Sign in');
   });
+
+  group('installOverrides', () {
+    test('a bundle stamped for this build installs and renders', () {
+      AppLocale.en.installOverrides({
+        L10nOverrides.fingerprintKey: AppLocale.en.overrideFingerprint,
+        '@@locale': 'en',
+        'auth.login.title': 'Sign in',
+      });
+      expect(enT.auth.login.title, 'Sign in');
+    });
+
+    test('a bundle stamped for another build is refused', () {
+      expect(
+        () => AppLocale.en.installOverrides({
+          L10nOverrides.fingerprintKey: 'c0ffee0000000000',
+          'auth.login.title': 'Sign in',
+        }),
+        throwsA(isA<L10nOverrideMismatch>()),
+      );
+      // The application keeps rendering what it compiled, which is the right
+      // text for the build that is running.
+      expect(enT.auth.login.title, 'Log in');
+      expect(L10nOverrides.isEmpty, isTrue);
+    });
+
+    test('a locale is stamped for its own surface, not the project\'s', () {
+      // The same messages in two locales are two surfaces: the branches a
+      // Russian plural has are not the branches an English one has, and a
+      // bundle checked against one must not install into the other.
+      expect(
+        AppLocale.en.overrideFingerprint,
+        isNot(AppLocale.ru.overrideFingerprint),
+      );
+      expect(
+        () => AppLocale.ru.installOverrides({
+          L10nOverrides.fingerprintKey: AppLocale.en.overrideFingerprint,
+          'auth.login.title': 'Вход',
+        }),
+        throwsA(isA<L10nOverrideMismatch>()),
+      );
+    });
+
+    test('a fingerprint is 16 hex digits, and the same every build', () {
+      for (final locale in AppLocale.values) {
+        expect(locale.overrideFingerprint, matches(RegExp(r'^[0-9a-f]{16}$')));
+      }
+    });
+  });
 }

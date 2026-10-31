@@ -101,7 +101,7 @@ config lines rather than 1.
 | **Build fails on a missing translation** | **Y — diagnosed, with warn mode** | Y — as a Dart compile error | **N — `printStatus` only, no flag exists** | N |
 | Build fails on an extra key | **Y** | N | N | N |
 | Rename detection | **Y — unique in the field** | N | N | N |
-| Diagnostic codes + per-code suppression | **Y — 91 codes** | N | ~ all-or-nothing | N |
+| Diagnostic codes + per-code suppression | **Y — 93 codes** | N | ~ all-or-nothing | N |
 | Cross-locale placeholder / arity check | **Y** | ~ | ~ (and has open bugs) | N |
 | Unused-key analysis | Y (text scan) | Y (+ `clean`; false positives) | **N** | N |
 | Write missing keys back to source | ~ (`import`, from a hand-off file) | Y (`apply`) | N | N |
@@ -109,7 +109,7 @@ config lines rather than 1.
 | CLI command count | 5 | ~12 | 1 | 2 |
 | Watch mode | Y | Y | **Y, inside `flutter run`** | n/a |
 | Lazy / deferred per-locale loading | **N** | Y (default on) | ~ opt-in, web | N |
-| Over-the-air / runtime overrides | **Y — branch text, checked at build time** | Y | N | ~ 23-line loader, no cache |
+| Over-the-air / runtime overrides | **Y — branch text, checked and fingerprinted at build time** | Y | N | ~ 23-line loader, no cache |
 | Asset obfuscation | N | Y | N | N |
 | Typed locale enum + typed switching | Y | Y | **N** | ~ |
 | Works without `BuildContext` | Y (`forLocale` / `of`) | Y (static `t`) | ~ undocumented | Y |
@@ -147,7 +147,7 @@ and it splits cleanly — `slang`'s remaining advantages are **runtime shape**
 (lazy per-locale loading, an ambient accessor, dynamic key access, linked
 translations, asset obfuscation), ours are **build-time truth** (plural
 correctness at 222/107 verified against two oracles, a build that fails on a gap
-with 91 diagnostic codes, rename detection, byte-identical output, a dev-only
+with 93 diagnostic codes, rename detection, byte-identical output, a dev-only
 generator). Those are two different bets about where localization errors should
 surface, not two scores.
 
@@ -206,6 +206,15 @@ and on its own, because it is the only one that touches the runtime:
    `overrideTranslations`; it cannot check any of that, because it has 14
    hand-written plural resolvers rather than a table. An override cannot add a
    key or change a signature: those are a release.
+
+   A checked bundle also carries **which build it was checked against**, because
+   branches of a nested choice are addressed by position and a release that
+   inserts one renumbers them while every name in the old bundle still exists —
+   a bundle that passes every check and ships the words of one choice as the
+   words of another. `check-overrides --stamp` writes the surface into the
+   bundle and the generated `installOverrides` refuses any other, leaving the
+   application on the text it compiled. No competitor has a fingerprint, and
+   none of them has the slot table a fingerprint would be taken over.
 
 
 1. **Rich text.** A key written `terms(rich)` yields a span list in the pure

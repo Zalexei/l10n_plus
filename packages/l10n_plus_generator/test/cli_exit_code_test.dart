@@ -189,14 +189,58 @@ flutter:
       );
     }
 
-    test('a bundle that is right exits zero and writes nothing', () {
+    test('a bundle with everything right but a fingerprint is refused', () {
+      // The last thing a correct bundle is missing: a statement of which
+      // build it is correct for. Refusing it is what makes the statement
+      // something every shipped bundle has.
       writeProject();
       write('overrides_en.json', '{"@@locale": "en", "title": "Sign in"}');
       final result = check(['--from=overrides_en.json']);
-      expect(result.exitCode, 0, reason: '${result.stdout}${result.stderr}');
-      expect('${result.stdout}', contains('No errors.'));
+      expect(result.exitCode, 1);
+      expect('${result.stderr}', contains('missing_override_fingerprint'));
+      expect('${result.stderr}', contains('--stamp'));
+    });
+
+    test('--stamp signs the bundle it checked, and the check then passes', () {
+      writeProject();
+      write('overrides_en.json', '{"@@locale": "en", "title": "Sign in"}');
+
+      final stamped = check(['--from=overrides_en.json', '--stamp']);
+      expect(stamped.exitCode, 0, reason: '${stamped.stdout}${stamped.stderr}');
+      expect('${stamped.stdout}', contains('stamped'));
+
+      // Written in place, as the first entry, leaving the file's own text
+      // alone.
+      final content = File(
+        p.join(root.path, 'overrides_en.json'),
+      ).readAsStringSync();
+      expect(content, contains('"@@fingerprint": "'));
+      expect(content, contains('"@@locale": "en"'));
+      expect(content, contains('"title": "Sign in"'));
+
+      final again = check(['--from=overrides_en.json']);
+      expect(again.exitCode, 0, reason: '${again.stdout}${again.stderr}');
+      expect('${again.stdout}', contains('No errors.'));
       // It validates; it is not a build step.
       expect(Directory(p.join(root.path, 'lib')).existsSync(), isFalse);
+
+      // Idempotent: the same build signs the same bundle the same way.
+      final third = check(['--from=overrides_en.json', '--stamp']);
+      expect(third.exitCode, 0);
+      expect('${third.stdout}', contains('unchanged'));
+    });
+
+    test('a bundle signed for another build is refused', () {
+      writeProject();
+      write(
+        'overrides_en.json',
+        '{"@@fingerprint": "0123456789abcdef", '
+            '"@@locale": "en", "title": "Sign in"}',
+      );
+      final result = check(['--from=overrides_en.json']);
+      expect(result.exitCode, 1);
+      expect('${result.stderr}', contains('override_fingerprint_mismatch'));
+      expect('${result.stderr}', contains('0123456789abcdef'));
     });
 
     test('a bundle that is wrong exits one, which is the CI contract', () {

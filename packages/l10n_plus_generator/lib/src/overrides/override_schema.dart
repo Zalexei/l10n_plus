@@ -38,6 +38,7 @@ final class OverrideMessage {
     required this.isRich,
     required this.slots,
     this.pluralCategories = const {},
+    this.choices = const {},
   });
 
   /// Dotted translation key.
@@ -67,6 +68,16 @@ final class OverrideMessage {
   /// tables: English has `one, other` counting things and `one, two, few,
   /// other` ranking them, so `two` is a mistake in one and not in the other.
   final Map<String, Set<String>> pluralCategories;
+
+  /// What each choice of this message selects on, per branch path prefix.
+  ///
+  /// Keyed as [pluralCategories] is, and valued `argument:kind` — `count:
+  /// cardinal`, `place:ordinal`, `gender:select`. Recorded for the
+  /// fingerprint, which has to tell two nested choices apart when their
+  /// branches do not: swap `{a, plural, …}` and `{b, plural, …}` inside one
+  /// message and every slot name stays what it was, while `0/one` now means
+  /// the other one.
+  final Map<String, String> choices;
 
   /// Whether the message's own text is one slot.
   ///
