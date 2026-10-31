@@ -104,7 +104,10 @@ class ShowcasePage extends StatelessWidget {
           padding: const EdgeInsets.all(24),
           children: [
             Text(
-              t.greeting(name: 'Alex', daypart: ShowcaseGreetingDaypart.morning),
+              t.greeting(
+                name: 'Alex',
+                daypart: ShowcaseGreetingDaypart.morning,
+              ),
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 8),
@@ -152,11 +155,23 @@ class _OrderCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
-            Text(t.items(count: order.items), style: theme.textTheme.bodyMedium),
+            Text(
+              t.items(count: order.items),
+              style: theme.textTheme.bodyMedium,
+            ),
             const Divider(height: 28),
-            _Row(icon: Icons.schedule, text: t.ready(at: order.readyAt)),
-            _Row(icon: Icons.groups, text: t.queue(place: order.queuePosition)),
-            _Row(icon: Icons.receipt_long, text: t.placed(on: order.placedOn)),
+            _Row(
+              icon: Icons.schedule,
+              text: t.ready(at: order.readyAt),
+            ),
+            _Row(
+              icon: Icons.groups,
+              text: t.queue(place: order.queuePosition),
+            ),
+            _Row(
+              icon: Icons.receipt_long,
+              text: t.placed(on: order.placedOn),
+            ),
           ],
         ),
       ),
