@@ -1,5 +1,9 @@
+import 'dart:ui' show TextDirection;
+
 import 'package:flutter/foundation.dart';
 import 'package:l10n_plus/l10n_plus.dart';
+
+import 'flutter_locale.dart';
 
 /// Holds the active locale and notifies listeners when it changes.
 ///
@@ -39,6 +43,20 @@ final class L10nController<L extends AppLocaleBase, T extends BaseTranslations>
 
   /// Translations of the active locale.
   T get translations => _translationsOf(_locale);
+
+  /// Which way the active locale's text runs.
+  ///
+  /// Changes with [locale] and notifies the same listeners, so a `MaterialApp`
+  /// wrapped in a `Directionality` built from this flips the whole layout when
+  /// the user switches to Arabic or Hebrew. Exposed here so that an app reads
+  /// the direction from the thing that already knows the locale, instead of
+  /// keeping a language list of its own next to this one.
+  ///
+  /// This is the direction of the *locale*, which is the correct default for a
+  /// screen. It says nothing about an individual interpolated value: a Latin
+  /// name inside an Arabic sentence still needs bidi isolation, which is a
+  /// property of the text and not of the locale.
+  TextDirection get textDirection => _locale.l10nLocale.textDirection;
 
   /// Whether the controller tracks the operating system locale.
   bool get followsSystemLocale => _followSystem;

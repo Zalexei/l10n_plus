@@ -241,6 +241,7 @@ abstract final class DiagnosticCodes {
     'currency_options_mismatch',
     'dropped_placeholder_format',
     'extra_key',
+    'fill_direction_mismatch',
     'format_style_mismatch',
     'ignored_placeholder_type',
     'invalid_config',
