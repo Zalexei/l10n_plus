@@ -79,7 +79,11 @@ class $AuthLoginDe implements $AuthLogin {
     if (count == 0) {
       return 'Kein login';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} login';
     }
@@ -115,7 +119,11 @@ class $AuthSignupDe implements $AuthSignup {
     if (count == 0) {
       return 'Kein signup';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} signup';
     }
@@ -158,7 +166,11 @@ class $AuthPasswordDe implements $AuthPassword {
     if (count == 0) {
       return 'Kein password';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} password';
     }
@@ -195,7 +207,11 @@ class $AuthTwoFactorDe implements $AuthTwoFactor {
     if (count == 0) {
       return 'Kein twoFactor';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} twoFactor';
     }
@@ -238,7 +254,11 @@ class $AuthSessionDe implements $AuthSession {
     if (count == 0) {
       return 'Kein session';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} session';
     }
@@ -280,7 +300,11 @@ class $CheckoutCartDe implements $CheckoutCart {
     if (count == 0) {
       return 'Kein cart';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} cart';
     }
@@ -316,7 +340,11 @@ class $CheckoutShippingDe implements $CheckoutShipping {
     if (count == 0) {
       return 'Kein shipping';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} shipping';
     }
@@ -359,7 +387,11 @@ class $CheckoutPaymentDe implements $CheckoutPayment {
     if (count == 0) {
       return 'Kein payment';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} payment';
     }
@@ -396,7 +428,11 @@ class $CheckoutReviewDe implements $CheckoutReview {
     if (count == 0) {
       return 'Kein review';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} review';
     }
@@ -439,7 +475,11 @@ class $CheckoutReceiptDe implements $CheckoutReceipt {
     if (count == 0) {
       return 'Kein receipt';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} receipt';
     }
@@ -481,7 +521,11 @@ class $ErrorsNetworkDe implements $ErrorsNetwork {
     if (count == 0) {
       return 'Kein network';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} network';
     }
@@ -517,7 +561,11 @@ class $ErrorsServerDe implements $ErrorsServer {
     if (count == 0) {
       return 'Kein server';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} server';
     }
@@ -560,7 +608,11 @@ class $ErrorsValidationDe implements $ErrorsValidation {
     if (count == 0) {
       return 'Kein validation';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} validation';
     }
@@ -597,7 +649,11 @@ class $ErrorsAuthDe implements $ErrorsAuth {
     if (count == 0) {
       return 'Kein auth';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} auth';
     }
@@ -640,7 +696,11 @@ class $ErrorsUnknownDe implements $ErrorsUnknown {
     if (count == 0) {
       return 'Kein unknown';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} unknown';
     }
@@ -682,7 +742,11 @@ class $MessagesInboxDe implements $MessagesInbox {
     if (count == 0) {
       return 'Kein inbox';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} inbox';
     }
@@ -718,7 +782,11 @@ class $MessagesThreadDe implements $MessagesThread {
     if (count == 0) {
       return 'Kein thread';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} thread';
     }
@@ -761,7 +829,11 @@ class $MessagesComposeDe implements $MessagesCompose {
     if (count == 0) {
       return 'Kein compose';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} compose';
     }
@@ -798,7 +870,11 @@ class $MessagesAttachmentsDe implements $MessagesAttachments {
     if (count == 0) {
       return 'Kein attachments';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} attachments';
     }
@@ -841,7 +917,11 @@ class $MessagesMutedDe implements $MessagesMuted {
     if (count == 0) {
       return 'Kein muted';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} muted';
     }
@@ -883,7 +963,11 @@ class $OnboardingWelcomeDe implements $OnboardingWelcome {
     if (count == 0) {
       return 'Kein welcome';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} welcome';
     }
@@ -919,7 +1003,11 @@ class $OnboardingPermissionsDe implements $OnboardingPermissions {
     if (count == 0) {
       return 'Kein permissions';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} permissions';
     }
@@ -962,7 +1050,11 @@ class $OnboardingTourDe implements $OnboardingTour {
     if (count == 0) {
       return 'Kein tour';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} tour';
     }
@@ -999,7 +1091,11 @@ class $OnboardingFinishDe implements $OnboardingFinish {
     if (count == 0) {
       return 'Kein finish';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} finish';
     }
@@ -1042,7 +1138,11 @@ class $OnboardingSkipDe implements $OnboardingSkip {
     if (count == 0) {
       return 'Kein skip';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} skip';
     }
@@ -1084,7 +1184,11 @@ class $ProfileIdentityDe implements $ProfileIdentity {
     if (count == 0) {
       return 'Kein identity';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} identity';
     }
@@ -1120,7 +1224,11 @@ class $ProfileContactDe implements $ProfileContact {
     if (count == 0) {
       return 'Kein contact';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} contact';
     }
@@ -1163,7 +1271,11 @@ class $ProfilePrivacyDe implements $ProfilePrivacy {
     if (count == 0) {
       return 'Kein privacy';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} privacy';
     }
@@ -1200,7 +1312,11 @@ class $ProfileDevicesDe implements $ProfileDevices {
     if (count == 0) {
       return 'Kein devices';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} devices';
     }
@@ -1243,7 +1359,11 @@ class $ProfileDangerDe implements $ProfileDanger {
     if (count == 0) {
       return 'Kein danger';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} danger';
     }
@@ -1285,7 +1405,11 @@ class $SearchQueryDe implements $SearchQuery {
     if (count == 0) {
       return 'Kein query';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} query';
     }
@@ -1321,7 +1445,11 @@ class $SearchFiltersDe implements $SearchFilters {
     if (count == 0) {
       return 'Kein filters';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} filters';
     }
@@ -1364,7 +1492,11 @@ class $SearchSortDe implements $SearchSort {
     if (count == 0) {
       return 'Kein sort';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} sort';
     }
@@ -1401,7 +1533,11 @@ class $SearchEmptyDe implements $SearchEmpty {
     if (count == 0) {
       return 'Kein empty';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} empty';
     }
@@ -1444,7 +1580,11 @@ class $SearchRecentDe implements $SearchRecent {
     if (count == 0) {
       return 'Kein recent';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} recent';
     }
@@ -1486,7 +1626,11 @@ class $SettingsGeneralDe implements $SettingsGeneral {
     if (count == 0) {
       return 'Kein general';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} general';
     }
@@ -1522,7 +1666,11 @@ class $SettingsNotificationsDe implements $SettingsNotifications {
     if (count == 0) {
       return 'Kein notifications';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} notifications';
     }
@@ -1565,7 +1713,11 @@ class $SettingsAppearanceDe implements $SettingsAppearance {
     if (count == 0) {
       return 'Kein appearance';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} appearance';
     }
@@ -1602,7 +1754,11 @@ class $SettingsLanguageDe implements $SettingsLanguage {
     if (count == 0) {
       return 'Kein language';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} language';
     }
@@ -1645,7 +1801,11 @@ class $SettingsAboutDe implements $SettingsAbout {
     if (count == 0) {
       return 'Kein about';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} about';
     }
@@ -1687,7 +1847,11 @@ class $WalletBalanceDe implements $WalletBalance {
     if (count == 0) {
       return 'Kein balance';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} balance';
     }
@@ -1723,7 +1887,11 @@ class $WalletTopUpDe implements $WalletTopUp {
     if (count == 0) {
       return 'Kein topUp';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} topUp';
     }
@@ -1766,7 +1934,11 @@ class $WalletWithdrawDe implements $WalletWithdraw {
     if (count == 0) {
       return 'Kein withdraw';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} withdraw';
     }
@@ -1803,7 +1975,11 @@ class $WalletHistoryDe implements $WalletHistory {
     if (count == 0) {
       return 'Kein history';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} history';
     }
@@ -1846,7 +2022,11 @@ class $WalletLimitsDe implements $WalletLimits {
     if (count == 0) {
       return 'Kein limits';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _deNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _deNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_deNumberDecimalPattern.format(count)} limits';
     }

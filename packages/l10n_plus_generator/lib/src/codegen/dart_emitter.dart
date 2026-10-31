@@ -285,6 +285,101 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
     return '${binding.fieldName}.format($parameter)';
   }
 
+  /// The formatter [plural] renders its own count through, if any.
+  ///
+  /// CLDR reads the operands off the digits that are *displayed*, so a
+  /// formatter decides them only where the count actually renders through it.
+  /// Two cases fall outside that and keep reading the value: a plural whose
+  /// branches are pure words — "Delete the file" against "Delete the files" —
+  /// displays no number at all, and a branch that interpolates the count raw
+  /// displays `toString()`, which is what [PluralOperands] already reads.
+  ArgumentFormat? _renderedCountFormat(
+    _MessageContext context,
+    PluralNode plural,
+  ) => _nestedCountFormat(context, plural.cases, plural.argument);
+
+  ArgumentFormat? _bodyCountFormat(
+    _MessageContext context,
+    MessageBody body,
+    String argument,
+  ) {
+    for (final node in body.nodes) {
+      final format = switch (node) {
+        NumberSignNode() when node.argument == argument => _pluralNumberFormat(
+          context,
+          argument,
+        ),
+        ArgumentNode() when node.name == argument => context.formatOf(node),
+        PluralNode() => _nestedCountFormat(context, node.cases, argument),
+        SelectNode() => _nestedCountFormat(context, node.cases, argument),
+        _ => null,
+      };
+      if (format != null) return format;
+    }
+    return null;
+  }
+
+  ArgumentFormat? _nestedCountFormat(
+    _MessageContext context,
+    Map<Object?, MessageBody> cases,
+    String argument,
+  ) {
+    for (final body in cases.values) {
+      final format = _bodyCountFormat(context, body, argument);
+      if (format != null) return format;
+    }
+    return null;
+  }
+
+  /// The statement that binds the plural operands.
+  ///
+  /// CLDR reads the operands off the digits the reader sees, so whenever the
+  /// count is rendered through a formatter the operands must come from that
+  /// same formatter — otherwise `1` under a currency prints `USD1.00` and
+  /// selects `one`, which is the defect `gen_l10n` has. `NumberFormat` knows
+  /// its own bounds at run time (a currency's fraction digits depend on the
+  /// currency), so they are read from the field rather than baked in here.
+  String _operandsStatement(
+    _MessageContext context,
+    PluralNode plural,
+    String selector,
+  ) {
+    final format = _renderedCountFormat(context, plural);
+    final field = format == null
+        ? null
+        : _formatterField(format: format, locale: context.locale);
+    if (field == null) {
+      return 'final $_operands = PluralOperands($selector);';
+    }
+    return 'final $_operands = PluralOperands.formatted($selector, '
+        'minimumFractionDigits: $field.minimumFractionDigits, '
+        'maximumFractionDigits: $field.maximumFractionDigits,);';
+  }
+
+  /// The format a `#` renders through, or `null` when it renders raw.
+  ///
+  /// A format declared on the count wins: the author asked for money, and
+  /// `format_plural_numbers` is the fallback for counts nobody declared.
+  ArgumentFormat? _pluralNumberFormat(_MessageContext context, String name) =>
+      context.argument(name)?.format ??
+      (config.formatPluralNumbers ? _numberSignFormat : null);
+
+  /// Registers the formatter [format] needs for [locale] and returns the name
+  /// of the field holding it, for reading something other than `format`.
+  String? _formatterField({
+    required ArgumentFormat format,
+    required LocaleModel locale,
+  }) {
+    final binding = IntlFormatters.bindingFor(
+      format: format,
+      localeTag: locale.tag,
+      localeDartName: locale.dartName,
+    );
+    if (binding == null) return null;
+    _formatters[binding.fieldName] = binding;
+    return binding.fieldName;
+  }
+
   void _writeLocaleEnum(StringBuffer buffer) {
     final name = model.localeEnumName;
     buffer
@@ -647,9 +742,10 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
           }
         case NumberSignNode():
           final value = context.numberSignName(node.argument);
-          if (config.formatPluralNumbers) {
+          final format = _pluralNumberFormat(context, node.argument);
+          if (format != null) {
             final call = _formatCall(
-              format: _numberSignFormat,
+              format: format,
               locale: context.locale,
               parameter: value,
             );
@@ -744,7 +840,7 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
             .where((entry) => categories.containsKey(entry.key))
             .toList(growable: false);
         if (applicable.isNotEmpty) {
-          lines.add('final $_operands = PluralOperands($selector);');
+          lines.add(_operandsStatement(context, plural, selector));
         }
         for (final entry in applicable) {
           final condition = entry.value.replaceAll('@', '$_operands.');

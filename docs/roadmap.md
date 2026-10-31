@@ -411,63 +411,167 @@ Eight things found by using the library rather than by testing it.
   `en_NZ` to `en_AU` because `AU` sorts first — is documented and pinned by a
   test that says out loud that it is arbitrary.
 
-## Milestone 22 — next slice
+## Milestone 22 — the second week (done)
 
-Ordered by what the evaluation showed actually costs time.
+Five of the six items the evaluation named as what costs time after the first
+day. The sixth, naming the generated initializer in the date symbols error,
+had already landed.
 
-1. **A rename should read as a rename.** Renaming one key in the base locale
-   produces one `missing_key` and one `extra_key` per locale, each correct and
-   neither aware of the other. Pair a missing key with an extra key that has
-   the same argument set and the same shape, and say so. Turns 2N errors into
-   N hints with the fix in them.
-2. **`unused` needs the key path, not the member name.** On the 810 message
-   app it reported nothing while the app used about eight keys, because with a
-   conventional `feature.group.title` scheme every leaf name appears
-   somewhere. The scan errs toward "used" on purpose, but at scale with that
-   naming it never fires at all. Matching `.group.title` rather than `.title`
-   would keep the conservatism and recover most of the value; a chain of
-   two segments is still a text scan, not an `analyzer` dependency.
-3. **A translation status summary.** `analyze` prints "0 error(s), 18
-   warning(s)" for 269 untranslated messages. Per locale counts —
-   translated, untranslated, total — would answer "how far along is French",
-   which is the question a partial rollout is actually asking.
-4. **`ignored_placeholder_type` should not fire on what `gen_l10n` writes.**
-   `"type": "String"` on a select placeholder is the canonical ARB spelling;
-   warning about it puts noise on every select of every imported bundle, and
-   the user cannot remove it without editing a generated file.
-5. **Name the function the reader has.** Forgetting
-   `initialize<Class>Formatting()` fails with `intl`'s own message, which says
-   to call `initializeDateFormatting`. The lazy finals are initialized once,
-   so wrapping the initializer to rethrow with the generated function's name
-   costs nothing at steady state.
-6. **Did you mean.** `unknown_config_key` lists eleven keys where a one edit
-   distance match would name the one.
+* **`unused` stopped lying.** It matched the leaf member name, so a project
+  whose messages are `title`, `subtitle` and `action` under forty namespaces
+  used each of those six words on its first screen, after which every key in
+  the project counted as used, forever. On the 810 message evaluation app it
+  reported "No unused keys. 270 checked" while the app touched eight of them.
+  A message is now used only when **every** name on its path appears:
+  reaching `t.wallet.limits.title` means writing `.wallet`, `.limits` and
+  `.title` somewhere, in one expression or spread across locals and helpers,
+  so the rule costs nothing in safety. The same app now reports 234 of 270.
+* Those findings collapse by unreachable namespace, the way `missing_key`
+  already did, and the report separates findings from messages: "234 of 270
+  key(s) appear unused, in 19 place(s)". `UnusedKeyReport` carries both,
+  because CI counts one and a person reads the other.
+* **`--watch`.** Regenerates on a change to a translation, `l10n_plus.yaml`
+  or `pubspec.yaml`, re-reading the configuration each time so editing it
+  needs no restart, and surviving errors so a broken file can be fixed in
+  place. Nothing else in the project is watched: saving a Dart file must cost
+  nothing. Debounced by 120 ms, because an editor saves in bursts and a
+  save-and-format is two of them. Refused for `analyze` and `unused`, which
+  answer a question once.
+  * The integration test caught a real defect on its first run: paths were
+    compared after `p.canonicalize`, which does not resolve symbolic links,
+    so a project reached through one — every temporary directory on macOS —
+    matched nothing and never rebuilt. Comparison is now against the paths
+    handed to `watch`. A watcher that silently stops watching is worse than
+    no watcher, which is why the test drives a real process and edits a real
+    file twice.
+* **`analyze` says how far each locale has got.** "0 error(s), 18 warning(s)"
+  for 269 untranslated messages was not an answer to the only question a
+  partial rollout asks. `LocaleCoverage` counts messages rather than the
+  subtrees the warnings collapse to, and the table is printed only when
+  something is incomplete — a column of 100%s on every run is noise.
+* **`ignored_placeholder_type` stopped firing on what `gen_l10n` writes.**
+  `"type": "String"` on a select placeholder is required by gen_l10n's own
+  schema and `Object` is its default, so warning about either put a line on
+  every select of every imported bundle, about something nobody can change
+  without hand editing a generated file. A declared `int` still warns: that
+  is an author who thinks the argument is a number.
+* **`unknown_config_key` names the near miss.** `file_per_local` gets "Did you
+  mean file_per_locale?" ahead of the list of every key. Only a genuine near
+  miss qualifies — a third of the length, at most three edits — because a
+  wrong guess is worse than the list.
 
-### Earlier open items
+## Milestone 23 — a rename reads as a rename (done)
+
+* Renaming a key in the base locale made it missing everywhere and left the
+  old name extra everywhere: one edit, two diagnostics per locale, neither
+  aware of the other. On the four locale evaluation app that was six errors
+  for one rename, to be paired up by eye.
+* When a namespace has **exactly one** missing key and **exactly one** extra
+  one, and both are the same kind of node, `renamed_key` replaces the pair and
+  names both sides with their files and lines.
+* Deliberately narrow. Two missing and two extra could be two renames or four
+  unrelated edits, and guessing wrong would send someone renaming the wrong
+  key; those still get the plain diagnostics. The finding says so itself:
+  "if they are unrelated, add one and remove the other and each will be
+  reported on its own."
+* Severity follows the pair it replaces, so a project running both
+  `fill_missing_from_base` and `extra_keys: warn` gets a warning and everyone
+  else gets an error. One error where there were two is still one build
+  failure.
+* A renamed *group* is one finding too, and says how many messages move with
+  it.
 
 
-1. **`watch` in the CLI.** `dart run build_runner watch` is the answer today
-   and is written into the README, but it costs a second dev dependency and a
-   `build.yaml` to do what the CLI could do with a file watcher. The pipeline
-   already rewrites only files whose contents changed, so the loop would be
-   quiet by construction.
-2. **`context.l10n` and locale switch cost.** Needs a Flutter harness, and the
-   numbers would mostly be Flutter's rather than this library's.
-3. **Plural operands from a formatted number.** `PluralOperands` takes a `num`,
-   so `1.0` cannot be told from `1` and English calls it `one` where CLDR says
-   `other`. Deriving `v` from `toString()` would fix it and would change what
-   existing messages render — a decision, not a patch. See the note in
-   `architecture.md`.
-4. **YAML metadata.** Only if a convention appears that people actually use.
-5. **Ecosystem.** TMS import/export, PO/XLIFF, OTA, IDE plugin — a different
+## Milestone 24 — the central claim, measured (done)
+
+The roadmap has said since Milestone 19 that nothing measured the claim the
+whole design rests on — a `const` graph with no lookup and no allocation —
+beyond one example test asserting `identical` on two accessors.
+
+* **`const_graph_test.dart`** reads the emitted source instead of sampling the
+  result: every namespace accessor must return a `const` instance, every
+  implementation class must have a `const` constructor, and the locale enum
+  must hand out constants too. `identical` proves one instance is canonical
+  and cannot say anything about the next accessor somebody adds.
+* Verified by regression, the way the formatter goldens are: deleting the
+  `const` the emitter writes makes it fail naming all twelve accessors that
+  would start allocating on every read.
+* **`example/test/flutter_cost_test.dart`** answers the other half.
+  `AppLocalizations.forLocale` and three getters cost 6 ns; the same through
+  `context.l10n` costs 44 ns; `AppLocalizations.of(L10nLocale.parse(tag))`
+  costs 394 ns. So the scope read is about eight times the direct call, and
+  that difference is `dependOnInheritedWidgetOfExactType` — which confirms
+  what this entry used to predict: the number is Flutter's, not ours.
+* Switching locale over 200 widgets, 100 of them readers: 7.4 ms median,
+  14.2 ms on the first switch because it compiles the second locale's path.
+  Under `flutter test`, so an upper bound and mostly Flutter's rebuild.
+* What is asserted rather than printed is the shape: exactly the hundred
+  readers rebuild and the other hundred never do, on every switch. A scope
+  that rebuilt its whole subtree would pass any timing threshold on a fast
+  machine and would be the actual defect.
+* No timing is asserted anywhere, for the reason already in the file: a
+  threshold that fails on a slow CI box teaches people to ignore the suite.
+
+## Milestone 25 — the plural count is formatted, and the operands follow it
+
+Milestone 25 asked three questions. Two are answered in code, the third is
+unchanged.
+
+* **Measured first.** `intl` solves the `1.0` problem with `precision`, and
+  running `intl-0.20.3` shows the default truncates a whole double, so
+  `Intl.plural(1.0)` is `one`; `gen_l10n` never passes `precision` at all.
+  Every Dart tool selects `one` for `1.0`.
+* **`precision` was the wrong shape.** `v` belongs to the *formatter*, not the
+  value: `NumberFormat.currency(locale: 'en')` renders `1` as `USD1.00` (CLDR:
+  `other`), `decimalPattern` renders it `1` (CLDR: `one`). So the roadmap's own
+  question — separate value from rendering without a second parameter in every
+  signature — has an answer wherever the format is declared in the message,
+  because the generator already knows it.
+* **A format on a plural count is honoured now.** It was silently discarded,
+  which is why nothing rendered wrongly here while `gen_l10n`, run on the same
+  bundle, emits `USD1.00 card`. The count renders through the declared format,
+  in `plural` and `selectordinal`, before and after an `offset:`, with currency
+  options and per locale.
+* **`PluralOperands.formatted`** reads the operands off the digits the
+  formatter produces: round to its maximum, trim trailing zeros to its minimum.
+  The bounds are read off the `NumberFormat` at run time, because a currency
+  decides its own fraction digits and the generator cannot know them. The
+  runtime keeps its zero dependencies — it receives two `int`s.
+* **Only where the count is really displayed through it.** A plural of pure
+  words shows no number, and a branch interpolating `$count` raw shows
+  `toString()`, so both keep reading the value. The emitter walks the branches
+  rather than assuming.
+* **`format_plural_numbers` came along, on the same principle** — it is the one
+  behaviour change beyond declared formats. Its decimal pattern rounds at three
+  digits, so `1.23456` now has `v == 3` and `f == 235`, matching the `1.235`
+  it prints. Leaving it out would have kept the very mismatch being fixed.
+* **The default did not move.** A count with no formatter still reads its
+  value, so `1.0` is still `one` in English, still matching the ecosystem.
+* **`dropped_placeholder_format`** (warning) stays for select arguments, which
+  have no number to format. Probe 17 replays it; probe 18 shows the plural
+  case being honoured.
+* **Verified by execution.** The formats golden gained three formatted plurals
+  and `goldens_runtime_test.dart` runs them: `USD1.00 cards` against
+  `USD1 card` for the same `1`, Russian never reaching `один` under a currency,
+  and `1.23456` printing `1.235 cards`. Reading the source proves the call is
+  there; running it proves the branch.
+* **Probe 16 had rotted.** It demonstrated `unknown_plural_language` with `cy`,
+  which the 222 language CLDR import has since added, so it silently stopped
+  demonstrating anything. It uses `tlh` now, and `transcript.txt` — which had
+  drifted from the generator in four other places — is regenerated.
+* **YAML metadata — answered: no, and now for a reason.** `slang` reads YAML
+  and is type safe, so it had every reason to invent the convention. It did
+  not: it writes types into the message (`{amount: currency}`) — which this
+  library already parses out of YAML, JSON and ARB alike — and of `@key` prose
+  in YAML its documentation says "Currently, not parsed and no comments will
+  be generated". Nothing to copy; YAML stays metadata free.
+
+### What is still open
+
+1. **Ecosystem.** TMS import/export, PO/XLIFF, OTA, IDE plugin — a different
    scale of work from everything above.
 
-
-Nothing measures the central claim — a `const` graph with no lookup and no
-allocation — beyond one example test asserting identity. Worth numbers before
-the ecosystem work starts.
-
-## Milestone 23 — ecosystem
+## Milestone 26 — ecosystem
 
 
 7. **TMS import/export** (Crowdin, Lokalise, POEditor).
@@ -476,6 +580,72 @@ the ecosystem work starts.
     runtime map path alongside the generated one, and the first that makes
     `setLocale` asynchronous.
 10. **IDE plugin / hot reload daemon.**
+
+## Milestone 27 — translations without a `BuildContext` (deferred)
+
+Today a translation is reached three ways: `AppLocalizations.forLocale` and
+`AppLocalizations.of` for a locale you name yourself, and `context.l10n` for
+the one the user is reading in. Code with no `BuildContext` and no locale of
+its own — a repository, a use case, a notification builder — has to be handed
+the controller, and the request that keeps coming is the fourth way: an ambient
+`AppLocalizations.current` that is simply the active locale's translations.
+
+Deferred rather than rejected. The design below is settled; what is not settled
+is whether the footgun in it can be made loud enough to be worth shipping.
+
+### Why it is not in yet
+
+`context.l10n` creates an `InheritedNotifier` dependency, which is what makes
+`setLocale` repaint the screen. `AppLocalizations.current` creates none. A
+widget that reads it renders correctly the first time and then keeps the old
+language after a switch — silently, on one screen out of forty, for the users
+who change language. That is exactly the class of failure this library exists
+to move to build time, so adding an API that reintroduces it needs more than a
+paragraph in the README.
+
+Two smaller objections, both answerable: global mutable state leaks between
+tests (`resetCurrent()`, and nothing installed by default), and a server
+isolate serving several languages at once has no single "current" locale
+(the feature is opt-in, and pure Dart has to install it by hand).
+
+### The design, if it is built
+
+* **A cell, not a static.** `L10nCurrent<T extends BaseTranslations>` in
+  `packages/l10n_plus/lib/src/current.dart`: holds `T?`, `value` throws a
+  `StateError` naming the call to make when nothing is installed, `install`
+  asserts in debug when a live owner is being replaced, `reset` clears. A
+  generic object stays type safe where a generic static cannot.
+* **The controller writes it, so there is one source of truth.**
+  `L10nController` takes an optional `L10nCurrent<T>`, writes on construction
+  and in `_set`, clears in `dispose`. `current` and `context.l10n` then cannot
+  disagree, because the second is not a second copy of the first.
+* **`global_translations: false`**, top level rather than under `flutter:`,
+  because a pure Dart project may want it too. With it off the output is byte
+  for byte what it is today. `global_getter: t` would additionally emit a top
+  level getter, the shape `slang` has; probably not worth it, since `t` is the
+  name most easily shadowed by a local.
+* **Generated surface**, beside `forLocale`/`of`/`resolve`: `current`,
+  `setCurrentLocale` (chiefly for pure Dart and tests) and `resetCurrent`. The
+  Flutter factory passes the cell into the controller, so an app that builds a
+  controller has the ambient getter working without a second setup step, and an
+  app that never asked for the option never sees any of it.
+* **Loudness, in order of how much it buys.** A debug assert on double install
+  — two controllers over one cell is a hot restart or a test suite, and the
+  symptom is "current shows the wrong language" with no other trace. Then the
+  dartdoc on `current` itself, which is where the warning is actually read.
+  Then, maybe, a debug assert when `current` is read during a build; that
+  depends on `WidgetsBinding.debugBuildingDirtyElements` covering every rebuild
+  path without false positives, which nobody has checked. It is a separate
+  step, after the rest works, not part of a first version.
+
+### What would have to be verified
+
+That the goldens for every fixture are unchanged with the option off; that
+`setLocale` moves `current` and `dispose` clears it; that `context.l10n` and
+`current` agree after a switch, asserted in a widget test rather than argued
+from the code; and that the double install assert fires. Plus the README
+section saying plainly which of the two readers rebuilds — the one thing a
+reader has to know before choosing between them.
 
 ## Benchmarks
 

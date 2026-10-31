@@ -345,24 +345,41 @@ final class ModelBuilder {
             ),
           );
         case ArgumentKind.plural:
-          // No format can consume a currency code here; say so rather than
-          // dropping the declaration in silence.
-          _resolveCurrency(leaf, spec, null, declaration);
+          // A `gen_l10n` bundle declares the count's rendering in the
+          // metadata, and honouring it is what makes the operands come from
+          // the formatter rather than from the value — the two cannot be
+          // separated without reproducing `USD1.00 card`.
           arguments.add(
             ArgumentModel(
               name: spec.name,
               dartName: parameterName,
               type: _pluralType(leaf, spec, declaration),
+              format: _resolveCurrency(
+                leaf,
+                spec,
+                _declaredFormat(leaf, spec, declaration),
+                declaration,
+              ),
               description: declaration?.description,
               example: declaration?.example,
             ),
           );
         case ArgumentKind.select:
           _resolveCurrency(leaf, spec, null, declaration);
+          _reportDroppedFormat(leaf, spec, declaration);
           final selectEnum = _selectEnum(leaf, spec);
           if (selectEnum == null) continue;
           final declaredSelectType = declaration?.type;
-          if (declaredSelectType != null) {
+          // `"type": "String"` is what `gen_l10n` writes on every select
+          // placeholder — its own schema requires it — and `Object` is what
+          // it writes when the type is left out. Warning about either puts a
+          // line of noise on every select of every imported bundle, about
+          // something the exporting tool chose and nobody can change without
+          // hand editing a generated file. A declared `int` or `DateTime` is
+          // a different matter: that is an author who thinks this argument is
+          // a number, and it still warns.
+          if (declaredSelectType != null &&
+              !_neutralSelectTypes.contains(declaredSelectType)) {
             diagnostics.add(
               Diagnostic.warning(
                 code: 'ignored_placeholder_type',
@@ -431,6 +448,39 @@ final class ModelBuilder {
   /// on a style that has no `symbol:` parameter, or a code that disagrees with
   /// the one written in the message — is an error, because the alternative is
   /// money rendered wrongly.
+  /// Reports a `format:` on a select argument, which has no number to format.
+  ///
+  /// A plural count is formatted — see the plural case above — but a select
+  /// argument chooses a branch, and there is nothing a `NumberFormat` could
+  /// be applied to. Reported rather than discarded in silence, which is the
+  /// rule everywhere else here.
+  ///
+  /// A warning rather than an error: the declaration comes from the exporting
+  /// tool at least as often as from the author, and the generated output is
+  /// still exactly what this generator promises.
+  void _reportDroppedFormat(
+    TranslationLeaf leaf,
+    ArgumentSpec spec,
+    PlaceholderMetadata? declaration,
+  ) {
+    final format = declaration?.format;
+    if (format == null) return;
+    diagnostics.add(
+      Diagnostic.warning(
+        code: 'dropped_placeholder_format',
+        message:
+            'Placeholder "${spec.name}" declares "format", but a '
+            '${spec.kind.label} argument is not formatted.',
+        span: declaration!.span,
+        translationKey: leaf.path,
+        details:
+            'Declared: $format.\n'
+            'A select argument chooses a branch; there is no number to '
+            'format. Drop the declaration.',
+      ),
+    );
+  }
+
   ArgumentFormat? _resolveCurrency(
     TranslationLeaf leaf,
     ArgumentSpec spec,
@@ -522,6 +572,12 @@ final class ModelBuilder {
   /// [values] sorted and comma separated, for a diagnostic's details.
   static String _sorted(Set<String> values) =>
       (values.toList()..sort()).join(', ');
+
+  /// Declared types that say nothing about a select argument.
+  ///
+  /// The spelling an ARB exporter uses for "this is a select"; see the use
+  /// site for why they are silent.
+  static const Set<String> _neutralSelectTypes = {'String', 'Object'};
 
   /// Dart types a `{placeholder}` may be declared as.
   ///

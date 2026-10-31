@@ -191,4 +191,77 @@ flutter:
     expect(result.diagnostics.first.code, 'invalid_config');
     expect(result.diagnostics.first.message, contains('true or false'));
   });
+
+  group('coverage', () {
+    const config = '''
+input_directory: translations
+output_directory: lib/generated
+base_locale: en
+fallback_locale: en
+class_name: AppLocalizations
+locale_enum_name: AppLocale
+fill_missing_from_base: true
+flutter:
+  enabled: false
+''';
+
+    LocaleCoverage coverageOf(GenerationResult result, String locale) =>
+        result.coverage.firstWhere((c) => c.locale == locale);
+
+    test('counts messages, not the subtrees the warnings collapse to', () {
+      // One warning names `b`; four messages are untranslated.
+      final result = runGenerator({
+        'en.json':
+            '{"a": "A", "b": {"x": "X", "y": "Y", "z": {"q": "Q", "r": "R"}}}',
+        'ru.json': '{"a": "А"}',
+      }, configYaml: config);
+
+      expect(errorsOf(result), isEmpty);
+      final ru = coverageOf(result, 'ru');
+      expect(ru.total, 5);
+      expect(ru.translated, 1);
+      expect(ru.untranslated, 4);
+      expect(ru.percent, 20);
+      expect(ru.isComplete, isFalse);
+    });
+
+    test('the base locale is complete by definition', () {
+      final result = runGenerator({
+        'en.json': '{"a": "A", "b": "B"}',
+        'ru.json': '{"a": "А"}',
+      }, configYaml: config);
+
+      expect(coverageOf(result, 'en').isComplete, isTrue);
+      expect(coverageOf(result, 'en').percent, 100);
+    });
+
+    test('every locale is listed, in locale order', () {
+      final result = runGenerator({
+        'en.json': '{"a": "A"}',
+        'de.json': '{"a": "A"}',
+        'ru.json': '{"a": "А"}',
+      }, configYaml: config);
+
+      expect(result.coverage.map((c) => c.locale), ['de', 'en', 'ru']);
+      expect(result.coverage.every((c) => c.isComplete), isTrue);
+    });
+
+    test('percent rounds down, so 99 percent never reads as done', () {
+      final translations = {for (var i = 0; i < 200; i++) 'k$i': 'v$i'};
+      final ru = Map<String, String>.from(translations)..remove('k0');
+      final result = runGenerator({
+        'en.json': _json(translations),
+        'ru.json': _json(ru),
+      }, configYaml: config);
+
+      final coverage = result.coverage.firstWhere((c) => c.locale == 'ru');
+      expect(coverage.translated, 199);
+      expect(coverage.total, 200);
+      expect(coverage.percent, 99);
+      expect(coverage.isComplete, isFalse);
+    });
+  });
 }
+
+String _json(Map<String, String> entries) =>
+    '{${entries.entries.map((e) => '"${e.key}": "${e.value}"').join(', ')}}';

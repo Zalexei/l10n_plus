@@ -239,15 +239,18 @@ abstract final class DiagnosticCodes {
   /// error form ignorable: [DiagnosticCollector] drops warnings only.
   static const Set<String> suppressible = {
     'currency_options_mismatch',
+    'dropped_placeholder_format',
     'extra_key',
     'format_style_mismatch',
     'ignored_placeholder_type',
     'invalid_config',
     'invalid_metadata',
     'locale_pattern_mismatch',
+    'missing_flutter_dependency',
     'missing_intl_dependency',
     'missing_key',
     'missing_plural_category',
+    'renamed_key',
     'unknown_config_key',
     'unknown_metadata_attribute',
     'unrecognized_file_name',

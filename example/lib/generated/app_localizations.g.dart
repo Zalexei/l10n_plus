@@ -87,6 +87,18 @@ enum ProfileGreetingGender {
   other,
 }
 
+/// Branches of the `daypart` select in `showcase.greeting`.
+enum ShowcaseGreetingDaypart {
+  /// ICU branch `morning`.
+  morning,
+
+  /// ICU branch `evening`.
+  evening,
+
+  /// ICU branch `other`.
+  other,
+}
+
 /// Locale independent translation API.
 ///
 /// Obtain an instance with [AppLocalizations.of], [AppLocalizations.forLocale] or
@@ -121,6 +133,9 @@ abstract interface class AppLocalizations implements BaseTranslations {
 
   /// Translations under `wallet`.
   $Wallet get wallet;
+
+  /// Translations under `showcase`.
+  $Showcase get showcase;
 
   /// Translations under `profile`.
   $Profile get profile;
@@ -175,6 +190,42 @@ abstract interface class $Wallet {
 
   /// `en`: {count, plural, ...}
   String likes({required num count});
+}
+
+/// Translations under `showcase`.
+abstract interface class $Showcase {
+  /// Translations under `showcase.order`.
+  $ShowcaseOrder get order;
+
+  /// `en`: {daypart, select, ...}
+  String greeting({
+    required ShowcaseGreetingDaypart daypart,
+    required String name,
+  });
+
+  /// `en`: {count, plural, ...}
+  String reward({required num count});
+}
+
+/// Translations under `showcase.order`.
+abstract interface class $ShowcaseOrder {
+  /// `en`: Order #{code}
+  String title({required String code});
+
+  /// `en`: {count, plural, ...}
+  String items({required num count});
+
+  /// `en`: {amount, number, simpleCurrency}
+  String total({required num amount});
+
+  /// `en`: Ready at {at, time, jm}
+  String ready({required DateTime at});
+
+  /// `en`: You are {place, plural, ...} in line
+  String queue({required num place});
+
+  /// `en`: Placed on {on, date, yMMMd}
+  String placed({required DateTime on});
 }
 
 /// Translations under `profile`.

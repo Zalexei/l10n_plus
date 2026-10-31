@@ -317,7 +317,11 @@ class $SearchAr implements $Search {
     if (count == 0) {
       return 'لا نتائج لـ "$query"';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _arNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _arNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.n == 0) {
       return 'لا نتائج لـ "$query"';
     }
@@ -342,7 +346,11 @@ class $SearchAr implements $Search {
 
   @override
   String reviews({required num count}) {
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _arNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _arNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.n == 0) {
       return 'لا مراجعات';
     }
@@ -367,7 +375,11 @@ class $SearchAr implements $Search {
 
   @override
   String inStock({required num count}) {
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _arNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _arNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.n == 0) {
       return 'نفدت الكمية';
     }
@@ -409,7 +421,11 @@ class $CartAr implements $Cart {
     if (count == 0) {
       return 'سلتك فارغة';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _arNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _arNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.n == 0) {
       return 'سلتك فارغة';
     }
@@ -458,7 +474,11 @@ class $CartAr implements $Cart {
     if (days == 0) {
       return 'اليوم';
     }
-    final $operands = PluralOperands(days);
+    final $operands = PluralOperands.formatted(
+      days,
+      minimumFractionDigits: _arNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _arNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.n == 0) {
       return 'اليوم';
     }
@@ -506,7 +526,11 @@ class $OrderAr implements $Order {
       return '$first فقط';
     }
     final $countOffset = count - 1;
-    final $operands = PluralOperands($countOffset);
+    final $operands = PluralOperands.formatted(
+      $countOffset,
+      minimumFractionDigits: _arNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _arNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.n == 0) {
       return first;
     }
@@ -554,7 +578,11 @@ class $SellerAr implements $Seller {
   }
 
   String _rating$0({required num stars, required num count}) {
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _arNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _arNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.n == 0) {
       return '${_arNumberDecimalPattern.format(count)} مشتر';
     }
@@ -612,7 +640,11 @@ class $SearchEn implements $Search {
     if (count == 0) {
       return 'No results for "$query"';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _enNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _enNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_enNumberDecimalPattern.format(count)} result for "$query"';
     }
@@ -624,7 +656,11 @@ class $SearchEn implements $Search {
     if (count == 0) {
       return 'No reviews';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _enNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _enNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_enNumberDecimalPattern.format(count)} review';
     }
@@ -636,7 +672,11 @@ class $SearchEn implements $Search {
     if (count == 0) {
       return 'Out of stock';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _enNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _enNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return 'Only ${_enNumberDecimalPattern.format(count)} left';
     }
@@ -662,7 +702,11 @@ class $CartEn implements $Cart {
     if (count == 0) {
       return 'Your cart is empty';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _enNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _enNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '1 item, ${_enNumberCurrencyEur.format(total)}';
     }
@@ -696,7 +740,11 @@ class $CartEn implements $Cart {
     if (days == 0) {
       return 'today';
     }
-    final $operands = PluralOperands(days);
+    final $operands = PluralOperands.formatted(
+      days,
+      minimumFractionDigits: _enNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _enNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_enNumberDecimalPattern.format(days)} day';
     }
@@ -728,7 +776,11 @@ class $OrderEn implements $Order {
       return 'Just $first';
     }
     final $countOffset = count - 1;
-    final $operands = PluralOperands($countOffset);
+    final $operands = PluralOperands.formatted(
+      $countOffset,
+      minimumFractionDigits: _enNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _enNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '$first and ${_enNumberDecimalPattern.format($countOffset)} other';
     }
@@ -736,7 +788,11 @@ class $OrderEn implements $Order {
   }
 
   String _rank$0({required num n}) {
-    final $operands = PluralOperands(n);
+    final $operands = PluralOperands.formatted(
+      n,
+      minimumFractionDigits: _enNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _enNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.n % 10 == 1 && $operands.n % 100 != 11) {
       return '${_enNumberDecimalPattern.format(n)}st';
     }
@@ -770,7 +826,11 @@ class $SellerEn implements $Seller {
   }
 
   String _rating$0({required num stars, required num count}) {
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _enNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _enNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_enNumberDecimalPattern.format(count)} buyer';
     }
@@ -973,7 +1033,11 @@ class $SearchPl implements $Search {
     if (count == 0) {
       return 'Brak wyników dla "$query"';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _plNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _plNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_plNumberDecimalPattern.format(count)} wynik dla "$query"';
     }
@@ -1001,7 +1065,11 @@ class $SearchPl implements $Search {
     if (count == 0) {
       return 'Brak opinii';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _plNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _plNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_plNumberDecimalPattern.format(count)} opinia';
     }
@@ -1029,7 +1097,11 @@ class $SearchPl implements $Search {
     if (count == 0) {
       return 'Brak w magazynie';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _plNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _plNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return 'Została ${_plNumberDecimalPattern.format(count)} sztuka';
     }
@@ -1071,7 +1143,11 @@ class $CartPl implements $Cart {
     if (count == 0) {
       return 'Koszyk jest pusty';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _plNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _plNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_plNumberDecimalPattern.format(count)} produkt, ${_plNumberCurrencyEur.format(total)}';
     }
@@ -1121,7 +1197,11 @@ class $CartPl implements $Cart {
     if (days == 0) {
       return 'dzisiaj';
     }
-    final $operands = PluralOperands(days);
+    final $operands = PluralOperands.formatted(
+      days,
+      minimumFractionDigits: _plNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _plNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_plNumberDecimalPattern.format(days)} dzień';
     }
@@ -1169,7 +1249,11 @@ class $OrderPl implements $Order {
       return 'Tylko $first';
     }
     final $countOffset = count - 1;
-    final $operands = PluralOperands($countOffset);
+    final $operands = PluralOperands.formatted(
+      $countOffset,
+      minimumFractionDigits: _plNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _plNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '$first i ${_plNumberDecimalPattern.format($countOffset)} inny';
     }
@@ -1217,7 +1301,11 @@ class $SellerPl implements $Seller {
   }
 
   String _rating$0({required num stars, required num count}) {
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _plNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _plNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_plNumberDecimalPattern.format(count)} kupującego';
     }
@@ -1275,7 +1363,11 @@ class $SearchSl implements $Search {
     if (count == 0) {
       return 'Ni zadetkov za "$query"';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _slNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _slNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 100 == 1) {
       return '${_slNumberDecimalPattern.format(count)} zadetek za "$query"';
     }
@@ -1294,7 +1386,11 @@ class $SearchSl implements $Search {
     if (count == 0) {
       return 'Ni mnenj';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _slNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _slNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 100 == 1) {
       return '${_slNumberDecimalPattern.format(count)} mnenje';
     }

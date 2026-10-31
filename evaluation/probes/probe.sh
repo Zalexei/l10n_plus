@@ -117,7 +117,20 @@ EOF
   gen; print -r -- "-- analyze, the CI command:"; gen analyze; }
 
 probe 16 "a language with no CLDR rules in the table" && {
+  # `cy` used to land here; it is in the table now, so this needs a language
+  # CLDR really has no rules for.
   print '{"a": "{n, plural, one{# item} other{# items}}"}' > translations/en.json
-  print '{"a": "{n, plural, other{# eitem}}"}' > translations/cy.json; gen; }
+  print '{"a": "{n, plural, other{# eitem}}"}' > translations/tlh.json; gen; }
+
+probe 17 "a number format on a select argument" && {
+  print '{"@@locale": "en", "g": "{g, select, a{A} other{B}}", "@g": {"placeholders": {"g": {"type": "String", "format": "currency"}}}}' \
+    > translations/en.arb; gen; }
+
+probe 18 "a currency on a plural count, which is honoured" && {
+  print '{"@@locale": "en", "cards": "{count, plural, one{# card} other{# cards}}", "@cards": {"placeholders": {"count": {"type": "num", "format": "currency"}}}}' \
+    > translations/en.arb
+  gen
+  print -r -- "-- and the count decides the branch on what it displays:"
+  sed -n '/String cards(.*) {/,/^  }/p' lib/l10n/app_localizations.g.dart; }
 
 reset

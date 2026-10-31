@@ -214,6 +214,10 @@ final NumberFormat _ruNumberCurrencyBtcSymbol682eDigits8 =
       symbol: 'B',
       decimalDigits: 8,
     );
+final NumberFormat _ruNumberCurrencyDigits0 = NumberFormat.currency(
+  locale: 'ru',
+  decimalDigits: 0,
+);
 final NumberFormat _ruNumberCurrencySymbol9985 = NumberFormat.currency(
   locale: 'ru',
   symbol: 'US\$',
@@ -532,6 +536,15 @@ abstract interface class AppLocalizations implements BaseTranslations {
 
   /// `en`: {n}
   String optPercent({required double n});
+
+  /// `en`: {count, plural, ...}
+  String pluralCurrency({required num count});
+
+  /// `en`: {count, plural, ...}
+  String pluralCurrencyWhole({required num count});
+
+  /// `en`: {count, plural, ...}
+  String pluralDecimal({required num count});
 }
 
 /// `en` translations.
@@ -782,6 +795,45 @@ class AppLocalizationsEn implements AppLocalizations {
   @override
   String optPercent({required double n}) =>
       _enNumberDecimalPercentPatternDigits2.format(n);
+
+  @override
+  String pluralCurrency({required num count}) {
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _enNumberCurrency.minimumFractionDigits,
+      maximumFractionDigits: _enNumberCurrency.maximumFractionDigits,
+    );
+    if ($operands.i == 1 && $operands.v == 0) {
+      return '${_enNumberCurrency.format(count)} card';
+    }
+    return '${_enNumberCurrency.format(count)} cards';
+  }
+
+  @override
+  String pluralCurrencyWhole({required num count}) {
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _enNumberCurrencyDigits0.minimumFractionDigits,
+      maximumFractionDigits: _enNumberCurrencyDigits0.maximumFractionDigits,
+    );
+    if ($operands.i == 1 && $operands.v == 0) {
+      return '${_enNumberCurrencyDigits0.format(count)} card';
+    }
+    return '${_enNumberCurrencyDigits0.format(count)} cards';
+  }
+
+  @override
+  String pluralDecimal({required num count}) {
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _enNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _enNumberDecimalPattern.maximumFractionDigits,
+    );
+    if ($operands.i == 1 && $operands.v == 0) {
+      return '${_enNumberDecimalPattern.format(count)} card';
+    }
+    return '${_enNumberDecimalPattern.format(count)} cards';
+  }
 }
 
 /// `ru` translations.
@@ -1033,4 +1085,82 @@ class AppLocalizationsRu implements AppLocalizations {
   @override
   String optPercent({required double n}) =>
       _ruNumberDecimalPercentPatternDigits2.format(n);
+
+  @override
+  String pluralCurrency({required num count}) {
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberCurrency.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberCurrency.maximumFractionDigits,
+    );
+    if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
+      return '${_ruNumberCurrency.format(count)} карта';
+    }
+    if ($operands.v == 0 &&
+        $operands.i % 10 >= 2 &&
+        $operands.i % 10 <= 4 &&
+        !($operands.i % 100 >= 12 && $operands.i % 100 <= 14)) {
+      return '${_ruNumberCurrency.format(count)} карты';
+    }
+    if ($operands.v == 0 && $operands.i % 10 == 0 ||
+        $operands.v == 0 && $operands.i % 10 >= 5 && $operands.i % 10 <= 9 ||
+        $operands.v == 0 &&
+            $operands.i % 100 >= 11 &&
+            $operands.i % 100 <= 14) {
+      return '${_ruNumberCurrency.format(count)} карт';
+    }
+    return '${_ruNumberCurrency.format(count)} карты';
+  }
+
+  @override
+  String pluralCurrencyWhole({required num count}) {
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberCurrencyDigits0.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberCurrencyDigits0.maximumFractionDigits,
+    );
+    if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
+      return '${_ruNumberCurrencyDigits0.format(count)} карта';
+    }
+    if ($operands.v == 0 &&
+        $operands.i % 10 >= 2 &&
+        $operands.i % 10 <= 4 &&
+        !($operands.i % 100 >= 12 && $operands.i % 100 <= 14)) {
+      return '${_ruNumberCurrencyDigits0.format(count)} карты';
+    }
+    if ($operands.v == 0 && $operands.i % 10 == 0 ||
+        $operands.v == 0 && $operands.i % 10 >= 5 && $operands.i % 10 <= 9 ||
+        $operands.v == 0 &&
+            $operands.i % 100 >= 11 &&
+            $operands.i % 100 <= 14) {
+      return '${_ruNumberCurrencyDigits0.format(count)} карт';
+    }
+    return '${_ruNumberCurrencyDigits0.format(count)} карты';
+  }
+
+  @override
+  String pluralDecimal({required num count}) {
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
+    if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
+      return '${_ruNumberDecimalPattern.format(count)} карта';
+    }
+    if ($operands.v == 0 &&
+        $operands.i % 10 >= 2 &&
+        $operands.i % 10 <= 4 &&
+        !($operands.i % 100 >= 12 && $operands.i % 100 <= 14)) {
+      return '${_ruNumberDecimalPattern.format(count)} карты';
+    }
+    if ($operands.v == 0 && $operands.i % 10 == 0 ||
+        $operands.v == 0 && $operands.i % 10 >= 5 && $operands.i % 10 <= 9 ||
+        $operands.v == 0 &&
+            $operands.i % 100 >= 11 &&
+            $operands.i % 100 <= 14) {
+      return '${_ruNumberDecimalPattern.format(count)} карт';
+    }
+    return '${_ruNumberDecimalPattern.format(count)} карты';
+  }
 }

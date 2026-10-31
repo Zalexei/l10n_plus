@@ -141,6 +141,88 @@ abstract final class CrossLocaleValidator {
     return buffer.toString().trimRight();
   }
 
+  /// The one key [otherNode] still calls by its old name, or `null`.
+  ///
+  /// Renaming a key in the base locale produces two diagnostics per locale —
+  /// the new name is missing, the old one is extra — and neither knows about
+  /// the other, so one edit becomes 2N errors that a reader has to pair up by
+  /// eye. When a namespace has exactly one of each and they are the same kind
+  /// of node, a rename is overwhelmingly the reason, and saying so turns the
+  /// pair into one finding with the fix in it.
+  ///
+  /// Deliberately narrow: two missing and two extra keys could be two
+  /// renames or four unrelated edits, and guessing wrong would send someone
+  /// renaming the wrong key. Those still get the plain diagnostics.
+  static ({TranslationNode from, TranslationNode to})? _renameIn(
+    TranslationGroup baseNode,
+    TranslationGroup otherNode,
+  ) {
+    final missing = [
+      for (final child in baseNode.children)
+        if (otherNode.child(child.key) == null) child,
+    ];
+    if (missing.length != 1) return null;
+    final extra = [
+      for (final child in otherNode.children)
+        if (baseNode.child(child.key) == null) child,
+    ];
+    if (extra.length != 1) return null;
+    final to = missing.single;
+    final from = extra.single;
+    // A group where the base has a message is `key_kind_mismatch` territory,
+    // and calling it a rename would hide a different problem.
+    if ((to is TranslationGroup) != (from is TranslationGroup)) return null;
+    return (from: from, to: to);
+  }
+
+  /// One finding for a key that changed name in the base locale.
+  static Diagnostic _renameDiagnostic({
+    required LocaleMessages base,
+    required LocaleMessages other,
+    required TranslationNode from,
+    required TranslationNode to,
+    required bool severe,
+  }) {
+    final covered = messageCount(to);
+    final message =
+        'Key "${from.key}" looks renamed to "${to.key}" in '
+        '${base.locale.toFileTag()}.';
+    final details =
+        'Base locale ${base.locale.toFileTag()}: '
+        '${_where(to)}\n'
+        '${other.locale.toFileTag()} locale: '
+        '${_where(from)}\n'
+        '${covered == 1 ? '' : 'It covers $covered messages.\n'}'
+        'They are the only difference in '
+        '"${to.path.contains('.') ? to.path.substring(0, to.path.lastIndexOf('.')) : 'the root'}", '
+        'so rename it here too. If they are unrelated, add "${to.key}" and '
+        'remove "${from.key}" and each will be reported on its own.';
+    return severe
+        ? Diagnostic.error(
+            code: 'renamed_key',
+            message: message,
+            span: from.keySpan,
+            translationKey: from.path,
+            details: details,
+          )
+        : Diagnostic.warning(
+            code: 'renamed_key',
+            message: message,
+            span: from.keySpan,
+            translationKey: from.path,
+            details: details,
+          );
+  }
+
+  /// `file.json:12`, or just the line when the span has no file.
+  static String _where(TranslationNode node) {
+    final source = node.keySpan.sourceUrl;
+    final line = node.keySpan.start.line + 1;
+    return source == null
+        ? '${node.path} (line $line)'
+        : '${node.path} (${p.basename(source.path)}:$line)';
+  }
+
   static void _compareStructure({
     required LocaleMessages base,
     required LocaleMessages other,
@@ -150,7 +232,24 @@ abstract final class CrossLocaleValidator {
     required ExtraKeys extraKeys,
     required bool fillMissingFromBase,
   }) {
+    final renamed = _renameIn(baseNode, otherNode);
+    if (renamed != null) {
+      diagnostics.add(
+        _renameDiagnostic(
+          base: base,
+          other: other,
+          from: renamed.from,
+          to: renamed.to,
+          // As severe as the pair it replaces: an extra key that a project
+          // tolerates and a missing one it fills in are, together, still only
+          // a warning.
+          severe: !fillMissingFromBase || extraKeys == ExtraKeys.error,
+        ),
+      );
+    }
+
     for (final baseChild in baseNode.children) {
+      if (identical(baseChild, renamed?.to)) continue;
       final otherChild = otherNode.child(baseChild.key);
       if (otherChild == null) {
         // Name the file, not only the line: once `file_pattern` spreads a
@@ -230,6 +329,7 @@ abstract final class CrossLocaleValidator {
     }
 
     for (final otherChild in otherNode.children) {
+      if (identical(otherChild, renamed?.from)) continue;
       if (baseNode.child(otherChild.key) != null) continue;
       // Reported on the group rather than on each key under it: a namespace
       // dropped from the base locale is one decision, and a hundred warnings

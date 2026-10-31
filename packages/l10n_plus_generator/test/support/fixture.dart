@@ -69,6 +69,7 @@ GenerationResult runGenerator(
     files: result.files,
     keys: result.keys,
     ignoredCount: result.ignoredCount,
+    coverage: result.coverage,
   );
 }
 

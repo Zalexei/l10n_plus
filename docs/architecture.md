@@ -169,9 +169,126 @@ integer arguments — nearly all of them — are exact.
 
 This is why the CLDR sample check leaves out `@decimal 1.0` style values: they
 are values this runtime cannot be handed, and a test that pretended otherwise
-would be asserting the wrong thing. Deriving `v` from `toString()` instead
-would match CLDR and would change what existing messages render, so it is an
-open question rather than a quiet fix.
+would be asserting the wrong thing.
+
+That is the story for a count nobody formats, and it is still the default.
+Where a formatter *is* attached the ambiguity disappears, and the operands come
+from it instead — `PluralOperands.formatted`, below.
+
+#### What the rest of the ecosystem does, measured
+
+`intl` has the same problem and answers it with a `precision` parameter on
+`Intl.plural`. Reading `intl-0.20.3` and running it:
+
+| call | result |
+| --- | --- |
+| `Intl.plural(1.0, one: …, other: …)` | `one` |
+| `Intl.plural(1.0, …, precision: 0)` | `one` |
+| `Intl.plural(1.0, …, precision: 2)` | `other` |
+
+`precision` defaults to nothing, and `pluralLogic` then truncates a whole
+double to an `int` before selecting — deliberately, so that "1.0 and 1 produce
+the same output, e.g. 1 dollar". That is exactly what `PluralOperands` does.
+`gen_l10n` never passes `precision` at all (`pluralVariableTemplate` in
+`gen_l10n.dart` has no slot for it), so **every Dart localization tool in
+existence selects `one` for `1.0`.** This library is not diverging from CLDR
+alone; it is bug-compatible with the whole ecosystem, which is a much cheaper
+position to hold than it looked.
+
+#### `precision` is the wrong shape of the answer
+
+The operand `v` is not a property of the value and not a property the caller
+knows: it is a property of **the formatter that will render the number**.
+`NumberFormat.currency(locale: 'en')` has `minimumFractionDigits == 2`, so it
+renders `1` as `USD1.00` and CLDR then says `other`. `NumberFormat
+.decimalPattern('en')` has `minimum 0, maximum 3` and renders the same `1` as
+`1`, where CLDR says `one`. One value, two correct answers, decided entirely by
+the format.
+
+So `precision` asks the caller to restate, at every call site, something the
+*generator* already knows — and gets it wrong whenever the two drift apart.
+This answers the question the roadmap asked: value and rendering can be told
+apart without a second parameter in every signature, but only where the format
+is declared in the message. For a number the caller formats themselves and
+passes in pre-rounded, nothing short of a parameter can help, and that case is
+already outside what this library renders.
+
+#### The defect this closes, in the tool next door
+
+The correct-`v`-needs-the-formatter defect is reachable in `gen_l10n`. Running
+it on a plural whose count declares `"format": "currency"` produces:
+
+```dart
+final String countString = countNumberFormat.format(count);   // USD1.00
+String _temp0 = intl.Intl.pluralLogic(count, locale: localeName,
+    other: '$countString cards', one: '$countString card');   // one
+```
+
+— "USD1.00 card", the failure `intl`'s own documentation warns about.
+
+It was never reachable here, but only by accident: the generator **silently
+discarded** the `format:` on a plural count, so no formatter with fraction
+digits could reach one. That is not a guarantee, it is a hole that happened to
+point the safe way, and it cost the author the rendering they asked for.
+
+Honouring the declaration is what closes both at once — the feature and the
+operand question — because a formatted count has no ambiguity left about what
+`v` should be.
+
+**Chosen: the operands follow the formatter that renders the count.**
+
+A format declared on a plural count is honoured — the count renders through it
+and `PluralOperands.formatted` reads the operands off the digits it produces:
+
+```dart
+String cards({required num count}) {
+  final $operands = PluralOperands.formatted(
+    count,
+    minimumFractionDigits: _enNumberCurrency.minimumFractionDigits,
+    maximumFractionDigits: _enNumberCurrency.maximumFractionDigits,
+  );
+  if ($operands.i == 1 && $operands.v == 0) {
+    return '${_enNumberCurrency.format(count)} card';
+  }
+  return '${_enNumberCurrency.format(count)} cards';
+}
+```
+
+`cards(count: 1)` is `USD1.00 cards`, where `gen_l10n` prints `USD1.00 card`.
+Executed, not read: `goldens_runtime_test.dart` runs the generated file.
+
+**The bounds are read at run time, not baked in.** `NumberFormat.currency`
+takes its fraction digits from the currency — JPY has none, USD has two — and
+the generator does not know which currency a bundle names. So the emitted code
+reads `minimumFractionDigits` and `maximumFractionDigits` off the formatter
+field. The runtime stays free of `intl`: it receives two `int`s.
+
+**Only where the count is actually displayed through the formatter.** A plural
+of pure words (`one{Delete the file} other{Delete the files}}`) shows no number
+at all, and a branch that interpolates `$count` raw shows `toString()` — which
+is what the value based operands already read. Emitting formatter operands
+there would claim digits nobody sees, so the emitter walks the branches and
+uses the format only if some `#` or `{count}` renders through it.
+
+**`format_plural_numbers` is included, on the same principle.** When that flag
+renders `#` through the locale's decimal pattern, that pattern decides the
+visible digits, so the operands come from it too. This is the one behaviour
+change beyond the declared format case, and it is small and in the same
+direction: the pattern rounds at three fraction digits, so a count of
+`1.23456` now has `v == 3` and `f == 235` — what `1.235` displays — instead of
+`v == 5` from a value nobody sees. Leaving it out would have reintroduced the
+exact mismatch this section is about.
+
+**What did not change.** A count with no formatter still reads its value, so
+`1.0` still selects `one` in English, still matching `intl` and `gen_l10n`.
+That question only had a wrong answer because the number was invisible; with a
+formatter attached it is not a question at all, and `PluralOperands.formatted`
+gives `1.0` under a decimal pattern the operands of `1`, and under a currency
+the operands of `1.00`. Same value, two answers, both correct.
+
+**`dropped_placeholder_format` survives for select arguments**, which choose a
+branch and have no number to format. That declaration really is dropped, and
+saying so is the rule everywhere else here.
 
 ### Plural rules: runtime table vs generated conditions
 
@@ -434,6 +551,12 @@ imports `intl`, the ARB fixture turns it on.
 Nothing else changes with the flag. An explicit `{count, number}` was already
 formatted and still is, so the per message opt-out is unchanged.
 
+**A format declared on the count wins over the flag**, and works without it: a
+plural count that declares `"format": "currency"` renders as money whether or
+not `format_plural_numbers` is on. The flag is the fallback for the counts
+nobody declared. Either way the plural operands come from whichever formatter
+ends up rendering the count — see `num` vs `int` for plural arguments above.
+
 ### Currency codes are explicit, and render as ISO codes
 
 `{n, number, currency}` formats with the *locale's* currency, which makes a
@@ -475,9 +598,11 @@ diagnostic naming the spelling that works, rather than a generic style error.
 **The code must be three upper case letters**, checked at both entry points. The
 assigned set changes over time, so the shape is validated here and the meaning
 is left to `intl`. A code on a style that cannot use one (`percent:USD`,
-`yMMMd:USD`), a code on a plural or select argument, and a message and its
-metadata naming two different currencies are all errors — the failure mode being
-prevented is money rendered in the wrong currency.
+`yMMMd:USD`), a code on a select argument, a code on a plural count that
+declares no currency format to spend it on, and a message and its metadata
+naming two different currencies are all errors — the failure mode being
+prevented is money rendered in the wrong currency. A plural count that *does*
+declare `"format": "currency"` takes the code like any other money argument.
 
 **Code or symbol is a second style, not a flag.** `currency` renders the ISO
 code (`USD1,234.50`, `1 234,50 USD`); `simpleCurrency` renders the locale's
@@ -755,6 +880,23 @@ YAML carries no metadata: there is no natural place for ARB's `@key` in a
 nested document, and inventing one would be guessing at a convention nobody
 writes yet. Like JSON, it takes its locale from the path.
 
+**Checked again, September 2026, and the answer held.** `slang` is the closest
+thing to a second opinion — it reads YAML, JSON, CSV and ARB, and it is
+type safe, so it needs per placeholder types as much as this does. Its answer
+is not `@key` in YAML. It writes the type *into the message*
+(`"Hello {name: String}, you have {amount: currency}"`) plus an optional
+file level `@@types` alias table, which is deduplication rather than new
+expressiveness. And where it does support `@key` prose — JSON, ARB — its own
+documentation says of YAML: "Currently, not parsed and no comments will be
+generated."
+
+So the convention that appeared is *metadata in the message*, which this
+library already has in every format: `{n, number, currency:USD}` and
+`{d, date, yMMMd}` parse identically out of YAML, JSON and ARB. The only thing
+still unreachable from YAML is translator prose — `description` and `example` —
+and the one library with a reason to have solved it declined to. Nothing to
+copy. YAML stays metadata free.
+
 The `yaml` golden fixture is the JSON fixture's messages, transcribed. Its
 generated output is asserted **byte for byte identical** to the JSON one, which
 is the strongest thing the parser seam can say: two formats in, one API out.
@@ -821,6 +963,21 @@ locale, and `MaterialApp.locale` is driven from it. Adding a delegate would
 create a second path to the same state. Apps still add
 `GlobalMaterialLocalizations.delegates` for Flutter's *own* widgets — that is
 not this library's job, and the example shows it.
+
+### The Flutter glue is on by default, and says when it cannot compile
+
+`flutter.enabled` defaults to on, because most projects are Flutter projects
+and a default that has to be switched on is a default that gets filed as a
+bug. The cost falls on the other kind of project: a Dart consumer writing the
+shortest configuration the CLI accepts used to get a second generated file
+built out of `BuildContext` and `L10nScope`, and a screen of analyzer errors
+in a file it never wrote.
+
+So the glue is checked the same way `intl` is — by reading the consumer's own
+`pubspec.yaml`. Generating it without `flutter` and `l10n_plus_flutter` in
+`dependencies` reports `missing_flutter_dependency`, which names the one line
+that turns it off and the two lines that make it compile. A warning, not an
+error: a project may generate for a package it does not itself build.
 
 ### Region fallback picks the first match, and says so
 
@@ -1045,7 +1202,12 @@ What the numbers say:
 * **Namespace access is a field read.** `identical(t.auth, t.auth)` is `true`,
   so there is nothing to time and nothing to allocate; the 3.6 ns is the
   `switch` over the locale enum the benchmark cycles through to stop the loop
-  folding, not the access.
+  folding, not the access. `identical` on two accessors is a sample, though,
+  and "no allocation" is a claim about all of them:
+  `const_graph_test.dart` reads the emitted source and fails unless *every*
+  namespace accessor returns a `const` instance and every implementation
+  class has a `const` constructor. Dropping the `const` the emitter writes
+  makes it name all twelve accessors that would start allocating.
 * **The map is not catastrophically slower, it is consistently slower** — and
   it gives up the compile time argument checking that is the actual point.
   Anyone choosing a map should do it for generated file size, not speed.
@@ -1067,10 +1229,34 @@ A test runs every case once, so the benchmark cannot rot unnoticed. No timing
 is asserted: a threshold that fails on a slow CI box teaches people to ignore
 it.
 
-Not measured: `context.l10n` lookup and locale switch rebuild cost. Both need a
-Flutter harness, and both would mostly report Flutter's costs —
-`dependOnInheritedWidgetOfExactType` and the app's own rebuild — rather than
-this library's.
+### The Flutter edge, measured
+
+`example/test/flutter_cost_test.dart`, run by `flutter test`. That is not a
+profile mode device: no vsync, JIT, and whatever else the machine is doing.
+The absolutes are an upper bound; the split between them is the point.
+
+| | |
+| --- | --- |
+| `AppLocalizations.forLocale(...)` then three getters | 6 ns |
+| `context.l10n` then the same three getters | 44 ns |
+| `AppLocalizations.of(L10nLocale.parse(tag))` | 394 ns |
+
+`context.l10n` costs about eight times the direct call, and the difference is
+`dependOnInheritedWidgetOfExactType` — Flutter's, not this library's. Reading
+a translation through a `BuildContext` is still an order of magnitude cheaper
+than resolving a locale tag, which parses a string.
+
+Switching locale over a tree of 200 widgets, 100 of which read `context.l10n`:
+7.4 ms median of nine switches, 14.2 ms for the first because it compiles the
+Russian path. That is 74 µs per rebuilt widget, which is a `flutter test`
+number for Flutter's rebuild pipeline and says nothing about this package —
+what the package contributes is one `notifyListeners`.
+
+What is worth guarding, and is asserted rather than printed: **exactly the
+hundred widgets that read the locale rebuild, and the other hundred never do**
+— on every switch, not only the first. A scope that rebuilt its whole subtree
+would still pass a timing threshold on a fast machine and would be the real
+defect.
 
 ### A warning nobody can turn off is a warning nobody reads
 

@@ -20,6 +20,19 @@
     "likes": "{count, plural, offset:1 =0{Nobody likes this} =1{You like this} one{You and # other like this} other{You and # others like this}}"
   },
 
+  "showcase": {
+    "greeting": "{daypart, select, morning{Good morning, {name}} evening{Good evening, {name}} other{Hello, {name}}}",
+    "reward": "{count, plural, =0{Your next coffee is on us} one{# drink until your next free coffee} other{# drinks until your next free coffee}}",
+    "order": {
+      "title": "Order #{code}",
+      "items": "{count, plural, one{# item} other{# items}}",
+      "total": "{amount, number, simpleCurrency}",
+      "ready": "Ready at {at, time, jm}",
+      "queue": "You are {place, selectordinal, one{#st} two{#nd} few{#rd} other{#th}} in line",
+      "placed": "Placed on {on, date, yMMMd}"
+    }
+  },
+
   "profile": {
     "greeting": "{gender, select, male{Welcome, Mr. {name}} female{Welcome, Ms. {name}} other{Welcome, {name}}}"
   }

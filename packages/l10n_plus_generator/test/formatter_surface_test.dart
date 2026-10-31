@@ -94,6 +94,26 @@ String _surfaceBundle({String locale = 'en'}) {
     );
   });
 
+  // A plural whose count is rendered by a formatter. These exist so the
+  // runtime golden can *execute* the operand path: reading the source proves
+  // the call is there, running it proves `USD1.00` selects `other`.
+  const pluralStyles = {
+    'plural_currency': '{"type": "num", "format": "currency"}',
+    'plural_currency_whole':
+        '{"type": "num", "format": "currency", '
+        '"optionalParameters": {"decimalDigits": 0}}',
+    'plural_decimal': '{"type": "num", "format": "decimalPattern"}',
+  };
+  final branches = locale == 'en'
+      ? 'one{# card} other{# cards}'
+      : 'one{# карта} few{# карты} many{# карт} other{# карты}';
+  for (final key in pluralStyles.keys) {
+    buffer.write(',\n  "$key": "{count, plural, $branches}"');
+    buffer.write(
+      ',\n  "@$key": {"placeholders": {"count": ${pluralStyles[key]}}}',
+    );
+  }
+
   // What only a non base locale can say: restyle what the base declared,
   // keeping its currency, its digits and the shared Dart type.
   if (locale != 'en') {

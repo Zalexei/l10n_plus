@@ -2,6 +2,7 @@
 
 part of 'app_localizations.g.dart';
 
+final DateFormat _enDateJm = _dateFormat('en', () => DateFormat.jm('en'));
 final DateFormat _enDateYMMMd = _dateFormat('en', () => DateFormat.yMMMd('en'));
 final NumberFormat _enNumberCurrency = NumberFormat.currency(locale: 'en');
 final NumberFormat _enNumberCurrencyUsd = NumberFormat.currency(
@@ -11,6 +12,9 @@ final NumberFormat _enNumberCurrencyUsd = NumberFormat.currency(
 final NumberFormat _enNumberDecimalPattern = NumberFormat.decimalPattern('en');
 final NumberFormat _enNumberDecimalPatternDigits =
     NumberFormat.decimalPatternDigits(locale: 'en', decimalDigits: 0);
+final NumberFormat _enNumberSimpleCurrency = NumberFormat.simpleCurrency(
+  locale: 'en',
+);
 final NumberFormat _enNumberSimpleCurrencyUsd = NumberFormat.simpleCurrency(
   locale: 'en',
   name: 'USD',
@@ -32,6 +36,9 @@ class AppLocalizationsEn implements AppLocalizations {
 
   @override
   $Wallet get wallet => const $WalletEn();
+
+  @override
+  $Showcase get showcase => const $ShowcaseEn();
 
   @override
   $Profile get profile => const $ProfileEn();
@@ -118,7 +125,11 @@ class $WalletEn implements $Wallet {
       return 'You like this';
     }
     final $countOffset = count - 1;
-    final $operands = PluralOperands($countOffset);
+    final $operands = PluralOperands.formatted(
+      $countOffset,
+      minimumFractionDigits: _enNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _enNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return 'You and ${_enNumberDecimalPattern.format($countOffset)} other like this';
     }
@@ -126,7 +137,11 @@ class $WalletEn implements $Wallet {
   }
 
   String _summary$0({required num count}) {
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _enNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _enNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_enNumberDecimalPattern.format(count)} card';
     }
@@ -134,7 +149,102 @@ class $WalletEn implements $Wallet {
   }
 
   String _rank$0({required num place}) {
-    final $operands = PluralOperands(place);
+    final $operands = PluralOperands.formatted(
+      place,
+      minimumFractionDigits: _enNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _enNumberDecimalPattern.maximumFractionDigits,
+    );
+    if ($operands.n % 10 == 1 && $operands.n % 100 != 11) {
+      return '${_enNumberDecimalPattern.format(place)}st';
+    }
+    if ($operands.n % 10 == 2 && $operands.n % 100 != 12) {
+      return '${_enNumberDecimalPattern.format(place)}nd';
+    }
+    if ($operands.n % 10 == 3 && $operands.n % 100 != 13) {
+      return '${_enNumberDecimalPattern.format(place)}rd';
+    }
+    return '${_enNumberDecimalPattern.format(place)}th';
+  }
+}
+
+/// `en` translations under `showcase`.
+class $ShowcaseEn implements $Showcase {
+  /// Creates the en namespace.
+  const $ShowcaseEn();
+
+  @override
+  $ShowcaseOrder get order => const $ShowcaseOrderEn();
+
+  @override
+  String greeting({
+    required ShowcaseGreetingDaypart daypart,
+    required String name,
+  }) {
+    return switch (daypart) {
+      ShowcaseGreetingDaypart.morning => 'Good morning, $name',
+      ShowcaseGreetingDaypart.evening => 'Good evening, $name',
+      ShowcaseGreetingDaypart.other => 'Hello, $name',
+    };
+  }
+
+  @override
+  String reward({required num count}) {
+    if (count == 0) {
+      return 'Your next coffee is on us';
+    }
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _enNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _enNumberDecimalPattern.maximumFractionDigits,
+    );
+    if ($operands.i == 1 && $operands.v == 0) {
+      return '${_enNumberDecimalPattern.format(count)} drink until your next free coffee';
+    }
+    return '${_enNumberDecimalPattern.format(count)} drinks until your next free coffee';
+  }
+}
+
+/// `en` translations under `showcase.order`.
+class $ShowcaseOrderEn implements $ShowcaseOrder {
+  /// Creates the en namespace.
+  const $ShowcaseOrderEn();
+
+  @override
+  String title({required String code}) => 'Order #$code';
+
+  @override
+  String items({required num count}) {
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _enNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _enNumberDecimalPattern.maximumFractionDigits,
+    );
+    if ($operands.i == 1 && $operands.v == 0) {
+      return '${_enNumberDecimalPattern.format(count)} item';
+    }
+    return '${_enNumberDecimalPattern.format(count)} items';
+  }
+
+  @override
+  String total({required num amount}) => _enNumberSimpleCurrency.format(amount);
+
+  @override
+  String ready({required DateTime at}) => 'Ready at ${_enDateJm.format(at)}';
+
+  @override
+  String queue({required num place}) =>
+      'You are ${_queue$0(place: place)} in line';
+
+  @override
+  String placed({required DateTime on}) =>
+      'Placed on ${_enDateYMMMd.format(on)}';
+
+  String _queue$0({required num place}) {
+    final $operands = PluralOperands.formatted(
+      place,
+      minimumFractionDigits: _enNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _enNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.n % 10 == 1 && $operands.n % 100 != 11) {
       return '${_enNumberDecimalPattern.format(place)}st';
     }

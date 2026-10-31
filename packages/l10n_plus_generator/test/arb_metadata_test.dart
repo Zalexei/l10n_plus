@@ -85,15 +85,44 @@ void main() {
       expect(diagnostic.details, contains('double, int, num'));
     });
 
-    test('warn about a type on a select argument', () {
-      final result = runGenerator({
-        'en.arb':
-            '{"@@locale": "en", "g": "{g, select, a{A} other{B}}", '
-            '"@g": {"placeholders": {"g": {"type": "String"}}}}',
-      }, configYaml: _arbConfig);
+    test('say nothing about the type gen_l10n writes on every select', () {
+      // `"type": "String"` is required by gen_l10n's own schema for a select
+      // placeholder, and `Object` is what it writes when the type is left
+      // out. Warning about either would put a line on every select of every
+      // imported bundle, about something nobody can change.
+      for (final declared in ['String', 'Object']) {
+        final result = runGenerator({
+          'en.arb':
+              '{"@@locale": "en", "g": "{g, select, a{A} other{B}}", '
+              '"@g": {"placeholders": {"g": {"type": "$declared"}}}}',
+        }, configYaml: _arbConfig);
 
-      expect(codesOf(result), contains('ignored_placeholder_type'));
-      expect(errorsOf(result), isEmpty);
+        expect(
+          codesOf(result),
+          isNot(contains('ignored_placeholder_type')),
+          reason: declared,
+        );
+        expect(errorsOf(result), isEmpty, reason: declared);
+      }
+    });
+
+    test('warn about a type that contradicts the select', () {
+      // An author who declared `int` thinks this argument is a number. That
+      // is worth saying, and it is not what an exporter writes.
+      for (final declared in ['int', 'num', 'double']) {
+        final result = runGenerator({
+          'en.arb':
+              '{"@@locale": "en", "g": "{g, select, a{A} other{B}}", '
+              '"@g": {"placeholders": {"g": {"type": "$declared"}}}}',
+        }, configYaml: _arbConfig);
+
+        expect(
+          codesOf(result),
+          contains('ignored_placeholder_type'),
+          reason: declared,
+        );
+        expect(errorsOf(result), isEmpty, reason: declared);
+      }
     });
 
     test('warn about a declared placeholder the message never uses', () {

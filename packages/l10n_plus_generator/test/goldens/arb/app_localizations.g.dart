@@ -265,7 +265,11 @@ class $WalletEn implements $Wallet {
       'Statement from ${_enDateYMMMd.format(from)} for ${_enNumberCurrency.format(amount)}';
 
   String _cards$0({required num count}) {
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _enNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _enNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.i == 1 && $operands.v == 0) {
       return '${_enNumberDecimalPattern.format(count)} card';
     }
@@ -363,7 +367,11 @@ class $WalletRu implements $Wallet {
       'Выписка от ${_ruDateYMMMd.format(from)} на ${_ruNumberCurrency.format(amount)}';
 
   String _cards$0({required num count}) {
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} карта';
     }

@@ -73,6 +73,10 @@ extra_keys: error
 # Errors can never be listed here. See "Turning warnings off" below.
 ignore_diagnostics: []
 
+# The Flutter glue: L10nScope, the controller, context.l10n. On by default,
+# because most projects are Flutter projects. A Dart project turns it off —
+# the glue imports package:flutter, so a Dart project that leaves it on gets
+# a missing_flutter_dependency warning rather than a file it cannot compile.
 flutter:
   enabled: true
   context_extension: l10n
@@ -129,6 +133,7 @@ Then:
 
 ```bash
 dart run l10n_plus_generator generate
+dart run l10n_plus_generator generate --watch   # and again on every change
 ```
 
 The same file as YAML:
@@ -269,8 +274,9 @@ ambiguous across USD, CAD and AUD — pick it for finance, `simpleCurrency` for
 storefronts.
 
 The code must be three upper case letters. A code on a style that cannot use
-one, on a plural or select argument, or disagreeing with the code written in
-the message is an error. ICU number skeletons (`::currency/USD`) are not
+one, on a select argument, on a plural count that declares no currency format
+to spend it on, or disagreeing with the code written in the message is an
+error. ICU number skeletons (`::currency/USD`) are not
 supported; writing one gets a diagnostic naming the spelling that is.
 
 In ARB, write it the way `gen_l10n` does, so an exported bundle needs no edits:
@@ -370,6 +376,48 @@ t.cart.items(count: 1500)   // off: 1500 items
 
 The default stays `false`: flipping it changes the output of existing messages
 and adds `intl` to projects that had no formatting at all.
+
+### Formatting the count, and what it does to the plural
+
+A plural count can also declare its own format, and that wins over both the
+default and the flag:
+
+```json
+{
+  "cards": "{count, plural, one{# card} other{# cards}}",
+  "@cards": {
+    "placeholders": {
+      "count": {"type": "num", "format": "currency"}
+    }
+  }
+}
+```
+
+```dart
+t.cards(count: 1)   // USD1.00 cards
+```
+
+`cards` — not `card`. CLDR selects the plural category from the digits the
+reader actually sees, and a currency shows `1` as `USD1.00`: two visible
+fraction digits, which English reads as `other`. Drop them and the same value
+is singular again:
+
+```json
+"count": {"type": "num", "format": "currency",
+          "optionalParameters": {"decimalDigits": 0}}
+```
+
+```dart
+t.cards(count: 1)   // USD1 card
+```
+
+This is why the count's format and its plural category cannot be chosen
+separately. Tools that pick the category from the value instead render
+`USD1.00 card`.
+
+A count that no formatter renders is unaffected: it reads its own value, and a
+plural of pure words — `one{Delete the file} other{Delete the files}` — never
+consults a formatter at all.
 
 ## Several files per locale
 
@@ -576,6 +624,25 @@ dart run build_runner build --delete-conflicting-outputs
 Both entry points produce byte-identical output, and editing a translation
 triggers an incremental rebuild.
 
+## Renaming a key
+
+Renaming a key in the base locale leaves every other locale with the old name.
+That is one edit, so it is one finding rather than a `missing_key` and an
+`extra_key` per language:
+
+```
+translations/auth_de.json:3:5
+auth.login.title
+error[renamed_key]: Key "title" looks renamed to "headline" in en.
+  Base locale en: auth.login.headline (auth_en.json:3)
+  de locale: auth.login.title (auth_de.json:3)
+  They are the only difference in "auth.login", so rename it here too.
+```
+
+Only when a namespace has exactly one missing key and exactly one extra one:
+two of each could be two renames or four unrelated edits, and those are
+reported separately rather than guessed at.
+
 ## Untranslated keys
 
 A key the base locale has and another locale does not is an error, because a
@@ -660,6 +727,20 @@ silenced:
 No errors. 0 error(s), 3 warning(s). 1842 ignored.
 ```
 
+## Watching
+
+```bash
+dart run l10n_plus_generator generate --watch
+```
+
+Regenerates whenever a translation file, `l10n_plus.yaml` or `pubspec.yaml`
+changes, printing what it wrote and what it left alone. The configuration is
+re-read every time, so changing it takes effect without restarting, and an
+error does not stop the watch — fix the file and it regenerates. Nothing else
+in the project is watched, so saving a Dart file costs nothing.
+
+Only `generate` takes it: `analyze` and `unused` answer a question once.
+
 ## Unused keys
 
 ```bash
@@ -675,37 +756,52 @@ warning[unused_key]: Nothing refers to "wallet.deadKey".
 
 Exits non-zero when it finds any, so CI can enforce it.
 
-Names are matched as text, so a key is reported only when its member name
-appears nowhere at all — two keys called `title` count as used if either one
-is. That is deliberate: the scan will never call a live translation dead. The
-generated output, `.dart_tool` and `build` are not searched.
+A message counts as used only when **every** name on its path appears
+somewhere: reaching `t.wallet.limits.title` means writing `.wallet`, `.limits`
+and `.title`, in one expression or spread across locals and helpers. So a
+namespace nobody enters takes everything under it with it, and those collapse
+into one finding:
+
+```
+translations/wallet_en.json:41:5
+wallet.limits
+warning[unused_key]: Nothing refers to anything under "wallet.limits".
+  No Dart file uses ".limits" (12 file(s) searched).
+  Nothing reaches into "limits", so the 6 message(s) under it are unreachable:
+    wallet.limits.title
+    …
+```
+
+Names are still matched as text, so two keys under one namespace that both
+appear cannot be told apart. That is deliberate: the scan will never call a
+live translation dead. The generated output, `.dart_tool` and `build` are not
+searched.
 
 ## Development loop
 
-**There is no `l10n_plus_generator watch`.** For automatic regeneration while
-you edit translations, use `build_runner`, which has a watcher already:
+Editing translations while the app runs wants a watcher. There are two, they
+produce the same bytes, and neither is the workaround:
+
+```bash
+dart run l10n_plus_generator generate --watch
+```
 
 ```bash
 dart run build_runner watch --delete-conflicting-outputs
 ```
 
-That needs `l10n_plus_builder` and the `build.yaml` from
-[build_runner](#build_runner-optional) below — `build_runner` does not track a
-root level `translations/` directory unless you say so. Both entry points
-produce byte-identical output, so switching between them changes nothing in
-`lib/generated`.
+The CLI watcher needs nothing beyond the generator and is described under
+[Watching](#watching). `build_runner` needs `l10n_plus_builder` and the
+`build.yaml` from [build_runner](#build_runner-optional), because it does not
+track a root level `translations/` directory unless you say so.
 
-Without `build_runner`, rerun the CLI:
+Either way, generation rewrites only the files whose contents changed, so a
+running `flutter run` sees no churn when nothing did. A one-off regeneration
+is the same command without `--watch`:
 
 ```bash
 dart run l10n_plus_generator generate
 ```
-
-It rewrites only the files whose contents changed, so a watcher or a running
-`flutter run` sees no churn when nothing did.
-
-A CLI `watch` is on the roadmap; until it lands, the above is the answer rather
-than a workaround.
 
 ## CI
 
@@ -713,8 +809,19 @@ than a workaround.
 dart run l10n_plus_generator analyze
 ```
 
-Exits non-zero on any error and prints file, line, column, translation key, and
-what the base locale expected. Add `unused` as a second step when you want dead
+Exits non-zero on any error — in a translation *or* in `l10n_plus.yaml` — and
+prints file, line, column, translation key, and what the base locale expected.
+With `fill_missing_from_base` it also says how far each locale has got:
+
+```
+No errors. 0 error(s), 18 warning(s).
+
+Translated:
+  de  270/270
+  en  270/270
+  fr  1/270  (0%, 269 untranslated)
+  ru  270/270
+``` Add `unused` as a second step when you want dead
 translations to fail the build too.
 
 ## Benchmarks
@@ -733,7 +840,12 @@ rejected. Dart VM, JIT, one machine — read the ratios:
 | plural, CLDR branch | 21.8 ns | 74.9 ns |
 
 Namespace access allocates nothing — `identical(t.auth, t.auth)` is `true`,
-because every namespace object is `const`. Formatting a number costs more than
+because every namespace object is `const`, and a test reads the generated
+source to check that every accessor in it is.
+
+Through Flutter, `context.l10n` and three getters cost 44 ns against 6 ns for
+the same call without a `BuildContext`; the difference is Flutter's inherited
+widget lookup. Switching locale rebuilds exactly the widgets that read it. Formatting a number costs more than
 ten plural branches, which is why formatters are shared and `intl` stays out of
 projects that never format.
 

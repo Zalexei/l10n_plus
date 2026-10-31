@@ -26,5 +26,13 @@
   "wallet.symbolPrice": "Цена символом: {amount, number, simpleCurrency:USD}",
   "wallet.rank": "{place, selectordinal, other{#-й}} по величине",
   "wallet.likes": "{count, plural, offset:1 =0{Никому не нравится} =1{Вам нравится} one{Вам и ещё # человеку нравится} few{Вам и ещё # людям нравится} many{Вам и ещё # людям нравится} other{Вам и ещё # людям нравится}}",
+  "showcase.greeting": "{daypart, select, morning{Доброе утро, {name}} evening{Добрый вечер, {name}} other{Здравствуйте, {name}}}",
+  "showcase.reward": "{count, plural, =0{Следующий кофе за наш счёт} one{Ещё # напиток до бесплатного кофе} few{Ещё # напитка до бесплатного кофе} many{Ещё # напитков до бесплатного кофе} other{Ещё # напитка до бесплатного кофе}}",
+  "showcase.order.title": "Заказ №{code}",
+  "showcase.order.items": "{count, plural, one{# позиция} few{# позиции} many{# позиций} other{# позиции}}",
+  "showcase.order.total": "{amount, number, simpleCurrency}",
+  "showcase.order.ready": "Готов в {at, time, jm}",
+  "showcase.order.queue": "Вы {place, selectordinal, other{#-й}} в очереди",
+  "showcase.order.placed": "Оформлен {on, date, yMMMd}",
   "profile.greeting": "{gender, select, male{Добро пожаловать, {name}} female{Добро пожаловать, {name}} other{Добро пожаловать, {name}}}"
 }

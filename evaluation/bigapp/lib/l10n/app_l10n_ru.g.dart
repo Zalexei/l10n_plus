@@ -79,7 +79,11 @@ class $AuthLoginRu implements $AuthLogin {
     if (count == 0) {
       return 'Нет login';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} login';
     }
@@ -128,7 +132,11 @@ class $AuthSignupRu implements $AuthSignup {
     if (count == 0) {
       return 'Нет signup';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} signup';
     }
@@ -184,7 +192,11 @@ class $AuthPasswordRu implements $AuthPassword {
     if (count == 0) {
       return 'Нет password';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} password';
     }
@@ -234,7 +246,11 @@ class $AuthTwoFactorRu implements $AuthTwoFactor {
     if (count == 0) {
       return 'Нет twoFactor';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} twoFactor';
     }
@@ -290,7 +306,11 @@ class $AuthSessionRu implements $AuthSession {
     if (count == 0) {
       return 'Нет session';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} session';
     }
@@ -345,7 +365,11 @@ class $CheckoutCartRu implements $CheckoutCart {
     if (count == 0) {
       return 'Нет cart';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} cart';
     }
@@ -394,7 +418,11 @@ class $CheckoutShippingRu implements $CheckoutShipping {
     if (count == 0) {
       return 'Нет shipping';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} shipping';
     }
@@ -450,7 +478,11 @@ class $CheckoutPaymentRu implements $CheckoutPayment {
     if (count == 0) {
       return 'Нет payment';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} payment';
     }
@@ -500,7 +532,11 @@ class $CheckoutReviewRu implements $CheckoutReview {
     if (count == 0) {
       return 'Нет review';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} review';
     }
@@ -556,7 +592,11 @@ class $CheckoutReceiptRu implements $CheckoutReceipt {
     if (count == 0) {
       return 'Нет receipt';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} receipt';
     }
@@ -611,7 +651,11 @@ class $ErrorsNetworkRu implements $ErrorsNetwork {
     if (count == 0) {
       return 'Нет network';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} network';
     }
@@ -660,7 +704,11 @@ class $ErrorsServerRu implements $ErrorsServer {
     if (count == 0) {
       return 'Нет server';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} server';
     }
@@ -716,7 +764,11 @@ class $ErrorsValidationRu implements $ErrorsValidation {
     if (count == 0) {
       return 'Нет validation';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} validation';
     }
@@ -766,7 +818,11 @@ class $ErrorsAuthRu implements $ErrorsAuth {
     if (count == 0) {
       return 'Нет auth';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} auth';
     }
@@ -822,7 +878,11 @@ class $ErrorsUnknownRu implements $ErrorsUnknown {
     if (count == 0) {
       return 'Нет unknown';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} unknown';
     }
@@ -877,7 +937,11 @@ class $MessagesInboxRu implements $MessagesInbox {
     if (count == 0) {
       return 'Нет inbox';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} inbox';
     }
@@ -926,7 +990,11 @@ class $MessagesThreadRu implements $MessagesThread {
     if (count == 0) {
       return 'Нет thread';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} thread';
     }
@@ -982,7 +1050,11 @@ class $MessagesComposeRu implements $MessagesCompose {
     if (count == 0) {
       return 'Нет compose';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} compose';
     }
@@ -1032,7 +1104,11 @@ class $MessagesAttachmentsRu implements $MessagesAttachments {
     if (count == 0) {
       return 'Нет attachments';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} attachments';
     }
@@ -1088,7 +1164,11 @@ class $MessagesMutedRu implements $MessagesMuted {
     if (count == 0) {
       return 'Нет muted';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} muted';
     }
@@ -1143,7 +1223,11 @@ class $OnboardingWelcomeRu implements $OnboardingWelcome {
     if (count == 0) {
       return 'Нет welcome';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} welcome';
     }
@@ -1192,7 +1276,11 @@ class $OnboardingPermissionsRu implements $OnboardingPermissions {
     if (count == 0) {
       return 'Нет permissions';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} permissions';
     }
@@ -1248,7 +1336,11 @@ class $OnboardingTourRu implements $OnboardingTour {
     if (count == 0) {
       return 'Нет tour';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} tour';
     }
@@ -1298,7 +1390,11 @@ class $OnboardingFinishRu implements $OnboardingFinish {
     if (count == 0) {
       return 'Нет finish';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} finish';
     }
@@ -1354,7 +1450,11 @@ class $OnboardingSkipRu implements $OnboardingSkip {
     if (count == 0) {
       return 'Нет skip';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} skip';
     }
@@ -1409,7 +1509,11 @@ class $ProfileIdentityRu implements $ProfileIdentity {
     if (count == 0) {
       return 'Нет identity';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} identity';
     }
@@ -1458,7 +1562,11 @@ class $ProfileContactRu implements $ProfileContact {
     if (count == 0) {
       return 'Нет contact';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} contact';
     }
@@ -1514,7 +1622,11 @@ class $ProfilePrivacyRu implements $ProfilePrivacy {
     if (count == 0) {
       return 'Нет privacy';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} privacy';
     }
@@ -1564,7 +1676,11 @@ class $ProfileDevicesRu implements $ProfileDevices {
     if (count == 0) {
       return 'Нет devices';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} devices';
     }
@@ -1620,7 +1736,11 @@ class $ProfileDangerRu implements $ProfileDanger {
     if (count == 0) {
       return 'Нет danger';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} danger';
     }
@@ -1675,7 +1795,11 @@ class $SearchQueryRu implements $SearchQuery {
     if (count == 0) {
       return 'Нет query';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} query';
     }
@@ -1724,7 +1848,11 @@ class $SearchFiltersRu implements $SearchFilters {
     if (count == 0) {
       return 'Нет filters';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} filters';
     }
@@ -1780,7 +1908,11 @@ class $SearchSortRu implements $SearchSort {
     if (count == 0) {
       return 'Нет sort';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} sort';
     }
@@ -1830,7 +1962,11 @@ class $SearchEmptyRu implements $SearchEmpty {
     if (count == 0) {
       return 'Нет empty';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} empty';
     }
@@ -1886,7 +2022,11 @@ class $SearchRecentRu implements $SearchRecent {
     if (count == 0) {
       return 'Нет recent';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} recent';
     }
@@ -1941,7 +2081,11 @@ class $SettingsGeneralRu implements $SettingsGeneral {
     if (count == 0) {
       return 'Нет general';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} general';
     }
@@ -1990,7 +2134,11 @@ class $SettingsNotificationsRu implements $SettingsNotifications {
     if (count == 0) {
       return 'Нет notifications';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} notifications';
     }
@@ -2046,7 +2194,11 @@ class $SettingsAppearanceRu implements $SettingsAppearance {
     if (count == 0) {
       return 'Нет appearance';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} appearance';
     }
@@ -2096,7 +2248,11 @@ class $SettingsLanguageRu implements $SettingsLanguage {
     if (count == 0) {
       return 'Нет language';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} language';
     }
@@ -2152,7 +2308,11 @@ class $SettingsAboutRu implements $SettingsAbout {
     if (count == 0) {
       return 'Нет about';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} about';
     }
@@ -2207,7 +2367,11 @@ class $WalletBalanceRu implements $WalletBalance {
     if (count == 0) {
       return 'Нет balance';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} balance';
     }
@@ -2256,7 +2420,11 @@ class $WalletTopUpRu implements $WalletTopUp {
     if (count == 0) {
       return 'Нет topUp';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} topUp';
     }
@@ -2312,7 +2480,11 @@ class $WalletWithdrawRu implements $WalletWithdraw {
     if (count == 0) {
       return 'Нет withdraw';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} withdraw';
     }
@@ -2362,7 +2534,11 @@ class $WalletHistoryRu implements $WalletHistory {
     if (count == 0) {
       return 'Нет history';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} history';
     }
@@ -2418,7 +2594,11 @@ class $WalletLimitsRu implements $WalletLimits {
     if (count == 0) {
       return 'Нет limits';
     }
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} limits';
     }

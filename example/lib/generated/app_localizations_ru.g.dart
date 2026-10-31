@@ -2,6 +2,7 @@
 
 part of 'app_localizations.g.dart';
 
+final DateFormat _ruDateJm = _dateFormat('ru', () => DateFormat.jm('ru'));
 final DateFormat _ruDateYMMMd = _dateFormat('ru', () => DateFormat.yMMMd('ru'));
 final NumberFormat _ruNumberCurrencyDigits0 = NumberFormat.currency(
   locale: 'ru',
@@ -15,6 +16,9 @@ final NumberFormat _ruNumberCurrencyUsdSymbol9985 = NumberFormat.currency(
 final NumberFormat _ruNumberDecimalPattern = NumberFormat.decimalPattern('ru');
 final NumberFormat _ruNumberDecimalPatternDigits =
     NumberFormat.decimalPatternDigits(locale: 'ru', decimalDigits: 0);
+final NumberFormat _ruNumberSimpleCurrency = NumberFormat.simpleCurrency(
+  locale: 'ru',
+);
 final NumberFormat _ruNumberSimpleCurrencyUsd = NumberFormat.simpleCurrency(
   locale: 'ru',
   name: 'USD',
@@ -36,6 +40,9 @@ class AppLocalizationsRu implements AppLocalizations {
 
   @override
   $Wallet get wallet => const $WalletRu();
+
+  @override
+  $Showcase get showcase => const $ShowcaseRu();
 
   @override
   $Profile get profile => const $ProfileRu();
@@ -135,7 +142,11 @@ class $WalletRu implements $Wallet {
       return 'Вам нравится';
     }
     final $countOffset = count - 1;
-    final $operands = PluralOperands($countOffset);
+    final $operands = PluralOperands.formatted(
+      $countOffset,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return 'Вам и ещё ${_ruNumberDecimalPattern.format($countOffset)} человеку нравится';
     }
@@ -156,7 +167,11 @@ class $WalletRu implements $Wallet {
   }
 
   String _summary$0({required num count}) {
-    final $operands = PluralOperands(count);
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
     if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
       return '${_ruNumberDecimalPattern.format(count)} карта';
     }
@@ -177,6 +192,109 @@ class $WalletRu implements $Wallet {
   }
 
   String _rank$0({required num place}) {
+    return '${_ruNumberDecimalPattern.format(place)}-й';
+  }
+}
+
+/// `ru` translations under `showcase`.
+class $ShowcaseRu implements $Showcase {
+  /// Creates the ru namespace.
+  const $ShowcaseRu();
+
+  @override
+  $ShowcaseOrder get order => const $ShowcaseOrderRu();
+
+  @override
+  String greeting({
+    required ShowcaseGreetingDaypart daypart,
+    required String name,
+  }) {
+    return switch (daypart) {
+      ShowcaseGreetingDaypart.morning => 'Доброе утро, $name',
+      ShowcaseGreetingDaypart.evening => 'Добрый вечер, $name',
+      ShowcaseGreetingDaypart.other => 'Здравствуйте, $name',
+    };
+  }
+
+  @override
+  String reward({required num count}) {
+    if (count == 0) {
+      return 'Следующий кофе за наш счёт';
+    }
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
+    if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
+      return 'Ещё ${_ruNumberDecimalPattern.format(count)} напиток до бесплатного кофе';
+    }
+    if ($operands.v == 0 &&
+        $operands.i % 10 >= 2 &&
+        $operands.i % 10 <= 4 &&
+        !($operands.i % 100 >= 12 && $operands.i % 100 <= 14)) {
+      return 'Ещё ${_ruNumberDecimalPattern.format(count)} напитка до бесплатного кофе';
+    }
+    if ($operands.v == 0 && $operands.i % 10 == 0 ||
+        $operands.v == 0 && $operands.i % 10 >= 5 && $operands.i % 10 <= 9 ||
+        $operands.v == 0 &&
+            $operands.i % 100 >= 11 &&
+            $operands.i % 100 <= 14) {
+      return 'Ещё ${_ruNumberDecimalPattern.format(count)} напитков до бесплатного кофе';
+    }
+    return 'Ещё ${_ruNumberDecimalPattern.format(count)} напитка до бесплатного кофе';
+  }
+}
+
+/// `ru` translations under `showcase.order`.
+class $ShowcaseOrderRu implements $ShowcaseOrder {
+  /// Creates the ru namespace.
+  const $ShowcaseOrderRu();
+
+  @override
+  String title({required String code}) => 'Заказ №$code';
+
+  @override
+  String items({required num count}) {
+    final $operands = PluralOperands.formatted(
+      count,
+      minimumFractionDigits: _ruNumberDecimalPattern.minimumFractionDigits,
+      maximumFractionDigits: _ruNumberDecimalPattern.maximumFractionDigits,
+    );
+    if ($operands.v == 0 && $operands.i % 10 == 1 && $operands.i % 100 != 11) {
+      return '${_ruNumberDecimalPattern.format(count)} позиция';
+    }
+    if ($operands.v == 0 &&
+        $operands.i % 10 >= 2 &&
+        $operands.i % 10 <= 4 &&
+        !($operands.i % 100 >= 12 && $operands.i % 100 <= 14)) {
+      return '${_ruNumberDecimalPattern.format(count)} позиции';
+    }
+    if ($operands.v == 0 && $operands.i % 10 == 0 ||
+        $operands.v == 0 && $operands.i % 10 >= 5 && $operands.i % 10 <= 9 ||
+        $operands.v == 0 &&
+            $operands.i % 100 >= 11 &&
+            $operands.i % 100 <= 14) {
+      return '${_ruNumberDecimalPattern.format(count)} позиций';
+    }
+    return '${_ruNumberDecimalPattern.format(count)} позиции';
+  }
+
+  @override
+  String total({required num amount}) => _ruNumberSimpleCurrency.format(amount);
+
+  @override
+  String ready({required DateTime at}) => 'Готов в ${_ruDateJm.format(at)}';
+
+  @override
+  String queue({required num place}) =>
+      'Вы ${_queue$0(place: place)} в очереди';
+
+  @override
+  String placed({required DateTime on}) =>
+      'Оформлен ${_ruDateYMMMd.format(on)}';
+
+  String _queue$0({required num place}) {
     return '${_ruNumberDecimalPattern.format(place)}-й';
   }
 }

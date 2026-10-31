@@ -60,6 +60,38 @@ final class GeneratedFile {
   final String contents;
 }
 
+/// How much of the base locale one locale actually translates.
+///
+/// The question a partial rollout is asking. It is only ever interesting
+/// alongside `fill_missing_from_base`: without it an untranslated key is an
+/// error and there is no partial state to report.
+final class LocaleCoverage {
+  /// Creates a coverage figure.
+  const LocaleCoverage({
+    required this.locale,
+    required this.translated,
+    required this.total,
+  });
+
+  /// The locale, as a file tag.
+  final String locale;
+
+  /// Messages this locale defines itself.
+  final int translated;
+
+  /// Messages the base locale defines.
+  final int total;
+
+  /// Messages falling back to the base locale.
+  int get untranslated => total - translated;
+
+  /// Whether nothing is missing.
+  bool get isComplete => untranslated == 0;
+
+  /// Rounded down, so 99% never reads as complete.
+  int get percent => total == 0 ? 100 : (translated * 100) ~/ total;
+}
+
 /// Outcome of one pipeline run.
 final class GenerationResult {
   /// Creates a result.
@@ -68,6 +100,7 @@ final class GenerationResult {
     required this.files,
     this.keys = const [],
     this.ignoredCount = 0,
+    this.coverage = const [],
   });
 
   /// Everything reported along the way, in stage order.
@@ -81,6 +114,11 @@ final class GenerationResult {
   /// For tools that ask questions about the result rather than write it —
   /// today, which keys nothing uses.
   final List<TranslationKey> keys;
+
+  /// How much of the base locale each locale translates, in locale order.
+  ///
+  /// Empty when generation stopped before a model existed.
+  final List<LocaleCoverage> coverage;
 
   /// How many warnings `ignore_diagnostics` dropped.
   ///
@@ -201,6 +239,31 @@ final class L10nPlusGenerator {
           '  file_pattern: "$pattern"',
         ))
         .toString();
+  }
+
+  /// What each locale translates of the base locale.
+  ///
+  /// A message counts as translated when the locale has a body of its own;
+  /// one filled from the base does not, which is the same rule the emitter
+  /// uses to mark a member untranslated.
+  static List<LocaleCoverage> _coverageOf(LocalizationModel model) {
+    final messages = <MessageModel>[];
+    void collect(NamespaceModel namespace) {
+      messages.addAll(namespace.messages);
+      namespace.children.forEach(collect);
+    }
+
+    collect(model.root);
+    return [
+      for (final locale in model.locales)
+        LocaleCoverage(
+          locale: locale.locale.toFileTag(),
+          translated: messages
+              .where((m) => m.bodies.containsKey(locale.tag))
+              .length,
+          total: messages.length,
+        ),
+    ];
   }
 
   /// Every base locale message the last generation produced, flattened.
@@ -374,6 +437,9 @@ final class L10nPlusGenerator {
     if (emitter.formatters.isNotEmpty) {
       _checkIntlDependency(pubspec, diagnostics);
     }
+    if (config.flutter.enabled) {
+      _checkFlutterDependency(pubspec, diagnostics);
+    }
 
     final files = <GeneratedFile>[
       ...core,
@@ -389,6 +455,7 @@ final class L10nPlusGenerator {
       files: files,
       keys: _keysOf(model.root),
       ignoredCount: diagnostics.ignoredCount,
+      coverage: _coverageOf(model),
     );
   }
 
@@ -420,6 +487,60 @@ final class L10nPlusGenerator {
             'Add it to pubspec.yaml:\n'
             '  dependencies:\n'
             '    intl: any',
+      ),
+    );
+  }
+
+  /// Warns when the Flutter glue is about to be generated but the project
+  /// cannot compile it.
+  ///
+  /// `flutter.enabled` is on by default, so a Dart project that writes the
+  /// shortest configuration the CLI accepts gets a file built out of
+  /// `BuildContext` and `L10nScope`, and a screen of analyzer errors with
+  /// nothing saying where they came from. One warning here is the difference
+  /// between a one line fix and reading generated code.
+  void _checkFlutterDependency(
+    String? pubspec,
+    DiagnosticCollector diagnostics,
+  ) {
+    if (pubspec == null) return;
+
+    final Object? document;
+    try {
+      document = loadYaml(pubspec);
+    } on YamlException {
+      return; // Not our file to complain about.
+    }
+    if (document is! YamlMap) return;
+    final dependencies = document['dependencies'];
+    final declared = dependencies is YamlMap
+        ? dependencies.keys.toSet()
+        : <Object?>{};
+
+    final missing = [
+      for (final name in const ['flutter', 'l10n_plus_flutter'])
+        if (!declared.contains(name)) name,
+    ];
+    if (missing.isEmpty) return;
+
+    diagnostics.add(
+      Diagnostic.warning(
+        code: 'missing_flutter_dependency',
+        message:
+            'The Flutter glue is generated because "flutter.enabled" is on, '
+            'but this project does not depend on '
+            '${missing.join(' or ')}.',
+        details:
+            'The generated file imports package:flutter and '
+            'package:l10n_plus_flutter, so it will not compile here.\n'
+            'In a Dart project, turn the glue off:\n'
+            '  flutter:\n'
+            '    enabled: false\n'
+            'In a Flutter project, add what is missing:\n'
+            '  dependencies:\n'
+            '    flutter:\n'
+            '      sdk: flutter\n'
+            '    l10n_plus_flutter: any',
       ),
     );
   }

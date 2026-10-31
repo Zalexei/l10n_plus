@@ -191,4 +191,50 @@ void main() {
       }
     });
   });
+
+  group('a plural whose count is formatted', () {
+    test('a currency makes a whole number plural, because it shows .00', () {
+      // The decision this path exists for. `1` renders as `USD1.00`, CLDR
+      // reads two visible fraction digits, and English says `other`. Reading
+      // the source only proves the call is there; this proves the branch.
+      expect(en.pluralCurrency(count: 1), 'USD1.00 cards');
+      expect(en.pluralCurrency(count: 2), 'USD2.00 cards');
+    });
+
+    test('drop the fraction digits and the same value is singular', () {
+      // Same number, same message, different formatter: nothing but the
+      // visible digits changed, and that is exactly what CLDR reads.
+      expect(en.pluralCurrencyWhole(count: 1), 'USD1 card');
+      expect(en.pluralCurrencyWhole(count: 2), 'USD2 cards');
+    });
+
+    test('a decimal pattern leaves a whole number singular', () {
+      expect(en.pluralDecimal(count: 1), '1 card');
+      expect(en.pluralDecimal(count: 2), '2 cards');
+    });
+
+    test('a whole double is singular when it displays as whole', () {
+      // `1.0` is the case the roadmap asked about. Under a formatter there is
+      // no ambiguity left to resolve: the decimal pattern prints `1`, so the
+      // operands say one visible integer and no fraction, and `one` is right.
+      expect(en.pluralDecimal(count: 1.0), '1 card');
+      // And under a currency the very same value prints `USD1.00`, which is
+      // `other`. One value, two answers, decided by what the reader sees.
+      expect(en.pluralCurrency(count: 1.0), 'USD1.00 cards');
+    });
+
+    test('a fraction is read after the formatter rounds it', () {
+      // `decimalPattern` stops at three digits, so `1.23456` displays as
+      // `1.235`: v is 3, not the 5 the value carries.
+      expect(en.pluralDecimal(count: 1.23456), '1.235 cards');
+    });
+
+    test('Russian selects on the digits it shows, in its own categories', () {
+      // `one` in Russian needs v == 0, so a currency can never reach it.
+      expect(ru.pluralCurrency(count: 1), isNot(contains('карта')));
+      expect(ru.pluralCurrencyWhole(count: 1), contains('карта'));
+      expect(ru.pluralCurrencyWhole(count: 3), contains('карты'));
+      expect(ru.pluralCurrencyWhole(count: 5), contains('карт'));
+    });
+  });
 }

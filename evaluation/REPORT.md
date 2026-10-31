@@ -8,6 +8,13 @@ here.
 Baseline at the start of the session: `dart analyze` clean, 410 package tests,
 20 example tests.
 
+**This is a snapshot, not a status page.** It records what was true when the
+four applications were built, at Milestones 19 and 20: CLDR tables at 74
+languages, 553 package tests, sixteen probes. Later milestones moved all
+three. The figures as they stand are at the end, under
+[Verification](#verification); `README.md` and `docs/roadmap.md` carry the
+rest.
+
 ---
 
 ## Summary
@@ -366,20 +373,23 @@ unedited TMS export with flat dotted keys generated a nested API with
 
 ### Where it hurts in week two
 
-**A rename is 2N errors with no hint that it was a rename.** Renaming
-`auth.login.title` to `headline` in the base locale produced, per locale, one
-`missing_key` and one `extra_key`. Both are precise; neither says "these two
-look like the same rename". At three locales that is four errors for one
-edit; at twenty it is forty.
+**~~A rename is 2N errors with no hint that it was a rename.~~ Fixed.**
+Renaming `auth.login.title` to `headline` in the base locale produced, per
+locale, one `missing_key` and one `extra_key`; neither said "these two look
+like the same rename". A namespace with exactly one missing and exactly one
+extra key of the same kind now gets a single `renamed_key` naming both sides
+with their files and lines. On the four locale app: six errors became three,
+one per language that lags. Two of each is still reported separately, because
+that could be two renames or four unrelated edits.
 
-**`unused` is structurally blind to the naming large apps use.** On the 810
-message app it reported "No unused keys. 270 checked" — while the app
-referenced perhaps eight of them. The scan matches member names as text, so
-with a conventional `feature.group.title` / `.subtitle` / `.action` scheme
-every key is "used" as soon as any one key with that leaf name is. It does
-find a uniquely named dead key (`wallet.limits.obsoleteWireTransferBanner`
-was reported immediately). The README documents the conservatism; what it does
-not say is that at scale with conventional naming the command finds nothing.
+**~~`unused` is structurally blind to the naming large apps use.~~ Fixed.**
+On the 810 message app it reported "No unused keys. 270 checked" while the app
+referenced eight of them: the scan matched the leaf member name, and a
+conventional `feature.group.title` / `.subtitle` / `.action` scheme uses each
+of those words on the first screen. It now requires every name on a key's path
+to appear, which is safe for the same reason the old rule was — each step has
+to be named to be taken — and reports 234 of 270 on that app, collapsed into
+19 findings.
 
 **A partially translated locale renders base locale *formatting*, not just
 base locale words.** In `evaluation/tms`, Spanish shows
@@ -389,25 +399,29 @@ looks untranslated rather than half translated), but it surprised me, and it
 is worth knowing before turning the option on for a right-to-left or
 CJK locale.
 
-**No count of what is untranslated.** `analyze` on the partial French rollout
-printed "0 error(s), 18 warning(s)" for 269 untranslated messages. The
-individual warnings now carry counts, but nothing totals them, so
-"how far along is French" is not a question the tool answers.
+**~~No count of what is untranslated.~~ Fixed.** `analyze` on the partial
+French rollout printed "0 error(s), 18 warning(s)" for 269 untranslated
+messages. It now prints a per locale table — `fr 1/270 (0%, 269
+untranslated)` — and only when something is incomplete.
 
-**`ignored_placeholder_type` fires on the canonical `gen_l10n` spelling.** A
-real ARB bundle writes `"tone": {"type": "String"}` for a select placeholder.
-Every one of those produces a warning about something the exporting tool
-wrote and the user cannot remove without editing a generated bundle.
+**~~`ignored_placeholder_type` fires on the canonical `gen_l10n` spelling.~~
+Fixed.** A real ARB bundle writes `"tone": {"type": "String"}` for a select
+placeholder, which gen_l10n's schema requires. `String` and `Object` are now
+silent; a declared `int` still warns, because that is an author who thinks the
+argument is a number.
 
-**`unknown_config_key` lists but does not suggest.** `file_per_local` gets all
-eleven known keys; the one-edit-distance match is not called out.
+**~~`unknown_config_key` lists but does not suggest.~~ Fixed.**
+`file_per_local` now gets "Did you mean file_per_locale?" ahead of the list.
 
-**Forgetting `initialize<Class>Formatting()` fails with `intl`'s message,
-which names the wrong function.** The stack trace does point into the
-generated file, but the text says "call `initializeDateFormatting(<locale>)`",
-which is not the function this library gives you. Confirmed by running it.
+**~~Forgetting `initialize<Class>Formatting()` fails with `intl`'s message.~~
+Fixed.** Running it now gives "Date symbols for \"ru\" are not loaded. Call
+`await initializeStatementsFormatting()` …", with intl's original error kept
+underneath.
 
-**Still no watch mode**, as previously known.
+**~~Still no watch mode.~~ Fixed.** `generate --watch` rebuilds on a change
+to a translation, the config or `pubspec.yaml`, re-reads the configuration
+each time, and survives errors. Nothing else in the project is watched, so
+saving a Dart file costs nothing.
 
 ---
 
@@ -415,7 +429,7 @@ which is not the function this library gives you. Confirmed by running it.
 
 ```
 dart format . && dart analyze .     clean
-dart test packages                  451 passed  (was 410)
+dart test packages                  553 passed  (was 410)
 cd example && flutter test           20 passed
 ```
 
@@ -425,3 +439,9 @@ Evaluation projects: 11 + 20 + 7 tests under `dart test`, 5 under
 The two plural tables are checked against 74 languages each: cardinals against
 `package:intl` on ~90 samples per language, ordinals against a vendored ICU
 dump on 1214.
+
+Re-measured on 2026-10-31, after Milestones 21 to 25: `dart analyze` still
+clean, 592 package tests and 29 example tests pass, `probe.sh` replays
+eighteen mistakes, and the tables cover 222 cardinal and 107 ordinal
+languages — every language CLDR publishes rules for, which is why the two are
+no longer the same set.

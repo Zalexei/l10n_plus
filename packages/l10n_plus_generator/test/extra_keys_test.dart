@@ -112,12 +112,26 @@ void main() {
     });
 
     test('a missing key is still an error', () {
+      // No extra key to pair it with, so this is a plain `missing_key`:
+      // tolerating a translation that outlived its key does not tolerate a
+      // key that has no translation.
+      final result = runGenerator({
+        'en.json': '{"a": "A", "b": "B"}',
+        'ru.json': '{"a": "А"}',
+      }, configYaml: _config('extra_keys: warn'));
+
+      expect(errorsOf(result), contains('missing_key'));
+    });
+
+    test('one missing and one extra key read as a rename, and still fail', () {
       final result = runGenerator({
         'en.json': '{"a": "A", "b": "B"}',
         'ru.json': '{"a": "А", "c": "В"}',
       }, configYaml: _config('extra_keys: warn'));
 
-      expect(errorsOf(result), contains('missing_key'));
+      expect(errorsOf(result), contains('renamed_key'));
+      expect(codesOf(result), isNot(contains('missing_key')));
+      expect(codesOf(result), isNot(contains('extra_key')));
     });
   });
 

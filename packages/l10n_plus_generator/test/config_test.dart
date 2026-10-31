@@ -72,4 +72,54 @@ void main() {
     expect(config.flutter.enabled, isFalse);
     expect(config.flutter.contextExtension, 'strings');
   });
+
+  group('a near miss is named', () {
+    List<Diagnostic> parse(String yaml) {
+      final diagnostics = DiagnosticCollector();
+      L10nPlusConfig.parse(
+        yaml,
+        uri: Uri.parse('file:///l10n_plus.yaml'),
+        diagnostics: diagnostics,
+      );
+      return diagnostics.diagnostics;
+    }
+
+    const base = 'base_locale: en\nfallback_locale: en\n';
+
+    String? suggestion(String key) {
+      final diagnostic = parse(
+        '$base$key: true\n',
+      ).firstWhere((d) => d.code == 'unknown_config_key');
+      final match = RegExp(
+        r'Did you mean "([a-z_]+)"',
+      ).firstMatch(diagnostic.details ?? '');
+      return match?.group(1);
+    }
+
+    test('one edit away', () {
+      expect(suggestion('file_per_local'), 'file_per_locale');
+      expect(suggestion('base_local'), 'base_locale');
+      expect(suggestion('class_names'), 'class_name');
+    });
+
+    test('a transposition and a wrong separator', () {
+      expect(suggestion('output-directory'), 'output_directory');
+      expect(suggestion('fillMissingFromBase'), null);
+    });
+
+    test('a key that resembles nothing gets no guess', () {
+      // A wrong suggestion is worse than the list of every key, which is
+      // printed either way.
+      expect(suggestion('translations'), null);
+      expect(suggestion('locale'), null);
+    });
+
+    test('the list of known keys is printed regardless', () {
+      final diagnostic = parse(
+        '${base}file_per_local: true\n',
+      ).firstWhere((d) => d.code == 'unknown_config_key');
+      expect(diagnostic.details, contains('Known keys:'));
+      expect(diagnostic.details, contains('file_per_locale'));
+    });
+  });
 }
