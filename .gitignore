@@ -10,3 +10,7 @@ pubspec.lock
 # Evaluation projects resolve against the local packages, not pub.dev.
 evaluation/*/.dart_tool/
 evaluation/probes/workspace/lib/
+
+# Session hand-off prompts: local paths, and a milestone count that goes stale.
+docs/audit-prompt.md
+docs/next-session-prompt.md
