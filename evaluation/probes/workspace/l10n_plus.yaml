@@ -2,5 +2,6 @@ input_directory: translations
 output_directory: lib/l10n
 base_locale: en
 fallback_locale: en
+runtime_overrides: true
 flutter:
   enabled: false

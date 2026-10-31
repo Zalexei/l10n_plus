@@ -189,7 +189,7 @@ exit=1
 l10n_plus.yaml:5:17
 warning[unknown_config_key]: Unknown configuration key "file_per_local".
   Did you mean "file_per_locale"?
-  Known keys: base_locale, class_name, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, locale_enum_name, output_directory.
+  Known keys: base_locale, class_name, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, locale_enum_name, output_directory, runtime_overrides.
   ╷
 5 │ file_per_local: true
   │                 ^^^^
@@ -208,7 +208,7 @@ exit=1
 l10n_plus.yaml:5:17
 warning[unknown_config_key]: Unknown configuration key "file_per_local".
   Did you mean "file_per_locale"?
-  Known keys: base_locale, class_name, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, locale_enum_name, output_directory.
+  Known keys: base_locale, class_name, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, locale_enum_name, output_directory, runtime_overrides.
   ╷
 5 │ file_per_local: true
   │                 ^^^^
@@ -273,3 +273,22 @@ exit=0
     }
     return '${_enNumberCurrency.format(count)} cards';
   }
+
+######## 19. an override branch the locale's plural rules cannot select ########
+overrides_ru.json:1:48
+items
+error[unknown_override_branch]: "two" is not a branch of "items" in ru.
+  CLDR 48 gives "ru" the categories few, many, one, other here, so nothing in it can select a "two" branch.
+  Branches of "items":
+    one
+    few
+    many
+    other
+  ╷
+1 │ {"@@locale": "ru", "items": {"one": "# штука", "two": "# штуки", "other": "# штук"}}
+  │                                                ^^^^^
+  ╵
+
+1 error(s), 0 warning(s).
+An override is text; the shape around it is the one the application compiled.
+exit=1

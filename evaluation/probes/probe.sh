@@ -133,4 +133,24 @@ probe 18 "a currency on a plural count, which is honoured" && {
   print -r -- "-- and the count decides the branch on what it displays:"
   sed -n '/String cards(.*) {/,/^  }/p' lib/l10n/app_localizations.g.dart; }
 
+probe 19 "an override branch the locale's plural rules cannot select" && {
+  config <<'EOF'
+input_directory: translations
+output_directory: lib/l10n
+base_locale: en
+fallback_locale: en
+runtime_overrides: true
+flutter:
+  enabled: false
+EOF
+  print '{"items": "{n, plural, one{# item} other{# items}}"}' > translations/en.json
+  print '{"items": "{n, plural, one{# предмет} few{# предмета} many{# предметов} other{# предмета}}"}' \
+    > translations/ru.json
+  gen > /dev/null
+  print '{"@@locale": "ru", "items": {"one": "# штука", "two": "# штуки", "other": "# штук"}}' \
+    > overrides_ru.json
+  dart run l10n_plus_generator check-overrides --from=overrides_ru.json 2>&1
+  print -r -- "exit=$?"
+  rm -f overrides_ru.json; }
+
 reset
