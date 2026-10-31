@@ -1,0 +1,9 @@
+{
+  "banner(rich)": "Welcome to <app>l10n_plus</app>",
+
+  "legal": {
+    "terms(rich)": "Read the <link>terms of service</link> to continue",
+    "greeting(rich)": "Hi <bold><italic>{name}</italic></bold>, you owe <bold>{amount, number, currency:USD}</bold>",
+    "notice": "Angle brackets such as <b> stay literal here"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "banner(rich)": "Добро пожаловать в <app>l10n_plus</app>",
+
+  "legal": {
+    "terms(rich)": "Чтобы продолжить, прочитайте <link>условия обслуживания</link>",
+    "greeting(rich)": "Привет, <bold><italic>{name}</italic></bold>! Вы должны <bold>{amount, number, currency:USD}</bold>",
+    "notice": "Угловые скобки, такие как <b>, остаются текстом"
+  }
+}

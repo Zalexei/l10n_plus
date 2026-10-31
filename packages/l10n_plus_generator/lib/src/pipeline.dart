@@ -276,6 +276,10 @@ final class L10nPlusGenerator {
         path: message.path,
         dartPath: [...prefix, message.dartName],
         keySpan: message.keySpan,
+        // A rich message is usually reached through the Flutter wrapper
+        // rather than through the span accessor, and both names mean the
+        // message is in use.
+        leafAliases: message.isRich ? [message.richWrapperName] : const [],
       ),
     for (final child in namespace.children)
       ..._keysOf(child, [...prefix, child.dartName]),

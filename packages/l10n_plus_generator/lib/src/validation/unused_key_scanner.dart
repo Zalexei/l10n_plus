@@ -12,6 +12,7 @@ final class TranslationKey {
     required this.path,
     required this.dartPath,
     required this.keySpan,
+    this.leafAliases = const [],
   });
 
   /// Dotted translation key, e.g. `auth.login.title`.
@@ -24,8 +25,20 @@ final class TranslationKey {
   /// nobody can reach.
   final List<String> dartPath;
 
+  /// Other member names that also reach this message.
+  ///
+  /// A rich message generates two members: the span accessor in the base file
+  /// and the `TextSpan` wrapper in the Flutter glue, and an application
+  /// normally calls only one of them. Matching the accessor alone would call
+  /// every rich message in a Flutter app dead, which is the one direction
+  /// this scan must not err in.
+  final List<String> leafAliases;
+
   /// The generated member name, e.g. `title`.
   String get dartName => dartPath.last;
+
+  /// Every name that reaches this message: the member and its aliases.
+  List<String> get leafNames => [dartName, ...leafAliases];
 
   /// Where the key is in the base locale file.
   final SourceSpan keySpan;
@@ -122,7 +135,7 @@ abstract final class UnusedKeyScanner {
     // by the same edit, so they are one finding, not thirty.
     final blocked = <String, List<TranslationKey>>{};
     for (final key in keys) {
-      final at = key.dartPath.indexWhere((name) => !used.contains(name));
+      final at = _firstUnreachable(key, used);
       if (at == -1) continue;
       final segments = key.path.split('.');
       blocked.putIfAbsent(segments.take(at + 1).join('.'), () => []).add(key);
@@ -137,6 +150,23 @@ abstract final class UnusedKeyScanner {
     );
   }
 
+  /// Index of the first name on [key]'s path that no source writes, or `-1`.
+  ///
+  /// Every name on the way to a message has to be written to reach it, so the
+  /// shallowest one nobody writes is where the chain breaks. The last step is
+  /// the exception: a message is reached by any of its names, since a
+  /// rich message is also reachable through the wrapper the Flutter glue
+  /// generates for it.
+  static int _firstUnreachable(TranslationKey key, Set<String> used) {
+    for (var index = 0; index < key.dartPath.length; index++) {
+      final names = index == key.dartPath.length - 1
+          ? key.leafNames
+          : [key.dartPath[index]];
+      if (!names.any(used.contains)) return index;
+    }
+    return -1;
+  }
+
   static Diagnostic _report(
     String path,
     List<TranslationKey> covered, {
@@ -144,7 +174,7 @@ abstract final class UnusedKeyScanner {
     required int scanned,
   }) {
     final first = covered.first;
-    final at = first.dartPath.indexWhere((name) => !used.contains(name));
+    final at = _firstUnreachable(first, used);
     final name = first.dartPath[at];
     final isNamespace = at != first.dartPath.length - 1;
     return Diagnostic.warning(
