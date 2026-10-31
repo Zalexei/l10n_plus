@@ -632,6 +632,70 @@ Diagnostics went from 72 codes to **81**: `rich_tag_mismatch`,
   alongside rich text, and the first of them is the item below worth more than
   everything in this milestone.
 
+## Milestone 29 — translations change without a release (done)
+
+The one item the competitive review called worth more than everything else on
+the behind list, and the only one that needed a runtime path alongside the
+generated one.
+
+* **The split.** The generated code keeps every decision — the plural category
+  is chosen by the CLDR rules compiled to Dart, each argument is formatted
+  through `package:intl` — and an override supplies **the text of one branch**,
+  with `{name}` and `#` holes that the already-formatted values are substituted
+  into. The alternative, evaluating downloaded ICU at run time, would have put a
+  second and unverified copy of CLDR into the package that has no dependencies,
+  to replace the one thing this library does better than the field.
+* **`runtime_overrides: false` by default**, and with it off nothing is emitted:
+  every existing golden is byte for byte what it was, asserted by the golden
+  tests rather than assumed. On, the store costs 1.8 ns on the cheapest message
+  read with nothing installed, and 28.5 ns with a bundle that does not carry the
+  key.
+* **`check-overrides`.** OTA moves a class of error back to run time, in a
+  library whose whole argument is the opposite, so a bundle is validated against
+  the project first — ten error codes, and the one that matters is a branch name
+  checked against the categories of *that choice*: `two` is wrong in an English
+  cardinal plural and right in an English ordinal, `one` is right for a Russian
+  cardinal and wrong for a Russian ordinal. Probe 19 replays it. At run time
+  nothing throws and an unknown token stands in the string, because a wrong
+  override must not crash an app that is already shipped.
+* **An override cannot change the API**: no new key, no placeholder added or
+  dropped, no new branch. Those are a release. A rich message cannot be
+  overridden at all — spans are structure, not text.
+* **No HTTP.** Fetching, caching, credentials and retry are the application's;
+  `installOverrides` takes a map and notifies, so the screens reading
+  translations repaint.
+* **Ten more codes**, so the registry is at **91**: `invalid_override`,
+  `unknown_override_locale`, `unknown_override_key`, `unknown_override_branch`,
+  `unknown_override_placeholder`, `override_needs_branches`,
+  `override_takes_no_branches`, `override_unexpected_number_sign`,
+  `override_contains_icu`, `override_rich_unsupported`.
+
+### Two predictions this disproved
+
+1. **`setLocale` does not become asynchronous.** Both this roadmap and the
+   review said OTA would be the feature that made it async. It is not: the fetch
+   happens in the application's code, before the install, and the install is a
+   map assignment. The prediction assumed the library would do the fetching, and
+   the library has no business doing it.
+2. **The runtime did not need a map path "alongside the generated one"** in the
+   sense meant here — a parallel lookup structure the generated accessors fall
+   back to. What it needed was a lookup *inside* each accessor, which is a
+   smaller thing and leaves the `const` graph intact.
+
+### What is still open after it
+
+* **No bundle fingerprint.** Nested choices are numbered positionally, so
+  reordering or inserting one silently renumbers the slots, and a bundle built
+  for the old numbering still validates because the branch still exists. A hash
+  of the slot set, written into the bundle and checked at install, would close
+  it.
+* **`check-overrides` takes one file**, so a rollout in twelve languages is
+  twelve invocations.
+* **Untested combinations:** `fill_missing_from_base` together with overrides,
+  and ARB or YAML sources with the flag on (the fixture is JSON).
+* **Every install repaints every reader**, since the store does not say which
+  locale changed.
+
 ## Milestone 26 — ecosystem
 
 
@@ -640,9 +704,10 @@ Diagnostics went from 72 codes to **81**: `rich_tag_mismatch`,
     vendor side — a Crowdin, Lokalise or POEditor API instead of a person
     carrying the file.
 8. **PO / XLIFF** interchange formats. Untouched.
-9. **OTA translations.** This is the first feature that genuinely needs a
-    runtime map path alongside the generated one, and the first that makes
-    `setLocale` asynchronous.
+9. ~~**OTA translations.**~~ **Done in Milestone 29**, and both halves of this
+    prediction were wrong: no parallel map path (the lookup lives inside the
+    accessor, and the `const` graph is intact) and `setLocale` is still
+    synchronous, because the application does the fetching.
 10. **IDE plugin / hot reload daemon.**
 
 ## Milestone 27 — translations without a `BuildContext` (deferred)
@@ -715,5 +780,8 @@ reader has to know before choosing between them.
 
 `example/benchmark/l10n_benchmark.dart`, run with
 `dart run benchmark/l10n_benchmark.dart`. Numbers and method are in
-`architecture.md`. Still unmeasured: `context.l10n` lookup and locale switch
-rebuild cost, both of which are Flutter's costs more than this library's.
+`architecture.md`. Both things this note used to list as unmeasured were
+measured in Milestone 24: `context.l10n` costs 44 ns against 6 ns for a direct
+call, and a locale switch over 200 widgets is 7.4 ms — Flutter's
+`dependOnInheritedWidgetOfExactType` and Flutter's rebuild, as predicted.
+Milestone 29 added the override store's 1.8 ns.

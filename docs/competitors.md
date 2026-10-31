@@ -101,7 +101,7 @@ config lines rather than 1.
 | **Build fails on a missing translation** | **Y — diagnosed, with warn mode** | Y — as a Dart compile error | **N — `printStatus` only, no flag exists** | N |
 | Build fails on an extra key | **Y** | N | N | N |
 | Rename detection | **Y — unique in the field** | N | N | N |
-| Diagnostic codes + per-code suppression | **Y — 81 codes** | N | ~ all-or-nothing | N |
+| Diagnostic codes + per-code suppression | **Y — 91 codes** | N | ~ all-or-nothing | N |
 | Cross-locale placeholder / arity check | **Y** | ~ | ~ (and has open bugs) | N |
 | Unused-key analysis | Y (text scan) | Y (+ `clean`; false positives) | **N** | N |
 | Write missing keys back to source | ~ (`import`, from a hand-off file) | Y (`apply`) | N | N |
@@ -109,7 +109,7 @@ config lines rather than 1.
 | CLI command count | 5 | ~12 | 1 | 2 |
 | Watch mode | Y | Y | **Y, inside `flutter run`** | n/a |
 | Lazy / deferred per-locale loading | **N** | Y (default on) | ~ opt-in, web | N |
-| Over-the-air / runtime overrides | **N** | Y | N | ~ 23-line loader, no cache |
+| Over-the-air / runtime overrides | **Y — branch text, checked at build time** | Y | N | ~ 23-line loader, no cache |
 | Asset obfuscation | N | Y | N | N |
 | Typed locale enum + typed switching | Y | Y | **N** | ~ |
 | Works without `BuildContext` | Y (`forLocale` / `of`) | Y (static `t`) | ~ undocumented | Y |
@@ -128,7 +128,7 @@ table, so the number can be reproduced rather than taken on trust:
 
 | | `Y` | `~` | `N` |
 | --- | --- | --- | --- |
-| `l10n_plus` | **31** | 4 | 11 |
+| `l10n_plus` | **32** | 4 | 10 |
 | `slang` | **31** | 6 | 9 |
 | `gen_l10n` | 12 | 10 | 24 |
 | `easy_localization` | 8 | 12 | 26 |
@@ -139,16 +139,22 @@ interchange, region affinity), but the rest of the gap was a hand count that was
 simply wrong, and that is the more useful finding: a comparison nobody can
 re-run is not a measurement. The script is five lines over the table above.
 
-**And the tie is not the point.** A `Y` is not a unit of value: "asset
-obfuscation" and "222 CLDR plural languages" are one cell each. What the two
-columns disagree about matters more than the total, and it splits cleanly —
-`slang`'s remaining advantages are **runtime shape** (lazy per-locale loading,
-over-the-air overrides, an ambient accessor, dynamic key access, linked
-translations), ours are **build-time truth** (plural correctness at 222/107
-verified against two oracles, a build that fails on a gap with 81 diagnostic
-codes, rename detection, byte-identical output, a dev-only generator). Those are
-two different bets about where localization errors should surface, not two
-scores.
+**And one cell ahead is not a lead.** A `Y` is not a unit of value: "asset
+obfuscation" and "222 CLDR plural languages" are one cell each, and a table that
+can be moved by picking different rows is a sketch of the field rather than a
+verdict on it. What the two columns disagree about matters more than the total,
+and it splits cleanly — `slang`'s remaining advantages are **runtime shape**
+(lazy per-locale loading, an ambient accessor, dynamic key access, linked
+translations, asset obfuscation), ours are **build-time truth** (plural
+correctness at 222/107 verified against two oracles, a build that fails on a gap
+with 91 diagnostic codes, rename detection, byte-identical output, a dev-only
+generator). Those are two different bets about where localization errors should
+surface, not two scores.
+
+Over-the-air used to be the clean example of their side of that split, and it is
+the one axis where the two bets actually met: we took it by keeping the rules
+compiled and shipping only branch text, and by making the bundle checkable at
+build time — our bet applied to their feature, rather than theirs adopted.
 
 ## 4. What is genuinely ours
 
@@ -185,8 +191,22 @@ scores.
 
 ## 5. Closed since this document was written
 
-Four of the ten gaps below were closed in one pass, each with tests that run
-rather than assert the shape of the source:
+Five of the ten gaps below are closed, each with tests that run rather than
+assert the shape of the source. The fifth — runtime overrides, which this
+document called worth more than everything else on the behind list — came last
+and on its own, because it is the only one that touches the runtime:
+
+0. **Runtime overrides.** A downloaded bundle replaces **the text of one
+   branch**; the plural category is still chosen by the CLDR rules compiled into
+   the app and every argument is still formatted by `package:intl`, so the
+   runtime grew no parser, no rules and no dependency. `check-overrides`
+   validates a bundle against the project before it ships, and validates a
+   branch name against the categories of *that choice* — `two` is wrong in an
+   English cardinal plural and right in an English ordinal. `slang` has
+   `overrideTranslations`; it cannot check any of that, because it has 14
+   hand-written plural resolvers rather than a table. An override cannot add a
+   key or change a signature: those are a release.
+
 
 1. **Rich text.** A key written `terms(rich)` yields a span list in the pure
    Dart file and, in the Flutter glue, a wrapper that **requires one builder per
@@ -212,33 +232,28 @@ rather than assert the shape of the source:
 
 ## 6. Where we are still behind, in priority order
 
-1. **No over-the-air anything.** `slang` has `overrideTranslations`,
-   `i18n_extension` has `byHttp`, `rerune` overlays remote strings under
-   generated accessors. The one axis where runtime designs win architecturally,
-   and the roadmap is explicit that it needs a runtime map path and an async
-   `setLocale`.
-2. **No linked translations**, therefore no two plurals in one sentence —
+1. **No linked translations**, therefore no two plurals in one sentence —
    something ICU itself cannot do and `slang` can.
-3. **No lazy loading.** `slang` defers per-locale imports by default; at
+2. **No lazy loading.** `slang` defers per-locale imports by default; at
    810 messages × many locales this is a web bundle-size argument we lose.
-4. **No maps, lists or dynamic key access**, so server-driven copy
+3. **No maps, lists or dynamic key access**, so server-driven copy
    (`tr('error.$code')`) is structurally impossible — a genuine advantage of
    every string-keyed package.
-5. **No PO/XLIFF, and no vendor API.** ARB and CSV now travel; Crowdin,
+4. **No PO/XLIFF, and no vendor API.** ARB and CSV now travel; Crowdin,
    Lokalise and POEditor still mean a human in between.
-6. **Interpolated values are not bidi-isolated.** A Latin brand name inside an
+5. **Interpolated values are not bidi-isolated.** A Latin brand name inside an
    Arabic sentence can still reorder the text around it. Needs `FSI`/`PDI` in
    generated strings — invisible characters in every golden, so a decision with
    a cost.
-7. **No extraction from source**, and `import` writes translations but never
+6. **No extraction from source**, and `import` writes translations but never
    creates a file or a locale.
-8. **Five CLI commands against `slang`'s ~12** (`edit`, `stats`, `migrate`,
+7. **Five CLI commands against `slang`'s ~12** (`edit`, `stats`, `migrate`,
    `clean`, `configure` have no equivalent here).
-9. **No ambient context-free accessor** (deferred deliberately, with the
+8. **No ambient context-free accessor** (deferred deliberately, with the
    footgun written down), **no asset obfuscation**, **no IDE plugin**, and no
    Material/Cupertino strings of our own.
-10. **Nothing published on pub.dev** — no community, no Stack Overflow answer,
-    no name. Unchanged by any of the above, and still the largest gap of all.
+9. **Nothing published on pub.dev** — no community, no Stack Overflow answer,
+   no name. Unchanged by any of the above, and still the largest gap of all.
 
 ## 7. The three things that would have made the claim true
 
@@ -249,10 +264,11 @@ Written before any of the work above. Two are now done:
   `export`/`import`, dry run by default. No `diff` command: a dry-run import
   *is* the diff, and a second name for it would have been a flag's worth of
   work pretending to be a feature.
-- **Runtime overrides over the generated accessors** — not done. The `rerune`
-  shape: new keys and changed signatures still need a release, copy changes do
-  not. It answers the whole runtime tier at once and remains the one item worth
-  more than everything else on the behind list.
+- ~~**Runtime overrides over the generated accessors**~~ — done, in exactly the
+  `rerune` shape this predicted: new keys and changed signatures still need a
+  release, copy changes do not. All three are in, which means this list has
+  nothing left on it and the next version of it has to be written from the
+  current state rather than from this one.
 
 And the one that costs nothing, still unspent: `slang` leaves CLDR plurals wrong
 for ~100 languages while advertising the feature. That is the sentence the README

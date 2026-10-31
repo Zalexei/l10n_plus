@@ -934,6 +934,79 @@ What it will not do:
 A dry run with pending changes still exits 0. It reports; `analyze` is what
 fails a build.
 
+## Changing text without a release
+
+A typo, a legal reword, a price that is suddenly wrong — copy changes that
+should not wait for review. Turn the option on:
+
+```yaml
+runtime_overrides: true
+```
+
+Fetch a bundle however your application already fetches things, and install it:
+
+```dart
+final json = await myApi.translations('ru');     // yours: HTTP, cache, auth
+controller.installOverrides(const L10nLocale('ru'), json);
+```
+
+Every screen reading translations repaints. `setLocale` is still synchronous,
+and there is no `http` anywhere in these packages — the fetching, the caching
+and the credentials stay yours.
+
+A bundle is a flat map of dotted keys. A message with one form takes a string; a
+message the generated code branches on takes one string per branch:
+
+```json
+{
+  "@@locale": "ru",
+  "auth.login.title": "Войти",
+  "wallet.transactions": {
+    "one": "# операция",
+    "few": "# операции",
+    "many": "# операций",
+    "other": "# операции"
+  }
+}
+```
+
+`{name}` is an argument, `#` is the plural count, and both are substituted with
+the value the compiled message would have printed — currency, digits and all.
+**What an override cannot do is change the API**: no new key, no new or removed
+placeholder, no new branch. Those are a release.
+
+That is also why the branch names are plural *categories* rather than numbers:
+the category is still chosen by the CLDR rules compiled into your app, so the
+override supplies the words for a branch and never the rule that picks it. A
+nested choice is numbered — `"0/one"` for its branches, `{#0}` in the text
+around it.
+
+### Check the bundle before it ships
+
+```bash
+dart run l10n_plus_generator check-overrides --from=overrides_ru.json
+```
+
+```
+error[unknown_override_branch]: "two" is not a branch of "items" in ru.
+  CLDR 48 gives "ru" the categories few, many, one, other here, so nothing in
+  it can select a "two" branch.
+```
+
+It also catches a key the project does not define, a placeholder the message
+does not take, `#` in a message with no count, and ICU inside an override — ten
+errors in all, each one a mistake a bundle can be fixed for before anybody sees
+it. Run it in the job that publishes the bundle, not only locally: at run time
+nothing throws, and an unknown `{token}` is left standing in the string, because
+a wrong override must not crash an application that is already in somebody's
+hands.
+
+A rich message cannot be overridden: its spans are structure, not text.
+
+With the option off — the default — none of this is generated and your output is
+byte for byte what it was. With it on, a message read costs 1.8 ns more while
+nothing is installed.
+
 ## Development loop
 
 Editing translations while the app runs wants a watcher. There are two, they

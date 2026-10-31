@@ -1125,6 +1125,78 @@ cannot pass vacuously. Byte identity alone would pass a tool that silently did
 nothing, so two further tests check that every message survives with its text
 intact and that the encoder reproduces the literal already in the file.
 
+### Runtime overrides: the text of one branch, and nothing else
+
+The feature is fixing a typo without a release. The naive way to build it ships
+an ICU parser and plural rules into the runtime, so that a downloaded
+`{count, plural, one{…} other{…}}` can be evaluated — which would duplicate the
+one thing this library is actually better at than the field, in the package that
+has **no dependencies**, and would mean a Russian override selecting its
+category by a second, unverified implementation of CLDR.
+
+So the split is: **the generated code keeps the decisions, the override carries
+the words.** The compiled `if` chain picks the plural category exactly as before
+and then asks the store for *that branch*; `package:intl` formats every argument
+exactly as before and the formatted strings are substituted into `{name}` and
+`#`. What arrives over the network is text with holes in it, and the runtime
+cost of using it is a token substitution, not a parse.
+
+That also fixes the API surface in place: an override cannot add a key, add or
+drop a placeholder, or invent a branch. Those are a release, which is the
+honest version of the promise — `rerune`'s shape, and the reason this is safe
+to ship at all.
+
+**`setLocale` stays synchronous.** The roadmap predicted for two milestones that
+OTA would be the feature that made it async. It is not: fetching happens in the
+application's own code, before the install, and the install itself is a map
+assignment. The prediction was wrong because it assumed the library would do the
+fetching, and the library has no business doing it — HTTP, caching,
+authentication and retry are the application's, and a localization package with
+`http` in its dependency graph is the thing we are trying not to be.
+
+**Off by default, and nothing is emitted when it is off.** With
+`runtime_overrides: false` every golden is byte for byte what it was, which the
+existing golden tests assert rather than take on trust. Turned on, consulting
+the store on the cheapest possible message read — a `const` getter, nothing
+installed — costs 1.8 ns, one `isEmpty` on a static map; with a bundle installed
+that does not carry the key, 28.5 ns for two lookups. Measured in
+`example/benchmark/`, not guessed.
+
+**The global store is a considered exception.** Milestone 27 defers an ambient
+`current` accessor over global mutable state, and the objection there is real: a
+widget reading an ambient value creates no dependency, renders once, and then
+keeps the old language after a switch. It does not apply here, because
+installing *notifies* — `L10nController.installOverrides` subscribes, so every
+reader repaints — and because overrides are a property of the application rather
+than of a subtree, so there is no second copy to disagree with. The hazard that
+does apply is the ordinary one: a store installed by one test is still installed
+in the next, which `clear()` in a `tearDown` answers.
+
+### `check-overrides` is what keeps the feature honest
+
+OTA moves a class of error back to run time, in a library whose whole argument
+is that those errors belong at build time. Left there, it would quietly undo the
+thing being sold. So a bundle is validated against the project before it ships,
+and the check that matters is one nobody else in the field can make: **a branch
+name is checked against the plural categories of that particular choice**, read
+from the same CLDR table the conditions were compiled from. So `two` is a
+mistake in an English cardinal plural and correct in an English ordinal; `one`
+is right for a Russian cardinal and wrong for a Russian ordinal, which has only
+`other`. Probe 19 replays it.
+
+Ten codes, all errors, and all of them failures a bundle can be fixed for before
+anyone sees it: a key the project does not define (with the nearest key offered),
+a placeholder the message does not take, `#` where there is no count, text that
+contains ICU — which means the author expected rules that will be ignored — a
+rich message, which is structure rather than text, and the shape confusions in
+both directions (branches supplied for a message with one form, and one string
+supplied for a message that branches).
+
+At run time, by contrast, nothing throws: an unknown token is left standing in
+the string. A wrong override must not crash an application that is already in
+somebody's hands, and the check is what makes that a safe default rather than a
+shrug.
+
 ### `date` is permissive about skeletons, `time` is not
 
 `DateFormat` skeletons are one namespace, so nothing stopped `{t, time, yMMMd}`
@@ -1507,6 +1579,11 @@ whole-value span rather than reporting a wrong position.
 
 ## What is intentionally not here
 
-Network/OTA translations, TMS integrations, PO/XLIFF/XML/TOML, an IDE
-plugin, a hot-reload daemon, a translation editor, and dynamic string-keyed
-lookup. See `docs/roadmap.md` for the order they are expected in.
+PO/XLIFF/XML/TOML, a vendor API (Crowdin, Lokalise, POEditor), an IDE plugin, a
+hot-reload daemon, a translation editor, dynamic string-keyed lookup, and
+anything that fetches over a network — the application owns the HTTP, the cache
+and the credentials, and this library owns no dependency it could spend on
+them. See `docs/roadmap.md` for the order the rest is expected in.
+
+Runtime overrides and ARB/CSV interchange used to be on this list and are now
+in; `L10nOverrides` and `export`/`import` are described above.
