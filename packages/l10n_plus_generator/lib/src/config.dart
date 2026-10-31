@@ -42,6 +42,7 @@ final class L10nPlusConfig {
     this.filePattern,
     this.filePerLocale = false,
     this.fillMissingFromBase = false,
+    this.runtimeOverrides = false,
     this.extraKeys = ExtraKeys.error,
     this.ignoreDiagnostics = const {},
     this.flutter = const FlutterConfig(),
@@ -101,6 +102,20 @@ final class L10nPlusConfig {
   /// because a half translated message would be stranger than an untranslated
   /// one. Teams whose translations arrive after the code need this.
   final bool fillMissingFromBase;
+
+  /// Whether every message body consults [L10nOverrides] before returning
+  /// its literal.
+  ///
+  /// Off by default, and off costs nothing: with it off the generated file is
+  /// byte for byte what it was, which is the only way to offer a runtime path
+  /// in a library whose argument is that there is no runtime path.
+  ///
+  /// On, a message can be reworded without a release — but only reworded. The
+  /// plural category is still chosen by the compiled CLDR rules and every
+  /// argument is still formatted by `package:intl`, so an override carries the
+  /// text of one branch and nothing else. Validate a bundle with
+  /// `check-overrides`, which reads the slots this emitted.
+  final bool runtimeOverrides;
 
   /// Whether each locale gets its own generated file.
   ///
@@ -188,6 +203,7 @@ final class L10nPlusConfig {
       'file_pattern',
       'file_per_locale',
       'fill_missing_from_base',
+      'runtime_overrides',
       'extra_keys',
       'ignore_diagnostics',
       'flutter',
@@ -272,6 +288,8 @@ final class L10nPlusConfig {
       filePerLocale: _bool(document, 'file_per_locale', diagnostics) ?? false,
       fillMissingFromBase:
           _bool(document, 'fill_missing_from_base', diagnostics) ?? false,
+      runtimeOverrides:
+          _bool(document, 'runtime_overrides', diagnostics) ?? false,
       extraKeys: _extraKeys(document, diagnostics),
       ignoreDiagnostics: _ignoreDiagnostics(document, diagnostics),
       flutter: flutter,

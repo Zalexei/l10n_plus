@@ -6,7 +6,7 @@
 library;
 
 export 'package:l10n_plus/l10n_plus.dart'
-    show L10nLocale, L10nSpan, L10nTagSpan, L10nTextSpan;
+    show L10nLocale, L10nOverrides, L10nSpan, L10nTagSpan, L10nTextSpan;
 
 export 'src/flutter_locale.dart' show FlutterLocaleL10n, L10nLocaleFlutter;
 export 'src/l10n_controller.dart' show L10nController;

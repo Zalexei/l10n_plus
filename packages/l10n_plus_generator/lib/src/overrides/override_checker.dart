@@ -1,0 +1,339 @@
+import 'package:l10n_plus/l10n_plus.dart';
+
+import '../ast/message_ast.dart';
+import '../diagnostic.dart';
+import '../plural/cldr_plural_rules.dart';
+import '../rich/rich_key.dart';
+import 'override_bundle.dart';
+import 'override_schema.dart';
+
+/// Validates an override bundle against the lookups the project emitted.
+///
+/// This is the keystone of the feature rather than an extra. The whole claim
+/// of this library is that a localization mistake belongs at build time, and a
+/// bundle downloaded at run time is the one place that claim could quietly
+/// stop being true: a misspelled key, a branch the locale does not have, a
+/// placeholder the message never took — each of them renders as wrong text on
+/// a screen and nothing anywhere says so.
+///
+/// So every check here answers a question with the project in hand, and the
+/// one it answers that nothing else in the field can is the branch: `few` is a
+/// real CLDR category and a real mistake in English, and knowing that needs
+/// the same 222 language table the generator compiles its conditions from.
+abstract final class OverrideChecker {
+  /// Reports everything wrong with [bundle] against [catalog].
+  ///
+  /// Reports as much as it can rather than stopping at the first problem: a
+  /// bundle comes back from one round trip, and a report naming one of six
+  /// mistakes costs six round trips.
+  static void check({
+    required OverrideBundle bundle,
+    required OverrideCatalog catalog,
+    required DiagnosticCollector diagnostics,
+  }) {
+    final schema = catalog.forLocale(bundle.localeTag);
+    if (schema == null) {
+      diagnostics.add(
+        Diagnostic.error(
+          code: 'unknown_override_locale',
+          message:
+              'This project has no "${bundle.localeTag}" locale to override.',
+          span: bundle.localeSpan,
+          details:
+              'Locales:\n'
+              '${catalog.localeTags.map((tag) => '  $tag').join('\n')}',
+        ),
+      );
+      return;
+    }
+
+    for (final message in bundle.messages) {
+      _checkMessage(message: message, schema: schema, diagnostics: diagnostics);
+    }
+  }
+
+  static void _checkMessage({
+    required OverrideBundleMessage message,
+    required OverrideSchema schema,
+    required DiagnosticCollector diagnostics,
+  }) {
+    // A rich key carries its `(rich)` suffix, and a bundle naturally writes
+    // the name without it. Both spellings are looked up, so the answer is
+    // "this cannot be overridden" either way rather than "no such key" for
+    // one of them.
+    final target =
+        schema.messages[message.key] ??
+        schema.messages['${message.key}${RichKey.suffix}'];
+    if (target == null) {
+      final nearest = _nearestKey(message.key, schema.messages.keys);
+      diagnostics.add(
+        Diagnostic.error(
+          code: 'unknown_override_key',
+          message: 'This project defines no message "${message.key}".',
+          span: message.keySpan,
+          details:
+              '${nearest == null ? '' : 'Did you mean "$nearest"?\n'}'
+              'An override key is the dotted translation key, not the Dart '
+              'member path. A key that does not exist yet is a release, not '
+              'an override.',
+        ),
+      );
+      return;
+    }
+
+    if (target.isRich) {
+      diagnostics.add(
+        Diagnostic.error(
+          code: 'override_rich_unsupported',
+          message: 'A rich message cannot be overridden.',
+          span: message.keySpan,
+          translationKey: message.key,
+          details:
+              'The tags of "${message.key}" are structure, not text: the '
+              'generated signature takes one builder per tag, so changing '
+              'them changes the API. There is nothing here for a text to be '
+              'the text of.\n'
+              'Reword the plain messages around it, or ship a release.',
+        ),
+      );
+      return;
+    }
+
+    if (!target.hasPlainSlot && !message.branched) {
+      diagnostics.add(
+        Diagnostic.error(
+          code: 'override_needs_branches',
+          message:
+              '"${message.key}" is chosen per branch, so it needs one '
+              'text per branch.',
+          span: message.keySpan,
+          translationKey: message.key,
+          details:
+              'One text cannot stand in for every branch: that is how a '
+              'plural silently stops pluralizing. The runtime ignores it, and '
+              'this is where you find out.\n'
+              '${_branchHelp(target)}',
+        ),
+      );
+      return;
+    }
+
+    if (!target.hasBranchSlots && message.branched) {
+      diagnostics.add(
+        Diagnostic.error(
+          code: 'override_takes_no_branches',
+          message: '"${message.key}" has one form, so it takes one text.',
+          span: message.keySpan,
+          translationKey: message.key,
+          details:
+              'Nothing branches on it, so there is no branch to key a text '
+              'by. Write the text itself:\n'
+              '  "${message.key}": "…"',
+        ),
+      );
+      return;
+    }
+
+    for (final text in message.texts) {
+      final slot = target.slotOf(text.branch);
+      if (slot == null) {
+        diagnostics.add(
+          Diagnostic.error(
+            code: 'unknown_override_branch',
+            message:
+                '"${text.branch}" is not a branch of "${message.key}" in '
+                '${schema.localeTag}.',
+            span: text.nameSpan,
+            translationKey: message.key,
+            details: _branchDetails(text.branch!, target, schema),
+          ),
+        );
+        continue;
+      }
+      _checkText(
+        text: text,
+        slot: slot,
+        key: message.key,
+        diagnostics: diagnostics,
+      );
+    }
+  }
+
+  /// The ICU form an override must not be written in.
+  ///
+  /// `{name, …` is an argument with a type, which is the whole of ICU that
+  /// matters here: `{count, plural, …}`, `{gender, select, …}` and
+  /// `{amount, number, currency}` all start this way and all mean somebody
+  /// thought the text was a message.
+  static final RegExp _icu = RegExp(r'\{\s*[A-Za-z_][A-Za-z0-9_.]*\s*,');
+
+  static void _checkText({
+    required OverrideBundleText text,
+    required OverrideSlot slot,
+    required String key,
+    required DiagnosticCollector diagnostics,
+  }) {
+    final icu = _icu.firstMatch(text.value);
+    if (icu != null) {
+      diagnostics.add(
+        Diagnostic.error(
+          code: 'override_contains_icu',
+          message: 'An override carries text, not ICU.',
+          span: text.spanAt(icu.start, icu.end - icu.start),
+          translationKey: key,
+          details:
+              'Selecting a branch and formatting a value are compiled into '
+              'the application: the plural rules of 222 languages are Dart '
+              'conditions and every number goes through package:intl. Nothing '
+              'at run time can read this, so its rules would be ignored and '
+              'its braces would print.\n'
+              'Write the text of one branch, with ${_tokenHelp(slot)}',
+        ),
+      );
+      return;
+    }
+
+    final template = text.value;
+    var reportedNumberSign = false;
+    var index = 0;
+    while (index < template.length) {
+      final unit = template.codeUnitAt(index);
+      if (unit == 0x23) {
+        if (!slot.tokens.contains('#') && !reportedNumberSign) {
+          reportedNumberSign = true;
+          diagnostics.add(
+            Diagnostic.error(
+              code: 'override_unexpected_number_sign',
+              message: '"#" is the plural count, and this message has none.',
+              span: text.spanAt(index, 1),
+              translationKey: key,
+              details:
+                  'Nothing would replace it, so it would print as a hash. '
+                  'Write the digits, or ${_tokenHelp(slot)}',
+            ),
+          );
+        }
+        index++;
+        continue;
+      }
+      if (unit == 0x7b) {
+        final end = template.indexOf('}', index + 1);
+        if (end > index) {
+          final name = template.substring(index + 1, end);
+          if (L10nOverrides.isToken(name)) {
+            if (!slot.tokens.contains(name)) {
+              diagnostics.add(
+                Diagnostic.error(
+                  code: 'unknown_override_placeholder',
+                  message: '"$key" takes no placeholder "$name".',
+                  span: text.spanAt(index, end + 1 - index),
+                  translationKey: key,
+                  details:
+                      'A placeholder the message does not take is a signature '
+                      'change, which is a release. This one would print as '
+                      '"{$name}".\n'
+                      'Here you can write ${_tokenHelp(slot)}',
+                ),
+              );
+            }
+            index = end + 1;
+            continue;
+          }
+        }
+      }
+      index++;
+    }
+  }
+
+  /// What a slot's tokens are, as a sentence ending in a full stop.
+  static String _tokenHelp(OverrideSlot slot) {
+    if (slot.tokens.isEmpty) return 'no placeholder at all.';
+    final names = slot.tokens.toList()..sort();
+    return '${names.map((name) => name == '#' ? '"#"' : '"{$name}"').join(', ')}.';
+  }
+
+  /// Which branches a message has, for the diagnostic that lists them.
+  static String _branchHelp(OverrideMessage message) {
+    final names = message.branchNames;
+    if (names.isEmpty) return 'It has no branches.';
+    return 'Branches of "${message.key}":\n'
+        '${names.map((name) => '  $name').join('\n')}';
+  }
+
+  /// Why a branch name is wrong, with CLDR consulted when it is a category.
+  ///
+  /// The distinction worth drawing: `two` in English is not a typo, it is a
+  /// category English does not have, and no message in English can ever have
+  /// a branch for it. Saying that needs the plural tables, which is why this
+  /// check exists in a generator and not in a schema validator.
+  static String _branchDetails(
+    String branch,
+    OverrideMessage message,
+    OverrideSchema schema,
+  ) {
+    // A nested choice prefixes its branches with its number, so the category
+    // to judge is the last segment.
+    final segments = branch.split('/');
+    final label = segments.last;
+    final prefix = segments.length > 1 ? segments.first : '';
+    final buffer = StringBuffer();
+    final available = message.pluralCategories[prefix];
+    if (PluralCategory.tryParse(label) != null &&
+        available != null &&
+        available.isNotEmpty &&
+        !available.contains(label)) {
+      // The categories of *this* choice: cardinal and ordinal are different
+      // tables, and English ranks with `two` while it counts without it.
+      final names = available.toList(growable: false)..sort();
+      buffer.writeln(
+        'CLDR ${CldrPluralRules.cldrVersion} gives "${schema.language}" the '
+        'categories ${names.join(', ')} here, so nothing in it can select a '
+        '"$label" branch.',
+      );
+    }
+    if (branch.contains('/')) {
+      buffer.writeln(
+        'A branch of a nested choice carries that choice\'s number, counted '
+        'from zero in the order the message states them.',
+      );
+    }
+    buffer.write(_branchHelp(message));
+    return buffer.toString();
+  }
+
+  /// The key [written] is most likely a typo of, or `null`.
+  ///
+  /// The same budget the configuration uses for its own keys: a third of the
+  /// length and at most three edits, so a near miss gets an answer and an
+  /// unrelated key gets the list instead of a wrong guess.
+  static String? _nearestKey(String written, Iterable<String> known) {
+    String? best;
+    var bestDistance = 1 << 30;
+    for (final candidate in known) {
+      final distance = _editDistance(written, candidate);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = candidate;
+      }
+    }
+    final budget = (written.length / 3).floor().clamp(1, 3);
+    return bestDistance <= budget ? best : null;
+  }
+
+  static int _editDistance(String a, String b) {
+    var previous = List<int>.generate(b.length + 1, (index) => index);
+    for (var i = 1; i <= a.length; i++) {
+      final current = List<int>.filled(b.length + 1, 0)..[0] = i;
+      for (var j = 1; j <= b.length; j++) {
+        final cost = a[i - 1] == b[j - 1] ? 0 : 1;
+        final deletion = previous[j] + 1;
+        final insertion = current[j - 1] + 1;
+        final substitution = previous[j - 1] + cost;
+        current[j] = deletion < insertion ? deletion : insertion;
+        if (substitution < current[j]) current[j] = substitution;
+      }
+      previous = current;
+    }
+    return previous[b.length];
+  }
+}

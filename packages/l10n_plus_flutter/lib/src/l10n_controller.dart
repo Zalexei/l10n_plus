@@ -25,6 +25,12 @@ final class L10nController<L extends AppLocaleBase, T extends BaseTranslations>
   }) : _translationsOf = translationsOf,
        _followSystem = initialLocale == null {
     _locale = initialLocale ?? _resolveSystem(systemLocales);
+    // Subscribed whether or not the project generates override lookups: the
+    // store is empty in a project that does not, so this costs one callback
+    // that is never called. Subscribing is what makes an override repaint the
+    // screen instead of showing up on the next one that happens to rebuild —
+    // the reason the roadmap's objection to global state does not apply here.
+    L10nOverrides.addListener(_handleOverridesChanged);
   }
 
   /// Locales the app has translations for.
@@ -80,6 +86,51 @@ final class L10nController<L extends AppLocaleBase, T extends BaseTranslations>
   void handleSystemLocalesChanged(List<L10nLocale> systemLocales) {
     if (!_followSystem) return;
     _set(_resolveSystem(systemLocales));
+  }
+
+  /// Installs runtime overrides for [locale] and repaints what reads them.
+  ///
+  /// The store is global, so `L10nOverrides.install` does the same thing. This
+  /// exists because the controller is what the widget tree listens to, and
+  /// because an application that reached for the store directly would have to
+  /// be told to notify something — which is the step people forget.
+  ///
+  /// [locale] is the bundle's locale, not this controller's: an application
+  /// may install the language the user is about to switch to.
+  ///
+  /// **No fetching.** Downloading the bundle, caching it, authenticating the
+  /// request and deciding when to trust it are the application's, because they
+  /// are its policy and because this library has no dependencies to spend on
+  /// them. Validate the bundle before it ships:
+  ///
+  /// ```sh
+  /// dart run l10n_plus_generator check-overrides --from=overrides_en.json
+  /// ```
+  ///
+  /// [setLocale] stays synchronous. The roadmap expected this feature to make
+  /// it asynchronous; it does not, because the fetch happens before the
+  /// install, in the application's own code, and the install itself is a map
+  /// assignment.
+  void installOverrides(L10nLocale locale, Map<String, Object> messages) =>
+      L10nOverrides.install(locale, messages);
+
+  /// Removes the overrides of [locale], or of every locale, and repaints.
+  void clearOverrides([L10nLocale? locale]) => L10nOverrides.clear(locale);
+
+  /// Repaints every reader when the override store changes.
+  ///
+  /// Unconditional: the store is told which locale changed and this is not,
+  /// and a rebuild of the screens reading translations is cheaper than the
+  /// bookkeeping that would avoid it.
+  void _handleOverridesChanged() => notifyListeners();
+
+  @override
+  void dispose() {
+    // Before `super.dispose()`: a notification arriving after disposal would
+    // throw, and installing a bundle while a screen is being torn down is
+    // exactly when that happens.
+    L10nOverrides.removeListener(_handleOverridesChanged);
+    super.dispose();
   }
 
   void _set(L locale) {
