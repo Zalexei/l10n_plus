@@ -30,6 +30,36 @@ Future<void> main(List<String> arguments) async {
       negatable: false,
       help: 'Regenerate whenever a translation or the configuration changes.',
     )
+    ..addOption(
+      'format',
+      help:
+          'Interchange format for "export" and "import" '
+          '(${InterchangeFormat.names}). Defaults to csv for "export", and '
+          'for "import" to what --from looks like.',
+      valueHelp: 'name',
+    )
+    ..addOption(
+      'out',
+      help:
+          'Where "export" writes: a file for csv, a directory for arb. '
+          'Defaults to ./${TranslationExporter.defaultCsvFileName} and '
+          './$_defaultExportDirectory/.',
+      valueHelp: 'dir|file',
+    )
+    ..addOption(
+      'from',
+      help:
+          'What "import" reads: the csv file, or the arb bundle or directory '
+          'of bundles, that came back from the translators.',
+      valueHelp: 'dir|file',
+    )
+    ..addFlag(
+      'write',
+      negatable: false,
+      help:
+          'Let "import" change the translation files. Without it the import '
+          'prints what it would change and writes nothing.',
+    )
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this usage.');
 
   final ArgResults results;
@@ -46,7 +76,7 @@ Future<void> main(List<String> arguments) async {
     stdout.writeln(_usage(parser));
     exit(command == null ? _exitCodeUsage : 0);
   }
-  const commands = {'generate', 'analyze', 'unused'};
+  const commands = {'generate', 'analyze', 'unused', 'export', 'import'};
   if (!commands.contains(command)) {
     stderr.writeln('Unknown command "$command".');
     stderr.writeln(_usage(parser));
@@ -65,10 +95,49 @@ Future<void> main(List<String> arguments) async {
     exit(_exitCodeUsage);
   }
 
+  // An option that cannot mean anything for this command is refused rather
+  // than ignored: a translator who runs `import --out=…` and sees nothing
+  // happen has every reason to believe the files were written.
+  for (final misplaced in [
+    ('format', results.option('format') != null, {'export', 'import'}),
+    ('out', results.option('out') != null, {'export'}),
+    ('from', results.option('from') != null, {'import'}),
+    ('write', results.flag('write'), {'import'}),
+  ]) {
+    if (!misplaced.$2 || misplaced.$3.contains(command)) continue;
+    stderr.writeln(
+      '--${misplaced.$1} is only available for '
+      '${misplaced.$3.map((name) => '"$name"').join(' and ')}.',
+    );
+    exit(_exitCodeUsage);
+  }
+
+  final formatName = results.option('format');
+  if (formatName != null && InterchangeFormat.byName(formatName) == null) {
+    stderr.writeln('Unknown format "$formatName".');
+    stderr.writeln('The formats are ${InterchangeFormat.names}.');
+    exit(_exitCodeUsage);
+  }
+
+  final from = results.option('from');
+  if (command == 'import' && from == null) {
+    stderr.writeln('"import" needs --from: the file the translators sent.');
+    stderr.writeln(
+      'For example:\n'
+      '  dart run l10n_plus_generator import '
+      '--from=${TranslationExporter.defaultCsvFileName}',
+    );
+    exit(_exitCodeUsage);
+  }
+
   final outcome = _runCommand(
     command: command,
     configPath: configPath,
     highlight: highlight,
+    format: formatName == null ? null : InterchangeFormat.byName(formatName),
+    out: results.option('out'),
+    from: from,
+    write: results.flag('write'),
   );
   if (!watch) exit(outcome.exitCode);
 
@@ -96,6 +165,10 @@ _RunOutcome _runCommand({
   required String command,
   required String configPath,
   required bool highlight,
+  InterchangeFormat? format,
+  String? out,
+  String? from,
+  bool write = false,
 }) {
   final configFile = File(configPath);
   if (!configFile.existsSync()) {
@@ -121,10 +194,38 @@ _RunOutcome _runCommand({
     return const _RunOutcome(_exitCodeDiagnostics);
   }
 
-  final generator = L10nPlusGenerator(
-    config: config,
-    projectRoot: p.dirname(p.absolute(configPath)),
-  );
+  final projectRoot = p.dirname(p.absolute(configPath));
+
+  // The interchange commands run before validation rather than after it, and
+  // the order is the whole point. Under the default configuration a locale
+  // missing keys is an error — and that locale is the reason someone is
+  // exporting. A round trip that only ran on a project with nothing left to
+  // translate would be a workflow for nobody, so these two read the files,
+  // report what the parsers say, and leave cross locale validation to
+  // `analyze`.
+  if (command == 'export' || command == 'import') {
+    final exitCode = command == 'export'
+        ? _export(
+            config: config,
+            projectRoot: projectRoot,
+            format: format ?? InterchangeFormat.csv,
+            out: out,
+            highlight: highlight,
+            diagnostics: diagnostics,
+          )
+        : _import(
+            config: config,
+            projectRoot: projectRoot,
+            format: format,
+            from: from!,
+            write: write,
+            highlight: highlight,
+            diagnostics: diagnostics,
+          );
+    return _RunOutcome(exitCode, config);
+  }
+
+  final generator = L10nPlusGenerator(config: config, projectRoot: projectRoot);
   final result = generator.run(diagnostics: diagnostics);
   // `run` was given the configuration's collector, so its diagnostics are
   // already in the result; a second list would print each one twice.
@@ -164,6 +265,257 @@ _RunOutcome _runCommand({
     stdout.writeln('${changed ? 'wrote' : 'unchanged'} ${file.path}');
   }
   return _RunOutcome(0, config);
+}
+
+/// Directory `export --format=arb` writes into when `--out` says nothing.
+const String _defaultExportDirectory = 'l10n_plus_export';
+
+/// Writes every message out for whoever translates it.
+///
+/// A file nothing can read stops this. A locale that is merely incomplete is
+/// the reason to run it, so nothing here asks whether the project validates.
+int _export({
+  required L10nPlusConfig config,
+  required String projectRoot,
+  required InterchangeFormat format,
+  required String? out,
+  required bool highlight,
+  required DiagnosticCollector diagnostics,
+}) {
+  diagnostics.ignore(config.ignoreDiagnostics);
+  final catalog = TranslationCatalog.load(
+    config: config,
+    projectRoot: projectRoot,
+    diagnostics: diagnostics,
+  );
+  _report(diagnostics.diagnostics, highlight: highlight);
+  if (catalog == null || diagnostics.hasErrors) return _exitCodeDiagnostics;
+
+  final result = TranslationExporter.export(catalog: catalog, format: format);
+
+  // csv is one file and arb is one per locale, so `--out` means a file in the
+  // first case and a directory in the second. A path that is plainly the other
+  // kind is refused rather than reinterpreted.
+  final String directory;
+  String? fileName;
+  if (format == InterchangeFormat.csv) {
+    final target = out ?? TranslationExporter.defaultCsvFileName;
+    final isDirectory =
+        Directory(target).existsSync() ||
+        target.endsWith(p.separator) ||
+        target.endsWith('/');
+    directory = isDirectory ? target : (p.dirname(target));
+    fileName = isDirectory ? null : p.basename(target);
+  } else {
+    final target = out ?? _defaultExportDirectory;
+    if (File(target).existsSync()) {
+      stderr.writeln(
+        '"--out=$target" is a file, and "--format=arb" writes one bundle per '
+        'locale.',
+      );
+      stderr.writeln('Name a directory instead.');
+      return _exitCodeUsage;
+    }
+    directory = target;
+  }
+
+  Directory(directory).createSync(recursive: true);
+  for (final file in result.files) {
+    // Normalized, so that a default `--out` prints `export.csv` rather than
+    // `./export.csv`; the path in the report is one someone may paste back.
+    final path = p.normalize(p.join(directory, fileName ?? file.name));
+    File(path).writeAsStringSync(file.contents);
+    stdout.writeln('wrote $path');
+  }
+
+  stdout.writeln(
+    '${result.messageCount} message(s), '
+    '${result.coverage.length} locale(s).',
+  );
+
+  final behind = result.coverage
+      .where((locale) => locale.untranslated > 0)
+      .toList(growable: false);
+  if (behind.isEmpty) {
+    stdout.writeln('Every locale is complete.');
+    return 0;
+  }
+  final width = behind
+      .map((locale) => locale.localeTag.length)
+      .fold(0, (a, b) => a > b ? a : b);
+  stdout.writeln('');
+  stdout.writeln('Untranslated:');
+  for (final locale in behind) {
+    stdout.writeln(
+      '  ${locale.localeTag.padRight(width)}  '
+      '${locale.untranslated} of ${locale.total}',
+    );
+  }
+  return 0;
+}
+
+/// Puts what the translators sent back into the project's own files.
+///
+/// Writes nothing unless asked to. The plan is computed in full either way, so
+/// the dry run is the same work as the real thing minus the last step rather
+/// than a separate estimate of it.
+int _import({
+  required L10nPlusConfig config,
+  required String projectRoot,
+  required InterchangeFormat? format,
+  required String from,
+  required bool write,
+  required bool highlight,
+  required DiagnosticCollector diagnostics,
+}) {
+  diagnostics.ignore(config.ignoreDiagnostics);
+
+  // Every stage adds to one collector, and only what is new since the last
+  // stage is printed: reporting the whole list twice is how a report starts
+  // saying everything twice.
+  var reported = 0;
+  void flush() {
+    _report(
+      diagnostics.diagnostics.skip(reported).toList(growable: false),
+      highlight: highlight,
+    );
+    reported = diagnostics.diagnostics.length;
+  }
+
+  final isDirectory = Directory(from).existsSync();
+  if (!isDirectory && !File(from).existsSync()) {
+    _report([
+      Diagnostic.error(
+        code: 'invalid_interchange',
+        message: 'Nothing to import: "$from" does not exist.',
+        details: 'Point --from at the file or directory "export" produced.',
+      ),
+    ], highlight: highlight);
+    return _exitCodeDiagnostics;
+  }
+
+  // A directory can only be ARB bundles, and a `.arb` file says so itself;
+  // anything else is read as CSV, which is what a spreadsheet produces.
+  final resolved =
+      format ??
+      (isDirectory || p.extension(from).toLowerCase() == '.arb'
+          ? InterchangeFormat.arb
+          : InterchangeFormat.csv);
+
+  final catalog = TranslationCatalog.load(
+    config: config,
+    projectRoot: projectRoot,
+    diagnostics: diagnostics,
+  );
+  flush();
+  if (catalog == null || diagnostics.hasErrors) return _exitCodeDiagnostics;
+
+  final InterchangeBundle? bundle;
+  if (resolved == InterchangeFormat.csv) {
+    if (isDirectory) {
+      _report([
+        Diagnostic.error(
+          code: 'invalid_interchange',
+          message: '"$from" is a directory, and csv is one file.',
+          details:
+              'Name the .csv file, or pass --format=arb for a directory of '
+              'bundles.',
+        ),
+      ], highlight: highlight);
+      return _exitCodeDiagnostics;
+    }
+    final file = File(from);
+    bundle = InterchangeBundle.readCsv(
+      content: file.readAsStringSync(),
+      uri: file.uri,
+      diagnostics: diagnostics,
+    );
+  } else {
+    final files = <({Uri uri, String content})>[];
+    if (isDirectory) {
+      final found =
+          Directory(from)
+              .listSync()
+              .whereType<File>()
+              .where((file) => p.extension(file.path).toLowerCase() == '.arb')
+              .toList(growable: false)
+            ..sort((a, b) => a.path.compareTo(b.path));
+      for (final file in found) {
+        files.add((uri: file.uri, content: file.readAsStringSync()));
+      }
+      if (files.isEmpty) {
+        _report([
+          Diagnostic.error(
+            code: 'invalid_interchange',
+            message: 'No .arb file in "$from".',
+          ),
+        ], highlight: highlight);
+        return _exitCodeDiagnostics;
+      }
+    } else {
+      final file = File(from);
+      files.add((uri: file.uri, content: file.readAsStringSync()));
+    }
+    bundle = InterchangeBundle.readArb(files: files, diagnostics: diagnostics);
+  }
+
+  flush();
+  if (bundle == null || diagnostics.hasErrors) return _exitCodeDiagnostics;
+
+  final result = TranslationImporter.plan(
+    catalog: catalog,
+    bundle: bundle,
+    diagnostics: diagnostics,
+  );
+  flush();
+  if (result.hasErrors) return _exitCodeDiagnostics;
+
+  for (final locale in result.locales) {
+    if (locale.messages.isEmpty && locale.unchanged == 0) continue;
+    stdout.writeln(
+      '${locale.localeTag}: ${locale.added} added, ${locale.changed} changed, '
+      '${locale.unchanged} unchanged.',
+    );
+    for (final message in locale.messages) {
+      switch (message.change) {
+        case ImportChange.added:
+          stdout.writeln('  + ${message.key}  (${message.file})');
+          stdout.writeln('      ${message.after}');
+        case ImportChange.changed:
+          stdout.writeln('  ~ ${message.key}  (${message.file})');
+          stdout.writeln('      - ${message.before}');
+          stdout.writeln('      + ${message.after}');
+      }
+    }
+    stdout.writeln('');
+  }
+
+  if (result.isEmpty) {
+    stdout.writeln('Nothing to import: every message already matches.');
+    return 0;
+  }
+
+  if (!write) {
+    stdout.writeln(
+      'Dry run: ${result.writes.length} file(s) would change, and nothing '
+      'was written.',
+    );
+    for (final pending in result.writes) {
+      stdout.writeln('  would write ${pending.relativePath}');
+    }
+    stdout.writeln('Pass --write to apply it.');
+    return 0;
+  }
+
+  for (final pending in result.writes) {
+    File(pending.path).writeAsStringSync(pending.contents);
+    stdout.writeln('wrote ${pending.relativePath}');
+  }
+  stdout.writeln(
+    'Run "analyze" next: an import can write ICU the base locale disagrees '
+    'with, and that is a build error rather than a bad string.',
+  );
+  return 0;
 }
 
 /// Regenerates on every change until interrupted.
@@ -309,6 +661,30 @@ Commands:
   unused     Report translations no Dart source refers to. Names are matched
              as text, so a key is reported only when its member name appears
              nowhere at all. Exits non-zero when any are found.
+  export     Write every message out for a translator: the base locale's text,
+             each locale's current translation, and what is missing.
+  import     Read what "export" wrote and update the translation files, in the
+             project's own formats and file layout. Prints what it would
+             change and writes nothing until --write.
+
+Translator workflow:
+  dart run l10n_plus_generator export                     one csv, all locales
+  dart run l10n_plus_generator export --format=arb        one arb per locale
+  dart run l10n_plus_generator export --out=hand_off.csv
+
+  dart run l10n_plus_generator import --from=hand_off.csv          dry run
+  dart run l10n_plus_generator import --from=hand_off.csv --write  apply
+  dart run l10n_plus_generator import --from=from_tms/ --write
+
+  A csv cell holds the message exactly as the file does, ICU and all, and an
+  empty cell means "not translated" rather than "translate it to nothing". An
+  arb export leaves an untranslated message out of the bundle, and carries the
+  base text along as "source_text".
+
+  "import" only ever changes a message's text. It adds keys a locale does not
+  have yet, never deletes one, never touches a key the base locale does not
+  define, and never rewrites a file beyond the characters that changed — so
+  your key order, comments and indentation survive.
 
 Options:
 ${parser.usage}''';
