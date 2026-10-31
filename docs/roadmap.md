@@ -571,11 +571,75 @@ unchanged.
 1. **Ecosystem.** TMS import/export, PO/XLIFF, OTA, IDE plugin — a different
    scale of work from everything above.
 
+## Milestone 28 — four gaps closed at once (done)
+
+Numbered 28 because 26 and 27 below are the open and the deferred section, kept
+at the end where a reader looks for what is left.
+
+Four of the ten items the competitive review listed as "where we are behind",
+done in parallel because they touch disjoint files, and each verified by
+execution rather than by the shape of the source.
+
+* **Rich text.** `terms(rich)` yields `List<L10nSpan>` in the pure Dart file and
+  a `TextSpan` wrapper in the Flutter glue that requires one builder per tag the
+  message contains, so a forgotten tag is a compile error — a guarantee `slang`,
+  which has the feature, does not make. Tags are a layer over the ICU AST rather
+  than a sixth node kind, so the model keeps the plain parse and signature
+  inference, cross-locale validation and the doc comments needed no new case; a
+  currency format inside a tag works with no second implementation. A rich
+  plural is refused (`rich_unsupported_choice`): one builder per tag only
+  type-checks while the tag set is static. The span types are re-exported only
+  in a project that has a rich message, so every existing golden is byte for byte
+  what it was.
+* **`export` / `import`.** CSV for a spreadsheet, ARB for a TMS, and back again
+  by splicing each string at its own leaf's value span, so key order, blank
+  lines, YAML comments, indentation and line endings survive and the diff is the
+  translations alone. Dry run by default. Both commands run *before* cross-locale
+  validation, because under the default configuration the incomplete locale is an
+  error and that locale is the one being exported for. The round trip is asserted
+  byte-identical over JSON, YAML, ARB and a split layout, in both formats, with a
+  count assertion so that "nothing changed" cannot pass vacuously.
+* **Right to left.** `L10nLocale.isRightToLeft` from CLDR 46's own two files,
+  decided by script and never by region; `TextDirection` on the Flutter locale
+  and the controller; and `fill_direction_mismatch` for the case that made the
+  gap worth closing — `fill_missing_from_base` substituting left-to-right base
+  text into a right-to-left locale, which ships because the screen *looks*
+  finished. Counted in messages rather than findings, since `missing_key`
+  collapses a whole untranslated namespace into one diagnostic and would
+  understate it by two orders of magnitude.
+* **Region fallback.** The generic locale now wins by guarantee rather than by
+  accident of the lineage walk, and a region sibling is chosen by script
+  agreement and then by tag, so renaming a translation file can no longer change
+  what the app renders. Still no CLDR affinity table, and still said out loud.
+
+Diagnostics went from 72 codes to **81**: `rich_tag_mismatch`,
+`rich_invalid_markup`, `rich_unsupported_choice`, `fill_direction_mismatch`,
+`invalid_interchange`, `unknown_interchange_key`, `unknown_interchange_locale`,
+`unknown_interchange_column`, `unplaceable_key`.
+
+### What the review found that this does not fix
+
+* **Interpolated values are not bidi-isolated.** A Latin brand name inside an
+  Arabic sentence can still reorder the text around it. The fix is `FSI`/`PDI`
+  around every interpolated value, which means invisible characters in every
+  generated string and every golden file — a codegen decision with a cost,
+  deliberately separate from knowing which way a locale reads.
+* **No PO/XLIFF and no vendor API.** ARB and CSV travel; Crowdin and Lokalise
+  still mean a person in between.
+* **The runtime tier is untouched**: no over-the-air overrides, no lazy
+  per-locale loading, no linked translations, no dynamic key access. Those four
+  all rewrite the emitter and the model, which is why they were not attempted
+  alongside rich text, and the first of them is the item below worth more than
+  everything in this milestone.
+
 ## Milestone 26 — ecosystem
 
 
-7. **TMS import/export** (Crowdin, Lokalise, POEditor).
-8. **PO / XLIFF** interchange formats.
+7. ~~**TMS import/export**~~ **half done in Milestone 28.** ARB and CSV travel
+    both ways, which is the format every TMS accepts. What is left is the
+    vendor side — a Crowdin, Lokalise or POEditor API instead of a person
+    carrying the file.
+8. **PO / XLIFF** interchange formats. Untouched.
 9. **OTA translations.** This is the first feature that genuinely needs a
     runtime map path alongside the generated one, and the first that makes
     `setLocale` asynchronous.

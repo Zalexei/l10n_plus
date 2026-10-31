@@ -1059,6 +1059,72 @@ a URL inside an Arabic sentence can still reorder the text around it. The fix is
 every generated string and in every golden file — a codegen decision with a
 cost, and a separate one from knowing which way a locale reads.
 
+### Rich text: data in the core, the guarantee in the glue
+
+A link inside a sentence has to be one message, because word order belongs to
+the translator. The question was where the Flutter types go, since the runtime
+has no dependencies and the base generated file is compiled by a server.
+
+Answer: **the core emits data, the glue emits the guarantee.** A `(rich)` key
+yields `List<L10nSpan>` — a text run or a named tag with children, `const` when
+the message has no placeholders — and the Flutter glue, which already imports
+`package:flutter`, emits a wrapper that takes one builder per tag the message
+contains and folds the whole thing into a `TextSpan`. So a forgotten tag is a
+compile error, and the pure-Dart file never grows a Flutter import. The span
+types are re-exported only in a project that has a rich message, which is why
+every existing golden is byte-identical.
+
+**Tags are a layer over the ICU AST, not a sixth node kind.** The rich parser
+runs over the `MessageBody` the ICU parser already produced and reads tags out
+of its literals. The model keeps the plain parse, so signature inference,
+cross-locale validation and the generated doc comments needed no new case, and
+a `{amount, number, currency:USD}` inside a tag formats through the existing
+code path rather than a second implementation of it.
+
+**The suffix is part of the key**, so every locale writes it and richness
+cannot disagree between locales — a mismatch is already `missing_key` or
+`renamed_key`, diagnostics that exist and explain themselves. What can still
+disagree is the tag *set*, and that is `rich_tag_mismatch`, naming both files.
+
+**A rich plural is refused, not half-supported.** One builder per tag only
+type-checks while the tag set is static, and inside plural or select branches it
+is not. `rich_unsupported_choice` says to split the message and choose in Dart.
+Three of the four new codes are errors for the same reason the rest of the
+generator is strict: markup that nearly parses is the kind of thing that reaches
+a screen.
+
+### Interchange runs before validation, and edits rather than rewrites
+
+`export`/`import` sit in front of cross-locale validation rather than after it.
+The reason is the whole point of the feature: under the default configuration an
+incomplete locale is an **error**, and that locale is exactly the one somebody
+is exporting for. A command that refuses to run until the translations are
+complete would only be useful to a project that does not need it. Parse errors
+still stop both commands — a file nobody can read is not a hand-off.
+
+**`import` splices, it does not reserialize.** Each new string is written at its
+own leaf's value span, so key order, blank lines, YAML comments, indentation
+(step inferred from the file) and line endings (CRLF detected) survive, and the
+diff a reviewer reads is the translations and nothing else. Reserializing would
+have been a tenth of the code and would have put a thousand-line reformat in
+front of every translation drop.
+
+**The dry run is the default.** Silently rewriting a developer's translation
+files is the one unforgivable behaviour here, and a dry run with pending changes
+exits 0 on purpose: this is a report, not a CI gate. `analyze` is the gate.
+
+**It creates nothing.** A locale with no file, or a key with no file to anchor
+it, is a warning rather than a new file: inventing a name, a format and a layout
+is the tool deciding how somebody's repository is arranged. It also never
+deletes and never reorders, so a key dropped from the hand-off file stays.
+
+The round trip is asserted rather than claimed — export, read back, plan the
+import, and the translation files are byte-identical, over JSON, YAML, ARB and a
+split layout, in both formats, with a count assertion so that "nothing changed"
+cannot pass vacuously. Byte identity alone would pass a tool that silently did
+nothing, so two further tests check that every message survives with its text
+intact and that the encoder reproduces the literal already in the file.
+
 ### `date` is permissive about skeletons, `time` is not
 
 `DateFormat` skeletons are one namespace, so nothing stopped `{t, time, yMMMd}`

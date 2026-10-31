@@ -78,7 +78,7 @@ config lines rather than 1.
 | JSON input | Y | Y | N | Y |
 | YAML input | ~ (no metadata) | Y | N | ~ (add-on) |
 | ARB input | Y | Y | Y (only) | N |
-| CSV input | N | Y (incl. one file for all locales) | N | ~ (add-on) |
+| CSV input | ~ (interchange only, not a build source) | Y (incl. one file for all locales) | N | ~ (add-on) |
 | Formats mixable in one project | **Y** | N | N | N |
 | Nested keys | Y | Y | **N** | Y |
 | Namespaces across files | Y | Y | **N** (open since 2022, 128 reactions) | ~ |
@@ -91,22 +91,22 @@ config lines rather than 1.
 | Named arguments | Y always | Y always | ~ opt-in | n/a |
 | Non-nullable accessor | Y | Y | ~ nullable by default | n/a |
 | Number / date / currency | Y — 11 styles + skeletons | Y | Y — 41 `DateFormat` variants | ~ re-exports `intl` |
-| Rich text / `TextSpan` / links | **N** | Y | N | N |
+| Rich text / `TextSpan` / links | **Y — `(rich)` keys, a builder required per tag** | Y | N | N |
 | Lists, maps, dynamic key access | **N** | Y | N | Y (keys are strings) |
 | Linked translations `@:` | **N** | Y | N | Y |
 | Interfaces / polymorphic subtrees | **N** | Y | N | N |
 | Fallback chain configurable | Y | Y | ~ always the template locale | Y |
-| Region affinity (`en_NZ` → ?) | ~ **alphabetical accident** | Y (`en-GB` → `en` always) | Y | ~ |
+| Region affinity (`en_NZ` → ?) | ~ generic first, then script, then tag | Y (`en-GB` → `en` always) | Y | ~ |
 | Partial locales | Y | Y | Y | ~ |
 | **Build fails on a missing translation** | **Y — diagnosed, with warn mode** | Y — as a Dart compile error | **N — `printStatus` only, no flag exists** | N |
 | Build fails on an extra key | **Y** | N | N | N |
 | Rename detection | **Y — unique in the field** | N | N | N |
-| Diagnostic codes + per-code suppression | **Y — 71 codes** | N | ~ all-or-nothing | N |
+| Diagnostic codes + per-code suppression | **Y — 81 codes** | N | ~ all-or-nothing | N |
 | Cross-locale placeholder / arity check | **Y** | ~ | ~ (and has open bugs) | N |
 | Unused-key analysis | Y (text scan) | Y (+ `clean`; false positives) | **N** | N |
-| Write missing keys back to source | N | Y (`apply`) | N | N |
+| Write missing keys back to source | ~ (`import`, from a hand-off file) | Y (`apply`) | N | N |
 | Extraction from source | N | ~ (`$wip apply`) | N | N |
-| CLI command count | 3 | ~12 | 1 | 2 |
+| CLI command count | 5 | ~12 | 1 | 2 |
 | Watch mode | Y | Y | **Y, inside `flutter run`** | n/a |
 | Lazy / deferred per-locale loading | **N** | Y (default on) | ~ opt-in, web | N |
 | Over-the-air / runtime overrides | **N** | Y | N | ~ 23-line loader, no cache |
@@ -119,16 +119,36 @@ config lines rather than 1.
 | `const` namespace accessors | **Y — allocation-free, 3.8 ns** | N (`late final`, open request) | ~ | n/a |
 | Generator is `dev_dependencies` only | **Y** (runtime has zero deps) | **N** — `yaml`, `watcher`, `serial_csv` ship in app deps | Y (`intl` only) | N |
 | Material / Cupertino widget strings | N — you add `flutter_localizations` | ~ | **Y — 115+ locales built in** | ~ |
-| TMS integration | ~ tolerates a TMS ARB export | ~ CSV, Weblate docs, MCP | **Y — ARB is the universal format** | ~ |
-| RTL helpers | **N — zero mentions in the repo** | N | Y (framework delegate) | ~ |
+| TMS integration | Y — ARB and CSV export/import | ~ CSV, Weblate docs, MCP | **Y — ARB is the universal format** | ~ |
+| RTL helpers | **Y — direction per locale, warned when the fill crosses it** | N | Y (framework delegate) | ~ |
 | Published, community, Stack Overflow | **N** | Y | Y | Y |
 
-Counting the `Y` cells on the 45 comparable axes: **`slang` ≈ 31, `l10n_plus`
-≈ 24, `gen_l10n` ≈ 15, `easy_localization` ≈ 10.** So "more features than the
-competition" is true against the official tool and against every runtime
-package, and false against `slang`.
+Counting the verdicts over the 46 comparable rows — with a script, over this
+table, so the number can be reproduced rather than taken on trust:
 
----
+| | `Y` | `~` | `N` |
+| --- | --- | --- | --- |
+| `l10n_plus` | **31** | 4 | 11 |
+| `slang` | **31** | 6 | 9 |
+| `gen_l10n` | 12 | 10 | 24 |
+| `easy_localization` | 8 | 12 | 26 |
+
+An earlier revision of this document said `l10n_plus ≈ 24` against the same
+`slang ≈ 31`. Four of those axes were closed since (rich text, RTL, ARB/CSV
+interchange, region affinity), but the rest of the gap was a hand count that was
+simply wrong, and that is the more useful finding: a comparison nobody can
+re-run is not a measurement. The script is five lines over the table above.
+
+**And the tie is not the point.** A `Y` is not a unit of value: "asset
+obfuscation" and "222 CLDR plural languages" are one cell each. What the two
+columns disagree about matters more than the total, and it splits cleanly —
+`slang`'s remaining advantages are **runtime shape** (lazy per-locale loading,
+over-the-air overrides, an ambient accessor, dynamic key access, linked
+translations), ours are **build-time truth** (plural correctness at 222/107
+verified against two oracles, a build that fails on a gap with 81 diagnostic
+codes, rename detection, byte-identical output, a dev-only generator). Those are
+two different bets about where localization errors should surface, not two
+scores.
 
 ## 4. What is genuinely ours
 
@@ -163,57 +183,77 @@ package, and false against `slang`.
 5. **Generated code is analyzed *and executed* against real `package:intl`** in
    the golden tests — which is how two shipped bugs were caught.
 
-## 5. Where we are behind, in priority order
+## 5. Closed since this document was written
+
+Four of the ten gaps below were closed in one pass, each with tests that run
+rather than assert the shape of the source:
+
+1. **Rich text.** A key written `terms(rich)` yields a span list in the pure
+   Dart file and, in the Flutter glue, a wrapper that **requires one builder per
+   tag the message contains** — so a forgotten tag is a compile error, and the
+   tag set has to agree across locales (`rich_tag_mismatch`). `slang` has the
+   feature; it does not have that guarantee. A rich plural is refused rather
+   than half-supported, because the guarantee only holds while the tag set is
+   static.
+2. **ARB and CSV interchange.** `export` writes every message with its base text
+   and each locale's translation; `import` splices the answers back in at each
+   leaf's value span, so key order, blank lines, YAML comments, indentation and
+   line endings survive. Dry run by default. A round-trip test asserts the
+   translation files come back **byte-identical** over JSON, YAML, ARB and a
+   split layout, in both formats.
+3. **RTL.** Direction per locale from CLDR's own two files, decided by script
+   and never by region, `TextDirection` in the Flutter layer, and a warning for
+   the case that made it worth doing: `fill_missing_from_base` substituting
+   left-to-right base text into a right-to-left locale, which ships because the
+   screen looks finished.
+4. **Region affinity**, as described above: the generic locale first by
+   guarantee, then script agreement, then the tag. No CLDR affinity table, and
+   said out loud.
+
+## 6. Where we are still behind, in priority order
 
 1. **No over-the-air anything.** `slang` has `overrideTranslations`,
-   `i18n_extension` has `byHttp` with typed errors and a never-throws
-   guarantee, `flutter_i18n` has network and device-filesystem loaders, and
-   `rerune` (2026) overlays remote strings under generated accessors. This is
-   the one axis where runtime designs win architecturally, and our roadmap is
-   explicit that it needs a runtime map path and an async `setLocale`.
-2. **No rich text.** `(rich)` → `TextSpan` with per-placeholder callbacks is a
-   `slang` feature with no equivalent anywhere else, and bold-or-a-link inside
-   a sentence is an ordinary product requirement. `gen_l10n` has an open issue
-   for it, so this is a gap against `slang` only.
-3. **No linked translations**, therefore no two plurals in one sentence —
+   `i18n_extension` has `byHttp`, `rerune` overlays remote strings under
+   generated accessors. The one axis where runtime designs win architecturally,
+   and the roadmap is explicit that it needs a runtime map path and an async
+   `setLocale`.
+2. **No linked translations**, therefore no two plurals in one sentence —
    something ICU itself cannot do and `slang` can.
-4. **No lazy loading.** `slang` defers per-locale imports by default; at
-   810 messages × many locales this is a web bundle-size argument we currently
-   lose.
-5. ~~**Region affinity is an alphabetical accident**~~ **Fixed, and the claim
-   above was half wrong.** A bare `en` already won — the lineage walk ends at
-   the language — so `slang`'s `en-GB` → `en` guarantee was one we also kept,
-   by accident rather than on purpose. The real defect was narrower and worse:
-   with no bare `en`, the winner was whichever sibling the supported list named
-   first, so renaming a translation file changed what the app rendered. Siblings
-   are now ordered by script agreement (`zh_Hant_HK` reads as `zh_Hant_TW`, not
-   `zh_Hans_CN`) and then by tag. Still no CLDR affinity table, and still said
-   out loud.
-6. **No CSV, no PO/XLIFF, no TMS integration**, and ARB support is tolerance
-   rather than a workflow. ARB-as-input is what buys the whole translation
-   vendor ecosystem.
-7. **Thin CLI**: 3 commands against `slang`'s ~12 (`apply`, `normalize`,
-   `edit`, `stats`, `migrate`, `clean`, `configure`, `$wip apply`).
-8. **No maps, lists or dynamic key access**, so server-driven copy
+3. **No lazy loading.** `slang` defers per-locale imports by default; at
+   810 messages × many locales this is a web bundle-size argument we lose.
+4. **No maps, lists or dynamic key access**, so server-driven copy
    (`tr('error.$code')`) is structurally impossible — a genuine advantage of
    every string-keyed package.
-9. **Nothing for RTL** — zero occurrences of `TextDirection`, `Directionality`
-   or bidi isolation in the repo. Worse, `fill_missing_from_base` fills an RTL
-   locale with LTR base text, formatting included.
-10. **No ambient context-free accessor** (deferred deliberately, with a good
-    reason, but every competitor has one), **no IDE plugin**, **no hot-reload
-    claim**, and **nothing published on pub.dev** — no community, no Stack
-    Overflow answer, no name.
+5. **No PO/XLIFF, and no vendor API.** ARB and CSV now travel; Crowdin,
+   Lokalise and POEditor still mean a human in between.
+6. **Interpolated values are not bidi-isolated.** A Latin brand name inside an
+   Arabic sentence can still reorder the text around it. Needs `FSI`/`PDI` in
+   generated strings — invisible characters in every golden, so a decision with
+   a cost.
+7. **No extraction from source**, and `import` writes translations but never
+   creates a file or a locale.
+8. **Five CLI commands against `slang`'s ~12** (`edit`, `stats`, `migrate`,
+   `clean`, `configure` have no equivalent here).
+9. **No ambient context-free accessor** (deferred deliberately, with the
+   footgun written down), **no asset obfuscation**, **no IDE plugin**, and no
+   Material/Cupertino strings of our own.
+10. **Nothing published on pub.dev** — no community, no Stack Overflow answer,
+    no name. Unchanged by any of the above, and still the largest gap of all.
 
-## 6. The three things that would make the claim true
+## 7. The three things that would have made the claim true
 
-- **Rich text** closes the biggest product-shaped hole against `slang`.
-- **Runtime overrides over the generated accessors** (the `rerune` shape: new
-  keys and changed signatures still need a release, copy changes do not) answers
-  the whole runtime tier at once.
-- **ARB round-tripping plus a `diff`/`apply` pair** turns the strictness story
-  into a translator workflow instead of a wall.
+Written before any of the work above. Two are now done:
 
-And one that costs nothing: `slang` leaves CLDR plurals wrong for ~100
-languages while advertising the feature. That is the sentence our README should
-open with, because it is checkable and nobody else can say it.
+- ~~**Rich text**~~ — done, with a compile-time guarantee `slang` does not have.
+- ~~**ARB round-tripping plus a `diff`/`apply` pair**~~ — done as
+  `export`/`import`, dry run by default. No `diff` command: a dry-run import
+  *is* the diff, and a second name for it would have been a flag's worth of
+  work pretending to be a feature.
+- **Runtime overrides over the generated accessors** — not done. The `rerune`
+  shape: new keys and changed signatures still need a release, copy changes do
+  not. It answers the whole runtime tier at once and remains the one item worth
+  more than everything else on the behind list.
+
+And the one that costs nothing, still unspent: `slang` leaves CLDR plurals wrong
+for ~100 languages while advertising the feature. That is the sentence the README
+should open with, because it is checkable and nobody else can say it.

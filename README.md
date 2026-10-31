@@ -419,6 +419,64 @@ A count that no formatter renders is unaffected: it reads its own value, and a
 plural of pure words — `one{Delete the file} other{Delete the files}` — never
 consults a formatter at all.
 
+## Rich text
+
+A link or a bold word inside a sentence is not two translations with a widget
+between them — the whole sentence has to be one message, because word order is
+the translator's business. Mark the key:
+
+```json
+{
+  "legal": {
+    "terms(rich)": "Read the <link>terms of service</link> to continue"
+  }
+}
+```
+
+The `(rich)` suffix is part of the key, so every locale writes it, and the base
+file stays pure Dart — spans, no Flutter:
+
+```dart
+/// Read the <link>terms of service</link> to continue
+List<L10nSpan> get terms => const [
+  L10nTextSpan('Read the '),
+  L10nTagSpan('link', [L10nTextSpan('terms of service')]),
+  L10nTextSpan(' to continue'),
+];
+```
+
+The Flutter glue adds a wrapper that **requires one builder per tag the message
+contains**:
+
+```dart
+Text.rich(
+  context.l10n.legal.termsRich(
+    link: (children) => TextSpan(children: children, recognizer: _tap),
+  ),
+)
+```
+
+Forget the tag and it does not compile. Rename the tag in one locale and the
+build fails with `rich_tag_mismatch`, naming both files. The wrapper is
+`<member>Rich` because an extension member cannot share a name with the
+interface member beside it, and arguments come first:
+`greetingRich(name: 'Ada', bold: ...)`.
+
+Tags nest, and a tag may wrap a placeholder with a format on it —
+`<b>{amount, number, currency:USD}</b>` works, with no second implementation of
+currency formatting behind it.
+
+Three things it deliberately does not do:
+
+* **No attributes.** `<a href="...">` is markup deciding what a tag means; a
+  translation is text, and the builder decides.
+* **No plurals or selects in a rich message.** The one-builder-per-tag
+  guarantee holds only while the tag set is known statically, and inside
+  branches it is not. Refused with `rich_unsupported_choice`, which says to
+  split the message and choose in Dart.
+* **`<` is still a `<`.** `3 < 4` stays text. Only something shaped like a tag
+  is a tag, and `<b` with no `>` is `rich_invalid_markup` rather than a guess.
+
 ## Several files per locale
 
 One file per locale stops scaling somewhere around a few hundred keys.
@@ -832,6 +890,50 @@ appear cannot be told apart. That is deliberate: the scan will never call a
 live translation dead. The generated output, `.dart_tool` and `build` are not
 searched.
 
+## Handing strings to a translator
+
+Strictness is a wall until the strings can leave the repository and come back.
+
+```bash
+dart run l10n_plus_generator export                 # l10n_plus_export.csv
+dart run l10n_plus_generator export --format=arb    # one .arb per locale
+```
+
+CSV is one row per message — key, base text, a column per locale — for a
+translator with a spreadsheet. ARB is a bundle per locale, with `@@locale` and
+`@key` metadata, for a TMS.
+
+Back in:
+
+```bash
+dart run l10n_plus_generator import --from=hand_off.csv           # dry run
+dart run l10n_plus_generator import --from=hand_off.csv --write
+```
+
+**The dry run is the default**, and prints what each locale would gain or
+change. With `--write`, new text is spliced in at each message's own position,
+so key order, blank lines, YAML comments, indentation and line endings survive —
+the diff is the translations and nothing else.
+
+Both commands run **before** cross-locale validation, on purpose: under the
+default configuration an incomplete locale is an error, and that locale is
+exactly the one somebody is exporting for. Parse errors still stop them.
+
+What it will not do:
+
+* **Create nothing.** A locale with no file is `unknown_interchange_locale`, a
+  key with nowhere to go is `unplaceable_key`. Inventing a file name and layout
+  is the tool deciding how your repository is arranged.
+* **Delete nothing, reorder nothing.** A key dropped from the hand-off file
+  stays as it was.
+* **An empty cell means "nothing supplied"**, never "set this to empty", so a
+  blank column cannot wipe a translation.
+* **Descriptions are read-only**, and the exported ARB carries only what a
+  translator needs — it is not a replacement for your own bundle.
+
+A dry run with pending changes still exits 0. It reports; `analyze` is what
+fails a build.
+
 ## Development loop
 
 Editing translations while the app runs wants a watcher. There are two, they
@@ -876,8 +978,10 @@ Translated:
   en  270/270
   fr  1/270  (0%, 269 untranslated)
   ru  270/270
-``` Add `unused` as a second step when you want dead
-translations to fail the build too.
+```
+
+Add `unused` as a second step when you want dead translations to fail the
+build too.
 
 ## Benchmarks
 
