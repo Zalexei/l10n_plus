@@ -31,6 +31,16 @@ final class LocaleMessages {
   final Map<String, ParsedMessage> messages;
 }
 
+/// How many messages `fill_missing_from_base` substitutes into one locale.
+///
+/// Counted while the structure is compared rather than read off the report
+/// afterwards: the missing-key findings collapse a whole untranslated
+/// namespace into one diagnostic, so the number of findings says nothing
+/// about how much of the screen ends up as base text.
+final class _FillTally {
+  int messages = 0;
+}
+
 /// Checks every non-base locale against the base locale.
 ///
 /// The base locale defines the generated API, so any structural difference in
@@ -53,6 +63,7 @@ abstract final class CrossLocaleValidator {
 
     for (final locale in others) {
       _checkPluralSupport(locale, diagnostics);
+      final filled = _FillTally();
       _compareStructure(
         base: base,
         other: locale,
@@ -61,7 +72,20 @@ abstract final class CrossLocaleValidator {
         diagnostics: diagnostics,
         fillMissingFromBase: fillMissingFromBase,
         extraKeys: extraKeys,
+        filled: filled,
       );
+      // After the structure, because the count is what the finding is about:
+      // one warning per locale, not one per untranslated subtree.
+      if (filled.messages > 0 &&
+          locale.locale.isRightToLeft != base.locale.isRightToLeft) {
+        diagnostics.add(
+          _fillDirectionDiagnostic(
+            base: base,
+            other: locale,
+            filled: filled.messages,
+          ),
+        );
+      }
       for (final entry in baseSignatures.entries) {
         final message = locale.messages[entry.key];
         if (message == null) continue; // Already reported as a missing key.
@@ -214,6 +238,54 @@ abstract final class CrossLocaleValidator {
           );
   }
 
+  /// The one finding for base text filled into a locale that reads the other
+  /// way round.
+  ///
+  /// Deliberately not folded into `missing_key`, and deliberately its own
+  /// code. `missing_key` says a translation is absent, which is exactly what
+  /// a team already accepted when it turned `fill_missing_from_base` on — so
+  /// that warning is the one most likely to be ignored, and this problem is
+  /// not the one it describes.
+  ///
+  /// One finding per locale rather than per key: it is one decision about one
+  /// locale, and the count is what carries its size.
+  static Diagnostic _fillDirectionDiagnostic({
+    required LocaleMessages base,
+    required LocaleMessages other,
+    required int filled,
+  }) {
+    final tag = other.locale.toFileTag();
+    final baseTag = base.locale.toFileTag();
+    final fallsBack = filled == 1 ? '1 message falls' : '$filled messages fall';
+    return Diagnostic.warning(
+      code: 'fill_direction_mismatch',
+      message:
+          '$tag is ${_directionLabel(other.locale)}, but $fallsBack back to '
+          '${_directionLabel(base.locale)} $baseTag text.',
+      // On the locale's root: the finding is about the locale as a whole, and
+      // every individual key already has a `missing_key` of its own.
+      span: other.root.keySpan,
+      details:
+          'Those keys are also reported as missing_key. This is what makes '
+          'them worse than missing: text filled from the base locale is a '
+          'complete, grammatical sentence, so the screen looks finished — '
+          'but it is in the wrong language and laid out the wrong way round, '
+          'which puts punctuation, brackets and embedded numbers on the '
+          'wrong side of it. A reviewer who does not read $baseTag cannot '
+          'tell such a screen from a translated one, so it ships.\n'
+          'Ship $tag without those messages instead: set '
+          '"fill_missing_from_base: false" to make an untranslated key an '
+          'error again, or leave $tag out of the build until the '
+          'translations land.\n'
+          'Set "ignore_diagnostics: [fill_direction_mismatch]" once a '
+          'mixed-direction rollout is the decision rather than an accident.',
+    );
+  }
+
+  /// `right-to-left` or `left-to-right`, for a sentence about [locale].
+  static String _directionLabel(L10nLocale locale) =>
+      locale.isRightToLeft ? 'right-to-left' : 'left-to-right';
+
   /// `file.json:12`, or just the line when the span has no file.
   static String _where(TranslationNode node) {
     final source = node.keySpan.sourceUrl;
@@ -231,9 +303,14 @@ abstract final class CrossLocaleValidator {
     required DiagnosticCollector diagnostics,
     required ExtraKeys extraKeys,
     required bool fillMissingFromBase,
+    required _FillTally filled,
   }) {
     final renamed = _renameIn(baseNode, otherNode);
     if (renamed != null) {
+      // A renamed key is still absent under its new name, so the fill
+      // substitutes base text for it exactly as for a plain missing key — the
+      // tally follows what is generated, not what is reported.
+      if (fillMissingFromBase) filled.messages += messageCount(renamed.to);
       diagnostics.add(
         _renameDiagnostic(
           base: base,
@@ -261,6 +338,7 @@ abstract final class CrossLocaleValidator {
             '${baseChild.keySpan.start.line + 1}.';
         final covered = messageCount(baseChild);
         final scope = covered == 1 ? '' : ' It covers $covered messages.';
+        if (fillMissingFromBase) filled.messages += covered;
         diagnostics.add(
           fillMissingFromBase
               ? Diagnostic.warning(
@@ -300,6 +378,7 @@ abstract final class CrossLocaleValidator {
             baseNode: a,
             otherNode: b,
             diagnostics: diagnostics,
+            filled: filled,
           );
         case (TranslationLeaf(), TranslationLeaf()):
           break;
