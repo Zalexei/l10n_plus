@@ -1018,6 +1018,47 @@ The test that asserted "reordering the list changes the answer" now asserts the
 inverse. It pinned the defect on purpose, so fixing the defect had to flip it,
 and the comment in the test says so.
 
+### Direction is a script fact, and the fill is where it bites
+
+`L10nLocale.isRightToLeft` is decided by the script and never by the region.
+`ar_EG` and `ar` agree; the two Azerbaijani locales do not agree with each
+other, because `az_Latn` and `az_Arab` are different scripts. An explicit
+script subtag is the locale stating which script it is written in, so it is
+taken at its word even when the language usually uses another — romanized Urdu
+is left to right. Both lists come from one source, CLDR 46: a script is right
+to left when `scriptMetadata.txt` says `rtl = YES`, a language when
+`likelySubtags.xml` maps it to such a script. Written down because intuition is
+unreliable here: Kurmanji Kurdish (`ku`) is Latin and absent, Central Kurdish
+(`ckb`) is Arabic and present.
+
+A predicate rather than an enum. The answer has exactly two values and both are
+stable, so a `bool` carries all of it without putting a second type on the
+runtime's public surface.
+
+The reason to know direction at all is not layout — Flutter does layout — but
+`fill_missing_from_base`. Filling a right-to-left locale with left-to-right base
+text produces the worst kind of defect this library can produce: a screen that
+looks finished. The sentences are complete and grammatical, so a reviewer who
+does not read the base language cannot tell it from a translated screen, and the
+layout is backwards in a way that puts punctuation, brackets and embedded
+numbers on the wrong side. `fill_direction_mismatch` is its own code rather than
+a line on `missing_key`, because a team that turned the fill on has already
+accepted missing translations — that warning is the one most likely to be
+ignored, and this is not the problem it describes.
+
+**The count is messages, not findings.** `missing_key` collapses an entire
+untranslated namespace into one diagnostic, so two findings can stand for two
+hundred messages and the number of findings would understate the problem by two
+orders of magnitude. The tally is taken while the structure is compared, and a
+renamed key counts as filled, because the key is still absent under its new name
+and codegen substitutes base text for it.
+
+**Not addressed: bidi isolation of interpolated values.** A Latin brand name or
+a URL inside an Arabic sentence can still reorder the text around it. The fix is
+`FSI`/`PDI` around every interpolated value, which means invisible characters in
+every generated string and in every golden file — a codegen decision with a
+cost, and a separate one from knowing which way a locale reads.
+
 ### `date` is permissive about skeletons, `time` is not
 
 `DateFormat` skeletons are one namespace, so nothing stopped `{t, time, yMMMd}`

@@ -696,6 +696,61 @@ This is the only thing it changes. A key the base locale has and this one does
 not is still `missing_key`, and arguments that disagree with the base are still
 errors.
 
+## Right-to-left locales
+
+A locale knows which way it reads, decided by its script and never by its
+region:
+
+```dart
+L10nLocale.parse('ar').isRightToLeft;       // true
+L10nLocale.parse('ar-EG').isRightToLeft;    // true
+L10nLocale.parse('az-Latn').isRightToLeft;  // false
+L10nLocale.parse('az-Arab').isRightToLeft;  // true
+```
+
+The lists behind it are CLDR 46's own: a script is right to left when
+`scriptMetadata.txt` marks it so, a language when `likelySubtags.xml` maps it
+to such a script. An explicit script subtag always wins, so romanized Urdu
+(`ur-Latn`) is left to right and `pa-Arab` is not.
+
+In Flutter it is a `TextDirection`, on the locale and on the controller, so
+nothing below the scope has to know about locales at all:
+
+```dart
+Directionality(
+  textDirection: L10nScope.controllerOf(context).textDirection,
+  child: child,
+)
+```
+
+The controller derives it from the active locale, so it notifies the same
+listeners the locale does: switching to `ar` flips the layout.
+
+### Filling an untranslated right-to-left locale
+
+`fill_missing_from_base` plus a locale that reads the other way round is the
+one combination worth a warning of its own:
+
+```
+warning[fill_direction_mismatch]: ar is right-to-left, but 3 messages fall
+back to left-to-right en text.
+```
+
+Those keys are already reported as `missing_key`. What this adds is why they
+are worse than missing: filled text is a complete, grammatical sentence, so the
+screen looks finished while reading backwards, with punctuation, brackets and
+embedded numbers on the wrong side. A reviewer who does not read the base
+language cannot tell it from a translated screen, so it ships. Set
+`fill_missing_from_base: false` to make those keys an error again, leave the
+locale out of the build until the translations land, or add
+`fill_direction_mismatch` to `ignore_diagnostics` once a mixed-direction
+rollout is the decision rather than the accident.
+
+**What this does not do:** isolate interpolated values. A Latin brand name or a
+URL inside an Arabic sentence can still reorder the text around it; that needs
+`FSI`/`PDI` around the value at render time, which is a change to generated
+strings and is not in yet.
+
 ## Turning warnings off
 
 Some warnings are true and already decided about. At three thousand keys in ten
