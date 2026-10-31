@@ -2,6 +2,7 @@ import '../ast/message_ast.dart';
 import '../ast/rich_ast.dart';
 import '../config.dart';
 import '../model/localization_model.dart';
+import '../overrides/override_schema.dart';
 import '../plural/cldr_plural_rules.dart';
 import 'intl_formatters.dart';
 
@@ -16,7 +17,13 @@ import 'intl_formatters.dart';
 /// * plural rules are inlined as Dart conditions for the locale being emitted,
 ///   so no rule table reaches the app;
 /// * output order is fully determined by the base locale document order, which
-///   makes regeneration byte for byte stable.
+///   makes regeneration byte for byte stable;
+/// * with `runtime_overrides` on, every message body asks the override store
+///   for its text before returning its literal, and nothing else changes — the
+///   same compiled condition picks the same branch, the same formatter renders
+///   the same argument, and what an override supplies is one branch's words.
+///   With it off not a byte moves, which is what makes the option safe to add
+///   to a library whose argument is that there is no run time path.
 final class DartEmitter {
   /// Creates an emitter for [model].
   DartEmitter(this.model, this.config);
@@ -40,6 +47,42 @@ final class DartEmitter {
   /// Starts with `$` so it can never collide with a translation argument,
   /// whose names are normalized to lower camel case.
   static const String _operands = r'$operands';
+
+  /// Name of the local holding what the override store returned.
+  ///
+  /// Starts with `$` for the same reason [_operands] does.
+  static const String _override = r'$override';
+
+  /// Name of the per class constant every override lookup is keyed by.
+  ///
+  /// A `static const` on the implementation class rather than a field: the
+  /// classes have to stay `const` constructible, and a class level constant is
+  /// also the only place the locale is known for a nested namespace, which
+  /// carries no `l10nLocale` of its own.
+  static const String _localeField = r'_$locale';
+
+  final Map<String, List<OverrideMessage>> _overrideMessages = {};
+
+  /// Every override lookup the last [emit] wrote, per locale file tag.
+  ///
+  /// Recorded while emitting rather than derived a second time, so
+  /// `check-overrides` validates against the lookups the application performs
+  /// and cannot drift from them. Empty unless `runtime_overrides` is on.
+  OverrideCatalog get overrides => config.runtimeOverrides
+      ? OverrideCatalog([
+          for (final locale in model.locales)
+            OverrideSchema(
+              localeTag: locale.tag,
+              language: locale.locale.language,
+              messages: {
+                for (final message
+                    in _overrideMessages[locale.tag] ??
+                        const <OverrideMessage>[])
+                  message.key: message,
+              },
+            ),
+        ])
+      : const OverrideCatalog([]);
 
   final Map<String, FormatterBinding> _formatters = {};
 
@@ -74,6 +117,7 @@ final class DartEmitter {
     required String sharedFileName,
     required String Function(LocaleModel) partFileName,
   }) {
+    _overrideMessages.clear();
     final parts = <String, String>{};
     final union = <String, FormatterBinding>{};
     final bodies = <LocaleModel, String>{};
@@ -139,6 +183,7 @@ final class DartEmitter {
   /// Renders the whole library as one file.
   String emit() {
     _formatters.clear();
+    _overrideMessages.clear();
 
     // The body is rendered first because it decides which formatters, and
     // therefore which imports, the header needs.
@@ -192,9 +237,15 @@ final class DartEmitter {
   }
 
   /// The runtime names the generated library re-exports.
-  String get _exportedNames => _hasRichMessages
-      ? 'L10nLocale, L10nSpan, L10nTagSpan, L10nTextSpan'
-      : 'L10nLocale';
+  ///
+  /// `L10nOverrides` joins them when overrides are on, because installing a
+  /// bundle is then part of what this library is for and an application should
+  /// not need a second import to do it.
+  String get _exportedNames => [
+    'L10nLocale',
+    if (config.runtimeOverrides) 'L10nOverrides',
+    if (_hasRichMessages) ...['L10nSpan', 'L10nTagSpan', 'L10nTextSpan'],
+  ].join(', ');
 
   /// Whether the project has a rich message at all.
   ///
@@ -625,6 +676,20 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
       ..writeln('  const $className();')
       ..writeln();
 
+    // Only where something reads it: a namespace of nothing but children
+    // performs no lookup, and an unused constant in generated code is noise
+    // the reader has to rule out.
+    if (config.runtimeOverrides &&
+        namespace.messages.any((message) => !message.isRich)) {
+      buffer
+        ..writeln('  /// The locale every override lookup here is keyed by.')
+        ..writeln(
+          '  static const L10nLocale $_localeField = '
+          '${_localeLiteral(locale)};',
+        )
+        ..writeln();
+    }
+
     if (namespace.isRoot) {
       buffer
         ..writeln('  @override')
@@ -683,6 +748,17 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
       );
       buffer.writeln();
       helpers.addAll(context.helpers);
+      if (config.runtimeOverrides) {
+        (_overrideMessages[locale.tag] ??= []).add(
+          OverrideMessage(
+            key: message.path,
+            keySpan: message.keySpan,
+            isRich: message.isRich,
+            slots: List.of(context.slots),
+            pluralCategories: Map.of(context.pluralCategories),
+          ),
+        );
+      }
     }
 
     for (final helper in helpers) {
@@ -726,7 +802,140 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
       buffer.writeln('  }');
       return;
     }
-    buffer.writeln('  $signature => ${_expression(body, context)};');
+    if (!config.runtimeOverrides) {
+      buffer.writeln('  $signature => ${_expression(body, context)};');
+      return;
+    }
+    // A message with one form has one slot, named by the key alone. The
+    // expression form cannot hold a lookup, so the member becomes a block —
+    // which changes nothing about the class being `const`.
+    buffer.writeln('  $signature {');
+    for (final line in _overridableReturn(body, context, branch: null)) {
+      buffer.writeln('    $line');
+    }
+    buffer.writeln('  }');
+  }
+
+  /// The statements that return [body], consulting the override store first.
+  ///
+  /// Without `runtime_overrides` this is the single `return` it always was.
+  /// With it, the lookup comes first and the literal stays as the answer when
+  /// nothing is installed — so the compiled text is still what the application
+  /// renders, and an override is an exception rather than a layer.
+  ///
+  /// The expression is built before the values are collected, because building
+  /// it is what numbers the nested choices the values refer to.
+  List<String> _overridableReturn(
+    MessageBody body,
+    _MessageContext context, {
+    required String? branch,
+  }) {
+    final expression = _expression(body, context);
+    if (!config.runtimeOverrides) return ['return $expression;'];
+
+    final values = _fillValues(body, context);
+    context.slots.add(
+      OverrideSlot(branch: branch, tokens: values.keys.toSet()),
+    );
+
+    final key = _escapeContent(context.message.path);
+    final arguments = branch == null
+        ? "$_localeField, '$key'"
+        : "$_localeField, '$key', '${_escapeContent(branch)}'";
+    // An override with nothing to substitute is returned as it stands, so a
+    // message of plain words costs one map lookup and no map literal — and
+    // the guard fits on one line, which is why the braces are conditional
+    // rather than a style choice: a `fill` call wraps, and an unbraced `if`
+    // spread over two lines is not something to write into every message.
+    if (values.isEmpty) {
+      return [
+        'final $_override = L10nOverrides.text($arguments);',
+        'if ($_override != null) return $_override;',
+        'return $expression;',
+      ];
+    }
+    final pairs = values.entries
+        .map((entry) => "'${entry.key}': ${entry.value}")
+        .join(', ');
+    return [
+      'final $_override = L10nOverrides.text($arguments);',
+      'if ($_override != null) {',
+      '  return L10nOverrides.fill($_override, {$pairs});',
+      '}',
+      'return $expression;',
+    ];
+  }
+
+  /// The already rendered value of every token [body]'s slot substitutes.
+  ///
+  /// Every argument of the message, not only the ones this branch's literal
+  /// interpolates: the build time check validates placeholders against the
+  /// message, so a reword that adds `{count}` to a branch that did not show it
+  /// is accepted — and a token the checker accepts must be one the runtime
+  /// substitutes, or the check would be passing something that renders as
+  /// `{count}` on a screen.
+  ///
+  /// Each value is formatted exactly as the literal formats it: the format
+  /// written in this branch if there is one, otherwise the one the message or
+  /// the locale's metadata declared. `#` is the plural count in scope, after
+  /// any `offset:`. A nested choice contributes its own rendering under `#n`,
+  /// which is what lets the sentence *around* a plural be reworded.
+  Map<String, String> _fillValues(MessageBody body, _MessageContext context) {
+    final values = <String, String>{};
+    for (final argument in context.message.arguments) {
+      // A select argument's value is a generated enum; substituting it would
+      // print `ProfileGreetingGender.male`. Left out, so the checker refuses
+      // `{gender}` instead of the runtime rendering it.
+      if (argument.selectEnum != null) continue;
+      values[argument.name] = _argumentValue(context, argument, body);
+    }
+
+    final count = context.currentCount;
+    if (count != null) {
+      final name = context.numberSignName(count);
+      final format = _pluralNumberFormat(context, count);
+      values['#'] = format == null
+          ? '$name.toString()'
+          : _formatCall(
+              format: format,
+              locale: context.locale,
+              parameter: name,
+            );
+    }
+
+    for (final node in body.nodes) {
+      if (node is! PluralNode && node is! SelectNode) continue;
+      final nested = context.nestedChoice(node);
+      if (nested != null) values['#${nested.index}'] = nested.call;
+    }
+    return values;
+  }
+
+  /// The expression a token stands for, rendered as the literal renders it.
+  String _argumentValue(
+    _MessageContext context,
+    ArgumentModel argument,
+    MessageBody body,
+  ) {
+    ArgumentFormat? format;
+    for (final node in body.nodes) {
+      if (node is ArgumentNode && node.name == argument.name) {
+        format = context.formatOf(node);
+        break;
+      }
+    }
+    format ??= context.declaredFormat(argument.name);
+    if (format != null) {
+      return _formatCall(
+        format: format,
+        locale: context.locale,
+        parameter: argument.dartName,
+      );
+    }
+    if (argument.type == 'String') return argument.dartName;
+    // `toString()` rather than an interpolation, which is what the literal
+    // compiles to anyway and needs no brace rules for an escaped identifier.
+    return '${argument.dartName}.toString()';
   }
 
   String _signature(MessageModel message, {String? name}) {
@@ -864,13 +1073,40 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
         final argument = context.argument(select.argument);
         final selectEnum = argument?.selectEnum;
         if (argument == null || selectEnum == null) return ["return '';"];
-        final lines = <String>['return switch (${argument.dartName}) {'];
+        if (!config.runtimeOverrides) {
+          final lines = <String>['return switch (${argument.dartName}) {'];
+          for (final value in selectEnum.values) {
+            final branch = select.cases[value.icuLabel];
+            final body = branch == null ? "''" : _expression(branch, context);
+            lines.add('  ${selectEnum.name}.${value.dartName} => $body,');
+          }
+          lines.add('};');
+          return lines;
+        }
+        // A switch expression cannot hold a lookup, so overrides turn this
+        // into a switch statement over the same enum — still exhaustive, so
+        // the method still provably returns. Each case is a block of its own
+        // because the cases of one switch share a scope, and every one of them
+        // declares the same local.
+        final lines = <String>['switch (${argument.dartName}) {'];
         for (final value in selectEnum.values) {
           final branch = select.cases[value.icuLabel];
-          final body = branch == null ? "''" : _expression(branch, context);
-          lines.add('  ${selectEnum.name}.${value.dartName} => $body,');
+          lines.add('  case ${selectEnum.name}.${value.dartName}:');
+          if (branch == null) {
+            lines.add("    return '';");
+            continue;
+          }
+          lines.add('    {');
+          for (final line in _overridableReturn(
+            branch,
+            context,
+            branch: context.branchPath(value.icuLabel),
+          )) {
+            lines.add('      $line');
+          }
+          lines.add('    }');
         }
-        lines.add('};');
+        lines.add('}');
         return lines;
 
       case final PluralNode plural:
@@ -892,10 +1128,15 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
               ..sort((a, b) => a.key.compareTo(b.key));
         for (final entry in exact) {
           final value = (entry.key as ExactPluralCase).value;
-          lines
-            ..add('if (${argument.dartName} == $value) {')
-            ..add('  return ${_expression(entry.value, context)};')
-            ..add('}');
+          lines.add('if (${argument.dartName} == $value) {');
+          for (final line in _overridableReturn(
+            entry.value,
+            context,
+            branch: context.branchPath(entry.key.label),
+          )) {
+            lines.add('  $line');
+          }
+          lines.add('}');
         }
         final afterExact = lines.length;
 
@@ -909,6 +1150,13 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
               key.category: entry.value,
         };
 
+        // Recorded for `check-overrides`, which has to tell a category this
+        // locale cannot produce from one this message merely left out.
+        context.pluralCategories[context.choicePrefix] = {
+          for (final category in rules?.categories ?? const <PluralCategory>{})
+            category.name,
+        };
+
         final conditions =
             rules?.conditions ?? const <PluralCategory, String>{};
         final applicable = conditions.entries
@@ -919,16 +1167,29 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
         }
         for (final entry in applicable) {
           final condition = entry.value.replaceAll('@', '$_operands.');
-          lines
-            ..add('if ($condition) {')
-            ..add('  return ${_expression(categories[entry.key]!, context)};')
-            ..add('}');
+          lines.add('if ($condition) {');
+          for (final line in _overridableReturn(
+            categories[entry.key]!,
+            context,
+            branch: context.branchPath(entry.key.name),
+          )) {
+            lines.add('  $line');
+          }
+          lines.add('}');
         }
 
         final other = categories[PluralCategory.other];
-        lines.add(
-          'return ${other == null ? "''" : _expression(other, context)};',
-        );
+        if (other == null) {
+          lines.add("return '';");
+        } else {
+          lines.addAll(
+            _overridableReturn(
+              other,
+              context,
+              branch: context.branchPath(PluralCategory.other.name),
+            ),
+          );
+        }
         context.popNumberSign(plural.argument);
 
         // Declare the adjusted value only when something reads it, so the
@@ -1040,6 +1301,12 @@ final class _MessageContext {
   /// Source of private helper methods generated for nested choices.
   final List<String> helpers = [];
 
+  /// Override slots emitted for this message, in emission order.
+  ///
+  /// Filled by the emitter as it writes each lookup, and read afterwards to
+  /// build the schema `check-overrides` validates against.
+  final List<OverrideSlot> slots = [];
+
   int _counter = 0;
 
   /// The argument named [name], or `null` when it is not part of the signature.
@@ -1053,6 +1320,31 @@ final class _MessageContext {
   /// Dart parameter name of [name], falling back to the raw name.
   String parameterName(String name) => argument(name)?.dartName ?? name;
 
+  /// The categories the locale can produce, per choice path prefix.
+  final Map<String, Set<String>> pluralCategories = {};
+
+  /// The branch path prefix of the choice being emitted.
+  String get choicePrefix => _choices.isEmpty ? '' : '${_choices.last}';
+
+  /// The branch path of the branch labelled [label].
+  ///
+  /// A branch of the message itself is its own label. A branch of a nested
+  /// choice carries that choice's number, which is the same number its
+  /// rendering has as the `#n` token of the text around it — so `0/one` and
+  /// `{#0}` are two views of the one place in the message, and both stay put
+  /// as long as the message's structure does. Flat rather than hierarchical:
+  /// the numbers are unique within a message already, and a path of three
+  /// segments would be one more thing for a bundle to get wrong.
+  String branchPath(String label) =>
+      _choices.isEmpty ? label : '${_choices.last}/$label';
+
+  /// The format declared for [name], with no node of its own to consult.
+  ///
+  /// What a bare `{name}` in this locale would render through, which is also
+  /// what a token standing for an argument this branch does not interpolate
+  /// has to render through.
+  ArgumentFormat? declaredFormat(String name) => _resolveFormat(name, null);
+
   /// The format [node] renders with in this locale.
   ///
   /// The message always beats the metadata, in every locale: what is written
@@ -1060,9 +1352,12 @@ final class _MessageContext {
   /// applies, and failing that the base locale's. Either way the locale's
   /// currency settings are folded in, so a bundle can pin its own currency or
   /// fraction digits without restating the style.
-  ArgumentFormat? formatOf(ArgumentNode node) {
-    final override = message.formatOverrides[locale.tag]?[node.name];
-    final format = node.format ?? override ?? argument(node.name)?.format;
+  ArgumentFormat? formatOf(ArgumentNode node) =>
+      _resolveFormat(node.name, node.format);
+
+  ArgumentFormat? _resolveFormat(String name, ArgumentFormat? inMessage) {
+    final override = message.formatOverrides[locale.tag]?[name];
+    final format = inMessage ?? override ?? argument(name)?.format;
     if (format == null) return null;
 
     final options = override?.currency;
@@ -1077,6 +1372,15 @@ final class _MessageContext {
   }
 
   final Map<String, List<String>> _numberSigns = {};
+  final List<String> _countStack = [];
+  final List<int> _choices = [];
+  final Map<MessageNode, ({int index, String call})> _nested = {};
+
+  /// The plural argument `#` refers to here, or `null` outside a plural.
+  String? get currentCount => _countStack.lastOrNull;
+
+  /// The helper number and call expression recorded for a nested choice.
+  ({int index, String call})? nestedChoice(MessageNode node) => _nested[node];
 
   /// The expression `#` stands for inside the plural on [argument].
   ///
@@ -1085,19 +1389,31 @@ final class _MessageContext {
       _numberSigns[argument]?.lastOrNull ?? parameterName(argument);
 
   /// Records what `#` means while a plural's branches are emitted.
-  void pushNumberSign(String argument, String expression) =>
-      (_numberSigns[argument] ??= []).add(expression);
+  void pushNumberSign(String argument, String expression) {
+    (_numberSigns[argument] ??= []).add(expression);
+    _countStack.add(argument);
+  }
 
   /// Undoes the matching [pushNumberSign].
-  void popNumberSign(String argument) => _numberSigns[argument]?.removeLast();
+  void popNumberSign(String argument) {
+    _numberSigns[argument]?.removeLast();
+    _countStack.removeLast();
+  }
 
   /// Registers a helper for [node] and returns the call expression.
   String helperCall(MessageNode node, DartEmitter emitter) {
-    final name = '_${message.dartName}\$${_counter++}';
-    helpers.add(emitter._buildHelper(name, node, this));
+    final index = _counter++;
+    final name = '_${message.dartName}\$$index';
     final arguments = message.arguments
         .map((argument) => '${argument.dartName}: ${argument.dartName}')
         .join(', ');
-    return '$name($arguments)';
+    final call = '$name($arguments)';
+    // Recorded before the helper is built: its own body may nest further, and
+    // the enclosing text needs this number whichever way that goes.
+    _nested[node] = (index: index, call: call);
+    _choices.add(index);
+    helpers.add(emitter._buildHelper(name, node, this));
+    _choices.removeLast();
+    return call;
   }
 }

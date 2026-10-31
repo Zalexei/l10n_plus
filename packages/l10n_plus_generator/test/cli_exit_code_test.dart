@@ -160,6 +160,111 @@ flutter:
     });
   });
 
+  group('check-overrides', () {
+    const overrideConfig = """
+input_directory: translations
+output_directory: lib/l10n
+base_locale: en
+fallback_locale: en
+runtime_overrides: true
+flutter:
+  enabled: false
+""";
+
+    ProcessResult check(List<String> extra) =>
+        Process.runSync(Platform.resolvedExecutable, [
+          'run',
+          p.join(packageRoot, 'bin/l10n_plus_generator.dart'),
+          'check-overrides',
+          '--no-highlight',
+          ...extra,
+        ], workingDirectory: root.path);
+
+    void writeProject() {
+      write('l10n_plus.yaml', overrideConfig);
+      write(
+        'translations/en.json',
+        '{"title": "Log in", '
+            '"items": "{n, plural, one{# item} other{# items}}"}',
+      );
+    }
+
+    test('a bundle that is right exits zero and writes nothing', () {
+      writeProject();
+      write('overrides_en.json', '{"@@locale": "en", "title": "Sign in"}');
+      final result = check(['--from=overrides_en.json']);
+      expect(result.exitCode, 0, reason: '${result.stdout}${result.stderr}');
+      expect('${result.stdout}', contains('No errors.'));
+      // It validates; it is not a build step.
+      expect(Directory(p.join(root.path, 'lib')).existsSync(), isFalse);
+    });
+
+    test('a bundle that is wrong exits one, which is the CI contract', () {
+      writeProject();
+      write('overrides_en.json', '{"@@locale": "en", "ttitle": "Sign in"}');
+      final result = check(['--from=overrides_en.json']);
+      expect(result.exitCode, 1);
+      expect('${result.stderr}', contains('unknown_override_key'));
+    });
+
+    test('no --from is a usage error, with the example', () {
+      writeProject();
+      final result = check([]);
+      expect(result.exitCode, 64);
+      expect('${result.stderr}', contains('needs --from'));
+      expect('${result.stderr}', contains('overrides_en.json'));
+    });
+
+    test('an option that cannot mean anything here is refused', () {
+      writeProject();
+      write('overrides_en.json', '{"@@locale": "en", "title": "Sign in"}');
+      final result = check(['--from=overrides_en.json', '--write']);
+      expect(result.exitCode, 64);
+      expect('${result.stderr}', contains('--write'));
+    });
+
+    test('a project with the option off is told to turn it on', () {
+      // Checking a bundle against a project that consults nothing would pass
+      // and then do nothing, which is the worst of the available answers.
+      write('l10n_plus.yaml', goodConfig);
+      write('translations/en.json', '{"title": "Log in"}');
+      write('overrides_en.json', '{"@@locale": "en", "title": "Sign in"}');
+      final result = check(['--from=overrides_en.json']);
+      expect(result.exitCode, 1);
+      expect('${result.stderr}', contains('runtime_overrides: true'));
+    });
+
+    test('a project that does not build is reported instead of guessed at', () {
+      // The slots are what the emitter wrote, so there are none to check
+      // against until the project generates.
+      write('l10n_plus.yaml', overrideConfig);
+      write('translations/en.json', '{"title": "Hello {name"}');
+      write('overrides_en.json', '{"@@locale": "en", "title": "Sign in"}');
+      final result = check(['--from=overrides_en.json']);
+      expect(result.exitCode, 1);
+      expect('${result.stderr}', contains('icu_unclosed_argument'));
+    });
+
+    test('a file that is not there, and a directory that is', () {
+      writeProject();
+      expect(check(['--from=nothing.json']).exitCode, 1);
+      Directory(p.join(root.path, 'bundles')).createSync();
+      final result = check(['--from=bundles']);
+      expect(result.exitCode, 1);
+      expect('${result.stderr}', contains('one locale'));
+    });
+
+    test(
+      '--watch is refused, as it is for every command that answers once',
+      () {
+        writeProject();
+        write('overrides_en.json', '{"@@locale": "en", "title": "Sign in"}');
+        final result = check(['--from=overrides_en.json', '--watch']);
+        expect(result.exitCode, 64);
+      },
+    );
+  });
+
   group('--watch', () {
     const goodConfigLocal = '''
 input_directory: translations

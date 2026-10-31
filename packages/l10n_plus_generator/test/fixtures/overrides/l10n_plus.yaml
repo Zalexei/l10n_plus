@@ -1,0 +1,14 @@
+input_directory: translations
+output_directory: lib/generated
+base_locale: en
+fallback_locale: en
+class_name: AppLocalizations
+locale_enum_name: AppLocale
+
+# The feature under test. The same translations with this off are the `json`
+# fixture, so the two goldens differ by exactly what an override costs.
+runtime_overrides: true
+
+flutter:
+  enabled: true
+  context_extension: l10n

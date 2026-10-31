@@ -16,6 +16,7 @@ import 'model/argument.dart';
 import 'model/dart_identifiers.dart';
 import 'model/localization_model.dart';
 import 'model/model_builder.dart';
+import 'overrides/override_schema.dart';
 import 'source/arb_source_parser.dart';
 import 'source/json_source_parser.dart';
 import 'source/document_merger.dart';
@@ -101,6 +102,7 @@ final class GenerationResult {
     this.keys = const [],
     this.ignoredCount = 0,
     this.coverage = const [],
+    this.overrides = const OverrideCatalog([]),
   });
 
   /// Everything reported along the way, in stage order.
@@ -119,6 +121,17 @@ final class GenerationResult {
   ///
   /// Empty when generation stopped before a model existed.
   final List<LocaleCoverage> coverage;
+
+  /// Every override lookup the generated code performs, per locale.
+  ///
+  /// Empty unless `runtime_overrides` is on, which is also what
+  /// `check-overrides` refuses on: a bundle checked against a project that
+  /// consults nothing would pass and then do nothing.
+  ///
+  /// Recorded by the emitter as it writes the lookups rather than derived a
+  /// second time, so the shape a bundle is validated against is the shape the
+  /// application actually asks the store for.
+  final OverrideCatalog overrides;
 
   /// How many warnings `ignore_diagnostics` dropped.
   ///
@@ -460,6 +473,7 @@ final class L10nPlusGenerator {
       keys: _keysOf(model.root),
       ignoredCount: diagnostics.ignoredCount,
       coverage: _coverageOf(model),
+      overrides: emitter.overrides,
     );
   }
 

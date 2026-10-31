@@ -70,6 +70,7 @@ GenerationResult runGenerator(
     keys: result.keys,
     ignoredCount: result.ignoredCount,
     coverage: result.coverage,
+    overrides: result.overrides,
   );
 }
 

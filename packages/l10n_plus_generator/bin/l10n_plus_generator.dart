@@ -50,7 +50,8 @@ Future<void> main(List<String> arguments) async {
       'from',
       help:
           'What "import" reads: the csv file, or the arb bundle or directory '
-          'of bundles, that came back from the translators.',
+          'of bundles, that came back from the translators. What '
+          '"check-overrides" reads: the json override bundle.',
       valueHelp: 'dir|file',
     )
     ..addFlag(
@@ -76,7 +77,14 @@ Future<void> main(List<String> arguments) async {
     stdout.writeln(_usage(parser));
     exit(command == null ? _exitCodeUsage : 0);
   }
-  const commands = {'generate', 'analyze', 'unused', 'export', 'import'};
+  const commands = {
+    'generate',
+    'analyze',
+    'unused',
+    'export',
+    'import',
+    'check-overrides',
+  };
   if (!commands.contains(command)) {
     stderr.writeln('Unknown command "$command".');
     stderr.writeln(_usage(parser));
@@ -101,7 +109,7 @@ Future<void> main(List<String> arguments) async {
   for (final misplaced in [
     ('format', results.option('format') != null, {'export', 'import'}),
     ('out', results.option('out') != null, {'export'}),
-    ('from', results.option('from') != null, {'import'}),
+    ('from', results.option('from') != null, {'import', 'check-overrides'}),
     ('write', results.flag('write'), {'import'}),
   ]) {
     if (!misplaced.$2 || misplaced.$3.contains(command)) continue;
@@ -126,6 +134,17 @@ Future<void> main(List<String> arguments) async {
       'For example:\n'
       '  dart run l10n_plus_generator import '
       '--from=${TranslationExporter.defaultCsvFileName}',
+    );
+    exit(_exitCodeUsage);
+  }
+  if (command == 'check-overrides' && from == null) {
+    stderr.writeln(
+      '"check-overrides" needs --from: the override bundle to check.',
+    );
+    stderr.writeln(
+      'For example:\n'
+      '  dart run l10n_plus_generator check-overrides '
+      '--from=overrides_en.json',
     );
     exit(_exitCodeUsage);
   }
@@ -237,6 +256,13 @@ _RunOutcome _runCommand({
     return _RunOutcome(_exitCodeDiagnostics, config);
   }
 
+  if (command == 'check-overrides') {
+    return _RunOutcome(
+      _checkOverrides(result: result, from: from!, highlight: highlight),
+      config,
+    );
+  }
+
   if (command == 'unused') {
     final unused = generator.findUnusedKeys(result);
     _report(unused.diagnostics, highlight: highlight);
@@ -265,6 +291,95 @@ _RunOutcome _runCommand({
     stdout.writeln('${changed ? 'wrote' : 'unchanged'} ${file.path}');
   }
   return _RunOutcome(0, config);
+}
+
+/// Validates a runtime override bundle against what the project emitted.
+///
+/// Runs after generation rather than instead of it, and the order is the
+/// point: the slots a bundle is checked against are the lookups the emitter
+/// wrote, so a project that does not build has no slots to check against and
+/// an answer here would be a guess. The two interchange commands run *before*
+/// validation for the opposite reason — an incomplete locale is why somebody
+/// exports, and it is never why somebody ships an override.
+int _checkOverrides({
+  required GenerationResult result,
+  required String from,
+  required bool highlight,
+}) {
+  if (result.overrides.isEmpty) {
+    _report([
+      const Diagnostic.error(
+        code: 'invalid_override',
+        message: 'This project does not consult overrides at run time.',
+        details:
+            'Turn them on in l10n_plus.yaml:\n'
+            '  runtime_overrides: true\n'
+            'With it off the generated code returns its literals and nothing '
+            'reads a bundle, so checking one would pass and mean nothing.',
+      ),
+    ], highlight: highlight);
+    return _exitCodeDiagnostics;
+  }
+
+  if (Directory(from).existsSync()) {
+    _report([
+      Diagnostic.error(
+        code: 'invalid_override',
+        message: '"$from" is a directory, and a bundle is one locale.',
+        details:
+            'Name the .json file. Run the command once per locale: each '
+            'bundle is checked against that locale\'s own plural '
+            'categories, which is most of what this command is for.',
+      ),
+    ], highlight: highlight);
+    return _exitCodeDiagnostics;
+  }
+  final file = File(from);
+  if (!file.existsSync()) {
+    _report([
+      Diagnostic.error(
+        code: 'invalid_override',
+        message: 'Nothing to check: "$from" does not exist.',
+      ),
+    ], highlight: highlight);
+    return _exitCodeDiagnostics;
+  }
+
+  final diagnostics = DiagnosticCollector();
+  final bundle = OverrideBundle.read(
+    content: file.readAsStringSync(),
+    uri: file.uri,
+    path: file.path,
+    diagnostics: diagnostics,
+  );
+  if (bundle != null) {
+    OverrideChecker.check(
+      bundle: bundle,
+      catalog: result.overrides,
+      diagnostics: diagnostics,
+    );
+  }
+  _report(diagnostics.diagnostics, highlight: highlight);
+
+  if (diagnostics.hasErrors) {
+    stderr.writeln(_summary(diagnostics.diagnostics));
+    stderr.writeln(
+      'An override is text; the shape around it is the one the application '
+      'compiled.',
+    );
+    return _exitCodeDiagnostics;
+  }
+
+  final texts = bundle!.messages.fold<int>(
+    0,
+    (total, message) => total + message.texts.length,
+  );
+  final defined = result.overrides.forLocale(bundle.localeTag)!.messages.length;
+  stdout.writeln(
+    '${bundle.messages.length} of $defined message(s) overridden in '
+    '"${bundle.localeTag}", $texts text(s). No errors.',
+  );
+  return 0;
 }
 
 /// Directory `export --format=arb` writes into when `--out` says nothing.
@@ -666,6 +781,9 @@ Commands:
   import     Read what "export" wrote and update the translation files, in the
              project's own formats and file layout. Prints what it would
              change and writes nothing until --write.
+  check-overrides
+             Validate a runtime override bundle against this project. Needs
+             runtime_overrides: true, and exits non-zero on any problem.
 
 Translator workflow:
   dart run l10n_plus_generator export                     one csv, all locales
@@ -685,6 +803,31 @@ Translator workflow:
   have yet, never deletes one, never touches a key the base locale does not
   define, and never rewrites a file beyond the characters that changed — so
   your key order, comments and indentation survive.
+
+Runtime overrides:
+  dart run l10n_plus_generator check-overrides --from=overrides_en.json
+
+  A bundle is JSON, flat, keyed by the dotted translation key: a string for a
+  message with one form, and one string per branch for a plural or a select.
+  The locale comes from "@@locale", or from the file name.
+
+    {
+      "@@locale": "en",
+      "auth.login.title": "Sign in",
+      "wallet.transactions": {"=0": "Nothing yet", "one": "# payment",
+                              "other": "# payments"}
+    }
+
+  An override is text and only text: {name} takes the value the generated code
+  has already formatted, # the plural count, and {#0} the rendering of the
+  message's first nested choice. Writing ICU in it is an error, because the
+  plural rules and the number formats are compiled into the application and
+  nothing at run time would read them.
+
+  The check answers, with the project in hand: whether the key exists, whether
+  the branch is one this locale can produce -- "few" is real in Russian and a
+  mistake in English -- whether the placeholders are ones the message takes,
+  and whether a rich message is being asked to be text.
 
 Options:
 ${parser.usage}''';

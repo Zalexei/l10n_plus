@@ -12,6 +12,7 @@
 // This is a command line script; printing is the output.
 // ignore_for_file: avoid_print
 import 'package:benchmark_harness/benchmark_harness.dart';
+import 'package:l10n_plus/l10n_plus.dart';
 import 'package:l10n_plus_example/generated/app_localizations.g.dart';
 
 /// Somewhere for results to go, so nothing measured can be optimized away.
@@ -61,6 +62,54 @@ class _MapGetterAccess extends _Case {
   void run() {
     step = (step + 1) % _Case.names.length;
     consume(_map[step.isEven ? 'auth.login.title' : 'auth.login.subtitle']!);
+  }
+}
+
+/// What `runtime_overrides: true` adds to a message read.
+///
+/// This app has the option off, so the measurement is of the expression the
+/// emitter inserts rather than of a second generated library: the store is
+/// asked first and the compiled literal is still the answer. That is the only
+/// case worth a number, because it is the one every read pays — an app with a
+/// bundle installed is paying for text it asked for.
+class _OverrideEmpty extends _Case {
+  _OverrideEmpty() : super('  + override store, empty');
+
+  /// A compile time constant, as the generated `_$locale` is.
+  static const L10nLocale locale = L10nLocale('en');
+
+  @override
+  void run() {
+    step = (step + 1) % AppLocale.values.length;
+    consume(
+      L10nOverrides.text(locale, 'auth.login.title') ??
+          AppLocale.values[step].translations.auth.login.title,
+    );
+  }
+}
+
+/// The same read with a bundle installed that does not carry this key.
+///
+/// The miss rather than the hit: a bundle fixes a handful of messages and
+/// every other message on the screen takes this path.
+class _OverrideInstalled extends _Case {
+  _OverrideInstalled() : super('  + override store, installed');
+
+  @override
+  void setup() => L10nOverrides.install(_OverrideEmpty.locale, {
+    'wallet.total': 'Charged {amount}',
+  });
+
+  @override
+  void teardown() => L10nOverrides.clear();
+
+  @override
+  void run() {
+    step = (step + 1) % AppLocale.values.length;
+    consume(
+      L10nOverrides.text(_OverrideEmpty.locale, 'auth.login.title') ??
+          AppLocale.values[step].translations.auth.login.title,
+    );
   }
 }
 
@@ -155,6 +204,8 @@ class _LocaleResolve extends _Case {
 List<BenchmarkBase> benchmarkCases() => [
   _GetterAccess(),
   _MapGetterAccess(),
+  _OverrideEmpty(),
+  _OverrideInstalled(),
   _Interpolation(),
   _MapInterpolation(),
   _Plural(),
