@@ -3,6 +3,7 @@ import 'package:l10n_plus/l10n_plus.dart';
 import 'package:source_span/source_span.dart';
 
 import '../ast/message_ast.dart';
+import '../ast/rich_ast.dart';
 
 /// One value of a generated select enum.
 final class EnumValueModel {
@@ -77,6 +78,21 @@ final class ArgumentModel {
   final ArgumentFormat? format;
 }
 
+/// One tag of a rich message, as the generated code names it.
+final class RichTagModel {
+  /// Creates a tag model.
+  const RichTagModel({required this.tag, required this.dartName});
+
+  /// Tag name as written in the translation, e.g. `link`.
+  ///
+  /// Kept verbatim: it is the key of the builder map at run time, and the
+  /// translation file is what decides it.
+  final String tag;
+
+  /// Dart parameter name of the builder for this tag, e.g. `link`.
+  final String dartName;
+}
+
 /// A generated message: a getter when it has no arguments, a method otherwise.
 final class MessageModel {
   /// Creates a message model.
@@ -88,6 +104,8 @@ final class MessageModel {
     required this.bodies,
     this.formatOverrides = const {},
     this.description,
+    this.richBodies = const {},
+    this.richTags = const [],
   });
 
   /// Dotted translation key.
@@ -118,8 +136,33 @@ final class MessageModel {
   /// Translator facing description, emitted as the member's doc comment.
   final String? description;
 
+  /// Tag structure per locale file tag, for a rich message.
+  ///
+  /// Empty for an ordinary message. [bodies] still holds the plain ICU parse
+  /// of the same string, in which the tags are literal text — that is what
+  /// every stage before the emitter reads, and what the doc comment shows.
+  final Map<String, List<RichNode>> richBodies;
+
+  /// Tags of this message in document order, for a rich message.
+  ///
+  /// The order is the base locale's: it decides the parameter order of the
+  /// generated wrapper, and only the base locale may decide the signature.
+  final List<RichTagModel> richTags;
+
+  /// Whether this message generates spans rather than a string.
+  bool get isRich => richBodies.isNotEmpty;
+
   /// Whether this message generates a getter rather than a method.
   bool get isGetter => arguments.isEmpty;
+
+  /// Name of the `TextSpan` wrapper the Flutter glue emits for a rich message.
+  ///
+  /// The data accessor keeps the message's own name, because the data is the
+  /// library's answer in any application; the Flutter convenience is the one
+  /// that takes a suffix. It cannot be the same name: an extension member is
+  /// unreachable when the interface already declares that name, so the two
+  /// would not be an overload but a silently dead method.
+  String get richWrapperName => '${dartName}Rich';
 }
 
 /// A nested namespace, generated as its own class.

@@ -8,4 +8,5 @@ library;
 export 'src/locale.dart' show L10nLocale;
 export 'src/locale_resolver.dart' show L10nLocaleResolver;
 export 'src/plural_operands.dart' show PluralOperands;
+export 'src/span.dart' show L10nSpan, L10nTagSpan, L10nTextSpan;
 export 'src/translations.dart' show AppLocaleBase, BaseTranslations;

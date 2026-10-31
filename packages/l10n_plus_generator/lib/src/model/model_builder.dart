@@ -2,10 +2,14 @@ import 'package:source_span/source_span.dart';
 
 import '../ast/message_ast.dart';
 import '../ast/message_metadata.dart';
+import '../ast/rich_ast.dart';
 import '../codegen/intl_formatters.dart';
 import '../ast/translation_tree.dart';
 import '../diagnostic.dart';
+import '../rich/rich_key.dart';
+import '../rich/rich_message_parser.dart';
 import '../validation/cross_locale_validator.dart';
+import '../validation/rich_tag_validator.dart';
 import 'argument.dart';
 import 'dart_identifiers.dart';
 import 'localization_model.dart';
@@ -207,7 +211,24 @@ final class ModelBuilder {
     }
 
     for (final child in group.children) {
-      final dartName = DartIdentifiers.lowerCamel(child.key);
+      // The `(rich)` suffix is part of the key and not part of the API, so it
+      // is stripped here — the one place where keys become identifiers.
+      final isRich = RichKey.isRich(child.key);
+      if (isRich && child is TranslationGroup) {
+        diagnostics.add(
+          Diagnostic.error(
+            code: 'invalid_key',
+            message: 'Group "${child.path}" cannot be marked "(rich)".',
+            span: child.keySpan,
+            translationKey: child.path,
+            details:
+                'The suffix marks one message as rich text. Put it on the '
+                'keys inside the group instead.',
+          ),
+        );
+        continue;
+      }
+      final dartName = DartIdentifiers.lowerCamel(RichKey.baseName(child.key));
       if (dartName.isEmpty) {
         diagnostics.add(
           Diagnostic.error(
@@ -221,12 +242,16 @@ final class ModelBuilder {
         continue;
       }
       claim(dartName, child);
+      // A rich message generates a second member, the Flutter wrapper, so it
+      // claims that name too: a sibling key `termsRich` beside `terms(rich)`
+      // would otherwise shadow the wrapper and fail to compile in the glue.
+      if (isRich) claim('${dartName}Rich', child);
 
       switch (child) {
         case final TranslationGroup childGroup:
           children.add(_namespace(childGroup));
         case final TranslationLeaf leaf:
-          final message = _message(leaf, dartName);
+          final message = _message(leaf, dartName, isRich: isRich);
           if (message != null) messages.add(message);
       }
     }
@@ -240,7 +265,11 @@ final class ModelBuilder {
     );
   }
 
-  MessageModel? _message(TranslationLeaf leaf, String dartName) {
+  MessageModel? _message(
+    TranslationLeaf leaf,
+    String dartName, {
+    required bool isRich,
+  }) {
     final signature = baseSignatures[leaf.path];
     if (signature == null) return null;
 
@@ -430,6 +459,9 @@ final class ModelBuilder {
       if (message != null) bodies[locale.locale.toFileTag()] = message.body;
     }
 
+    final richBodies = isRich ? _richBodies(leaf, bodies) : null;
+    if (isRich && richBodies == null) return null;
+
     return MessageModel(
       path: leaf.path,
       dartName: dartName,
@@ -438,7 +470,106 @@ final class ModelBuilder {
       bodies: bodies,
       formatOverrides: _formatOverrides(leaf, arguments),
       description: leaf.metadata.description,
+      richBodies: richBodies ?? const {},
+      richTags: richBodies == null
+          ? const []
+          : _richTags(leaf, richBodies[base.locale.toFileTag()]!, arguments),
     );
+  }
+
+  /// Reads the tags of every locale of a rich message.
+  ///
+  /// Returns `null` when the base locale's markup could not be read: without
+  /// it there is no tag set to hold the other locales to, and the diagnostic
+  /// explaining why has already been reported. A non base locale that fails
+  /// to parse is reported and left out, which is the same shape as the rest
+  /// of this stage — one broken bundle does not take the API with it.
+  Map<String, List<RichNode>>? _richBodies(
+    TranslationLeaf leaf,
+    Map<String, MessageBody> bodies,
+  ) {
+    final parsed = <String, List<RichNode>>{};
+    final spans = <String, SourceSpan>{};
+    for (final locale in locales) {
+      final tag = locale.locale.toFileTag();
+      final message = locale.messages[leaf.path];
+      final body = bodies[tag];
+      if (message == null || body == null) continue;
+      final result = RichMessageParser.parse(body, translationKey: leaf.path);
+      diagnostics.addAll(result.diagnostics);
+      final nodes = result.nodes;
+      if (nodes == null) continue;
+      parsed[tag] = nodes;
+      spans[tag] = message.leaf.valueSpan;
+    }
+
+    final baseTag = base.locale.toFileTag();
+    final baseNodes = parsed[baseTag];
+    if (baseNodes == null) return null;
+
+    RichTagValidator.validate(
+      translationKey: leaf.path,
+      base: RichLocaleMessage(
+        localeTag: baseTag,
+        nodes: baseNodes,
+        span: spans[baseTag]!,
+      ),
+      messages: [
+        for (final entry in parsed.entries)
+          RichLocaleMessage(
+            localeTag: entry.key,
+            nodes: entry.value,
+            span: spans[entry.key]!,
+          ),
+      ],
+      diagnostics: diagnostics,
+    );
+    return parsed;
+  }
+
+  /// Names the builder parameter of every tag of the base locale's markup.
+  ///
+  /// Two tags that would become one parameter — `<my_tag>` and `<myTag>` — and
+  /// a tag that collides with one of the message's own arguments are both
+  /// reported as `argument_collision`, because that is what they are: the
+  /// generated wrapper would declare the same parameter twice.
+  List<RichTagModel> _richTags(
+    TranslationLeaf leaf,
+    List<RichNode> baseNodes,
+    List<ArgumentModel> arguments,
+  ) {
+    final spans = richTagSpans(baseNodes);
+    final tags = <RichTagModel>[];
+    final used = <String, String>{
+      for (final argument in arguments)
+        argument.dartName:
+            'argument '
+            '"${argument.name}"',
+    };
+    for (final tag in richTagNames(baseNodes)) {
+      final parameterName = DartIdentifiers.lowerCamel(tag);
+      final previous = used[parameterName];
+      if (previous != null) {
+        diagnostics.add(
+          Diagnostic.error(
+            code: 'argument_collision',
+            message:
+                'Tag "<$tag>" and $previous both become the Dart parameter '
+                '"$parameterName".',
+            span: spans[tag] ?? leaf.valueSpan,
+            translationKey: leaf.path,
+            details:
+                'The generated wrapper takes one builder per tag beside the '
+                'message\'s own arguments, so the names have to differ. '
+                'Rename the tag, or rename the argument.',
+          ),
+        );
+        continue;
+      }
+      used[parameterName] = 'tag "<$tag>"';
+      tags.add(RichTagModel(tag: tag, dartName: parameterName));
+    }
+    return tags;
   }
 
   /// Folds the base locale's declared currency settings into [format].

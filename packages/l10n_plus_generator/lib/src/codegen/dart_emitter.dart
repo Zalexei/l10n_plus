@@ -1,4 +1,5 @@
 import '../ast/message_ast.dart';
+import '../ast/rich_ast.dart';
 import '../config.dart';
 import '../model/localization_model.dart';
 import '../plural/cldr_plural_rules.dart';
@@ -180,9 +181,30 @@ final class DartEmitter {
       // the type is part of this library's surface. Without the export a file
       // that imports only the generated one cannot name it, which is a
       // second, undocumented import for something the reader never chose.
-      ..writeln("export 'package:l10n_plus/l10n_plus.dart' show L10nLocale;")
+      //
+      // A rich message returns `List<L10nSpan>`, so the span types are part
+      // of the surface too — but only in a project that has one, so the
+      // export of a project with no rich message does not change.
+      ..writeln(
+        "export 'package:l10n_plus/l10n_plus.dart' show $_exportedNames;",
+      )
       ..writeln();
   }
+
+  /// The runtime names the generated library re-exports.
+  String get _exportedNames => _hasRichMessages
+      ? 'L10nLocale, L10nSpan, L10nTagSpan, L10nTextSpan'
+      : 'L10nLocale';
+
+  /// Whether the project has a rich message at all.
+  ///
+  /// Read for the export list, which stays as it was in every project that
+  /// has none.
+  bool get _hasRichMessages => _anyRichMessage(model.root);
+
+  static bool _anyRichMessage(NamespaceModel namespace) =>
+      namespace.messages.any((message) => message.isRich) ||
+      namespace.children.any(_anyRichMessage);
 
   /// Whether any generated formatter is a `DateFormat`.
   ///
@@ -645,7 +667,20 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
           '`${model.baseLocale.locale.toLanguageTag()}`.',
         );
       }
-      _writeMember(buffer, message, body, context, name: message.dartName);
+      // A rich message falls back the same way its plain body does: the
+      // locale's own markup, or the base locale's when it has none.
+      final richNodes = message.isRich
+          ? message.richBodies[source.tag] ??
+                message.richBodies[model.baseLocale.tag]
+          : null;
+      _writeMember(
+        buffer,
+        message,
+        body,
+        context,
+        name: message.dartName,
+        richNodes: richNodes,
+      );
       buffer.writeln();
       helpers.addAll(context.helpers);
     }
@@ -671,8 +706,18 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
     MessageBody body,
     _MessageContext context, {
     required String name,
+    List<RichNode>? richNodes,
   }) {
     final signature = _signature(message, name: name);
+    if (richNodes != null) {
+      // A rich message is always one expression: it cannot be a plural or a
+      // select, so there is nothing to branch on and no helper to generate.
+      buffer.writeln(
+        '  $signature => '
+        '${_richList(richNodes, context, constant: message.isGetter)};',
+      );
+      return;
+    }
     if (body.isSingleChoice) {
       buffer.writeln('  $signature {');
       for (final line in _choiceStatements(body.nodes.single, context)) {
@@ -686,12 +731,42 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
 
   String _signature(MessageModel message, {String? name}) {
     final memberName = name ?? message.dartName;
-    if (message.isGetter) return 'String get $memberName';
+    // A rich message returns the span list itself: data, no Flutter types,
+    // and `const` when nothing has to be interpolated into it. The typed
+    // `TextSpan` wrapper lives in the Flutter glue, which is the only
+    // generated file allowed to know what a `TextSpan` is.
+    final type = message.isRich ? 'List<L10nSpan>' : 'String';
+    if (message.isGetter) return '$type get $memberName';
     final parameters = message.arguments
         .map((argument) => 'required ${argument.type} ${argument.dartName}')
         .join(', ');
-    return 'String $memberName({$parameters})';
+    return '$type $memberName({$parameters})';
   }
+
+  /// Renders rich [nodes] as a `List<L10nSpan>` literal.
+  ///
+  /// `const` is applied to the outer literal only, and only for a message
+  /// with no arguments: every text run is then a plain string literal, so the
+  /// whole tree is canonicalized at compile time and reading the message
+  /// allocates nothing — the same guarantee the namespace accessors give.
+  String _richList(
+    List<RichNode> nodes,
+    _MessageContext context, {
+    required bool constant,
+  }) {
+    final elements = nodes.map((node) => _richSpan(node, context)).join(', ');
+    return '${constant ? 'const ' : ''}[$elements]';
+  }
+
+  String _richSpan(RichNode node, _MessageContext context) => switch (node) {
+    // A text run is an ordinary message body, so it renders through the same
+    // expression builder as any string: a placeholder becomes an
+    // interpolation and a declared format becomes a formatter call.
+    RichTextNode(:final body) => 'L10nTextSpan(${_expression(body, context)})',
+    RichTagNode(:final tag, :final children) =>
+      "L10nTagSpan('${_escapeContent(tag)}', "
+          '${_richList(children, context, constant: false)})',
+  };
 
   /// Renders [body] as a single Dart expression.
   String _expression(MessageBody body, _MessageContext context) {

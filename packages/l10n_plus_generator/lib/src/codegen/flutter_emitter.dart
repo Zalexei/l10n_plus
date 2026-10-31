@@ -86,7 +86,89 @@ extension ${localeEnum}Flutter on $localeEnum {
   /// This locale as a Flutter [Locale].
   Locale get flutterLocale => l10nLocale.toFlutterLocale();
 }
-''';
+${_richExtensions()}''';
+  }
+
+  /// Typed `TextSpan` wrappers for the rich messages, if there are any.
+  ///
+  /// This is where rich text becomes Flutter. The base file returns a
+  /// `List<L10nSpan>` — data a server or a test can read — and the wrapper
+  /// folds it into a [TextSpan] with one builder per tag of the message.
+  ///
+  /// Requiring the builders *by name in the signature* is the whole point.
+  /// A map argument would compile with a tag missing and render that part of
+  /// the sentence unstyled, which is exactly the class of silent wrongness
+  /// this library exists to remove; a required parameter per tag makes the
+  /// same mistake a compile error, and makes a tag a translator added show up
+  /// as a build failure rather than as a missing link in production.
+  ///
+  /// An extension rather than members on the generated classes, because the
+  /// base file must not import Flutter — and one extension per namespace, so
+  /// the wrapper is reached exactly where the message is: `t.legal.termsRich`
+  /// beside `t.legal.terms`.
+  String _richExtensions() {
+    final buffer = StringBuffer();
+    void walk(NamespaceModel namespace) {
+      final messages = namespace.messages
+          .where((message) => message.isRich)
+          .toList(growable: false);
+      if (messages.isNotEmpty) {
+        final target = namespace.isRoot
+            ? model.className
+            : namespace.interfaceName;
+        buffer
+          ..writeln()
+          ..writeln(
+            namespace.isRoot
+                ? '/// Rich text helpers for [${model.className}].'
+                : '/// Rich text helpers for translations under '
+                      '`${namespace.path}`.',
+          )
+          ..writeln('extension ${target}RichText on $target {');
+        for (final message in messages) {
+          _writeWrapper(buffer, message);
+        }
+        buffer.writeln('}');
+      }
+      namespace.children.forEach(walk);
+    }
+
+    walk(model.root);
+    return buffer.toString();
+  }
+
+  void _writeWrapper(StringBuffer buffer, MessageModel message) {
+    final parameters = [
+      for (final argument in message.arguments)
+        'required ${argument.type} ${argument.dartName}',
+      for (final tag in message.richTags)
+        'required L10nSpanBuilder ${tag.dartName}',
+      'TextStyle? style',
+    ].join(', ');
+    final arguments = message.arguments
+        .map((argument) => '${argument.dartName}: ${argument.dartName}')
+        .join(', ');
+    final spans = message.isGetter
+        ? message.dartName
+        : '${message.dartName}($arguments)';
+    final tags = message.richTags
+        .map((tag) => "'${tag.tag}': ${tag.dartName}")
+        .join(', ');
+
+    buffer
+      ..writeln('  /// `${message.path}` as a [TextSpan].')
+      ..writeln('  ///')
+      ..writeln('  /// Requires one builder per tag of the message, so a tag')
+      ..writeln('  /// nobody renders is a compile error rather than an')
+      ..writeln('  /// unstyled sentence.')
+      ..writeln('  ///')
+      ..writeln(
+        '  /// Tags: '
+        '${message.richTags.map((tag) => '`<${tag.tag}>`').join(', ')}.',
+      )
+      ..writeln('  TextSpan ${message.richWrapperName}({$parameters}) =>')
+      ..writeln('      l10nTextSpan($spans, tags: {$tags}, style: style);')
+      ..writeln();
   }
 
   static String _flutterLocaleLiteral(LocaleModel locale) {
