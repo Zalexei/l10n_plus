@@ -180,9 +180,15 @@ package, and false against `slang`.
 4. **No lazy loading.** `slang` defers per-locale imports by default; at
    810 messages × many locales this is a web bundle-size argument we currently
    lose.
-5. **Region affinity is an alphabetical accident**: `en_NZ` resolves to `en_AU`
-   because `AU` sorts first. `slang` guarantees `en-GB` → `en` first. This is a
-   small, cheap fix with a correctness story attached.
+5. ~~**Region affinity is an alphabetical accident**~~ **Fixed, and the claim
+   above was half wrong.** A bare `en` already won — the lineage walk ends at
+   the language — so `slang`'s `en-GB` → `en` guarantee was one we also kept,
+   by accident rather than on purpose. The real defect was narrower and worse:
+   with no bare `en`, the winner was whichever sibling the supported list named
+   first, so renaming a translation file changed what the app rendered. Siblings
+   are now ordered by script agreement (`zh_Hant_HK` reads as `zh_Hant_TW`, not
+   `zh_Hans_CN`) and then by tag. Still no CLDR affinity table, and still said
+   out loud.
 6. **No CSV, no PO/XLIFF, no TMS integration**, and ARB support is tolerance
    rather than a workflow. ARB-as-input is what buys the whole translation
    vendor ecosystem.

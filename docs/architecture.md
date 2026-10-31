@@ -979,29 +979,44 @@ So the glue is checked the same way `intl` is — by reading the consumer's own
 that turns it off and the two lines that make it compile. A warning, not an
 error: a project may generate for a package it does not itself build.
 
-### Region fallback picks the first match, and says so
+### Region fallback is a rule, not the list order
 
-`L10nLocaleResolver` walks the requested locale's lineage, then any supported
-locale sharing its language, then the fallback. The middle step takes the
-**first** match in the list it was given, which for generated code is the
-locale enum, which is sorted by tag. So `en_NZ` resolves to `en_AU` over
-`en_GB` because `AU` sorts before `GB`, and for no other reason.
+`L10nLocaleResolver` walks the requested locale's lineage, then a region
+sibling of the same language, then the fallback. Two things about the middle
+step changed, and one deliberately did not.
 
-Kept, and documented rather than dressed up. Real regional affinity — that a
-New Zealander wants `en_GB` spelling — is a table CLDR publishes and this
-library does not carry; guessing it in code would be wrong in ways nobody could
-predict from reading the source, and carrying the table would be a second CLDR
-dataset in a runtime that has none. Arbitrary and stable beats plausible and
-unpredictable.
+What the lineage walk already gave, now guaranteed: it ends at the bare
+language, so a supported locale with **no** region always beats a
+region-carrying sibling — `en_NZ` against `en_AU, en_GB, en` is `en`, whatever
+order those three are listed in. That held before as a side effect of
+`lineage`, pinned only in passing; it is stated as a guarantee now and asserted
+in three list orders.
 
-A project that cares states the preference instead of hoping: add the region it
-wants, or a plain `en`, to its translations. A bare `en` is found during the
-lineage walk, before the language scan runs at all.
+What was wrong: with no bare `en` in the list, the winner was the **first**
+sibling offered, so renaming a translation file could change what the app
+rendered. The winner is now the minimum under a total order over the locales
+themselves, which no ordering of `supported` can move:
 
-The order has a test that says out loud that it is arbitrary, including one
-case asserting that reordering the list changes the answer. That is the point:
-this is behaviour every app with regional locales depends on, so changing it
-should have to break something.
+1. **Script agreement.** `zh_Hant_HK` must read as `zh_Hant_TW` and not as
+   `zh_Hans_CN`. Script is the one piece of real information available without
+   CLDR's affinity table — orthography, not a guess about taste. A candidate
+   carrying no script ranks between agreement and conflict, because it
+   conflicts with nothing.
+2. **The lowest tag**, as a tie-break that is stated rather than emergent.
+
+What did not change: the library still claims no regional affinity. That a New
+Zealander wants `en_GB` spelling is a table CLDR publishes and this library does
+not carry; guessing it in code would be wrong in ways nobody could predict from
+reading the source, and carrying the table would be a second CLDR dataset in a
+runtime that has none. So `en_NZ` against `en_AU, en_GB` still resolves to
+`en_AU` — now because `en-AU` sorts first and the resolver says as much, rather
+than because `AU` happened to be listed first. The honest-looking alternative,
+refusing to pick and falling through to another language, would render Russian
+to a New Zealander with English translations sitting right there.
+
+The test that asserted "reordering the list changes the answer" now asserts the
+inverse. It pinned the defect on purpose, so fixing the defect had to flip it,
+and the comment in the test says so.
 
 ### `date` is permissive about skeletons, `time` is not
 

@@ -14,3 +14,6 @@ evaluation/probes/workspace/lib/
 # Session hand-off prompts: local paths, and a milestone count that goes stale.
 docs/audit-prompt.md
 docs/next-session-prompt.md
+
+# Worktrees the app creates for background agents.
+.claude/worktrees/
