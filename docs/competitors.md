@@ -92,7 +92,7 @@ config lines rather than 1.
 | Non-nullable accessor | Y | Y | ~ nullable by default | n/a |
 | Number / date / currency | Y — 11 styles + skeletons | Y | Y — 41 `DateFormat` variants | ~ re-exports `intl` |
 | Rich text / `TextSpan` / links | **Y — `(rich)` keys, a builder required per tag** | Y | N | N |
-| Lists, maps, dynamic key access | **N** | Y | N | Y (keys are strings) |
+| Lists, maps, dynamic key access | ~ **keys yes, as a generated enum; no lists or maps** | Y | N | Y (keys are strings) |
 | Linked translations `@:` | **Y — resolved at build time, parameters typed through** | Y | N | Y — at run time |
 | A link cycle is a build error | **Y** — the ring named in order | N — guarded only while gathering parameters | n/a | N — `// TODO` in its own source |
 | Interfaces / polymorphic subtrees | **N** | Y | N | N |
@@ -102,7 +102,7 @@ config lines rather than 1.
 | **Build fails on a missing translation** | **Y — diagnosed, with warn mode** | Y — as a Dart compile error | **N — `printStatus` only, no flag exists** | N |
 | Build fails on an extra key | **Y** | N | N | N |
 | Rename detection | **Y — unique in the field** | N | N | N |
-| Diagnostic codes + per-code suppression | **Y — 101 codes** | N | ~ all-or-nothing | N |
+| Diagnostic codes + per-code suppression | **Y — 102 codes** | N | ~ all-or-nothing | N |
 | Cross-locale placeholder / arity check | **Y** | ~ | ~ (and has open bugs) | N |
 | Unused-key analysis | Y (text scan) | Y (+ `clean`; false positives) | **N** | N |
 | Write missing keys back to source | ~ (`import`, from a hand-off file) | Y (`apply`) | N | N |
@@ -136,7 +136,7 @@ python3 evaluation/tally.py
 
 | | `Y` | `~` | `N` |
 | --- | --- | --- | --- |
-| `l10n_plus` | **36** | 4 | 7 |
+| `l10n_plus` | **36** | 5 | 6 |
 | `slang` | **31** | 6 | 10 |
 | `gen_l10n` | 12 | 10 | 25 |
 | `easy_localization` | 8 | 12 | 27 |
@@ -159,15 +159,18 @@ script nobody keeps is nobody re-running it.
 we added.** Milestone 33 flipped "linked translations" and "several plurals in
 one sentence" from `N` to `Y`, and introduced "a link cycle is a build error",
 which no package but this one passes. Milestone 34 flipped "lazy / deferred
-per-locale loading". Adding a row on the axis you have just won is the easiest
-way to inflate your own total, so: without that row it is **35 against 31 over
+per-locale loading", and Milestone 35 moved "lists, maps, dynamic key access"
+from `N` only as far as `~` — we took the key access and not the lists, so the
+`Y` count did not move at all, which is the honest outcome of half a
+capability. Adding a row on the axis you have just won is the easiest way to
+inflate your own total, so: without the cycle row it is **35 against 31 over
 46 rows**, and with it **36 against 31 over 47**. The row stays because whether
 a ring of links breaks the build or ships is a question a user has, and because
 the two `N`s in it were read in the two packages' sources rather than assumed —
 but the honest figure is the one without it.
 
 And the lazy-loading cell deserves its own caveat. We have the feature, and the
-measurement in `evaluation/lazy_bundle.py` says it makes the bundle *larger*
+measurement in `evaluation/bundle_size.py` says it makes the bundle *larger*
 for an application that does not read most of its messages — so the `Y` is
 honest about the capability and says nothing about whether a project should
 want it. `slang`'s is on by default; ours is off, with the figures in the
@@ -181,7 +184,7 @@ and it splits cleanly — `slang`'s remaining advantages are **runtime shape**
 (lazy per-locale loading, an ambient accessor, dynamic key access, asset
 obfuscation), ours are **build-time truth** (plural
 correctness at 222/107 verified against two oracles, a build that fails on a gap
-with 101 diagnostic codes, rename detection, byte-identical output, a dev-only
+with 102 diagnostic codes, rename detection, byte-identical output, a dev-only
 generator). Those are two different bets about where localization errors should
 surface, not two scores.
 
@@ -275,9 +278,9 @@ and on its own, because it is the only one that touches the runtime:
 
 ## 6. Where we are still behind, in priority order
 
-1. **No maps, lists or dynamic key access**, so server-driven copy
-   (`tr('error.$code')`) is structurally impossible — a genuine advantage of
-   every string-keyed package.
+1. **No maps or lists.** Dynamic key *access* arrived in Milestone 35, as a
+   generated enum per declared namespace; a translation file that holds an
+   actual list or map still cannot be expressed, and `slang` can.
 2. **No PO/XLIFF, and no vendor API.** ARB and CSV now travel; Crowdin,
    Lokalise and POEditor still mean a human in between.
 3. **No extraction from source**, and `import` writes translations but never

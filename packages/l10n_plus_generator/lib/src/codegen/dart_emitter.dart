@@ -1,6 +1,7 @@
 import '../ast/message_ast.dart';
 import '../ast/rich_ast.dart';
 import '../config.dart';
+import '../model/dart_identifiers.dart';
 import '../model/localization_model.dart';
 import '../overrides/override_fingerprint.dart';
 import '../overrides/override_schema.dart';
@@ -78,6 +79,14 @@ final class DartEmitter {
   static const String _localeField = r'_$locale';
 
   final Map<String, List<OverrideMessage>> _overrideMessages = {};
+
+  /// Key enums by the namespace path each addresses.
+  ///
+  /// Empty in a project without `dynamic_keys`, which is what keeps every
+  /// other project's output exactly what it was.
+  late final Map<String, KeyEnumModel> _keyEnums = {
+    for (final keyEnum in model.keyEnums) keyEnum.namespacePath: keyEnum,
+  };
 
   /// Whether the locales are being emitted as deferred libraries.
   ///
@@ -216,6 +225,9 @@ final class DartEmitter {
     for (final selectEnum in model.enums) {
       _writeSelectEnum(shared, selectEnum);
     }
+    for (final keyEnum in model.keyEnums) {
+      _writeKeyEnum(shared, keyEnum);
+    }
     _writeInterfaces(shared, model.root);
 
     return {sharedFileName: shared.toString(), ...parts};
@@ -329,6 +341,9 @@ final class DartEmitter {
     for (final selectEnum in model.enums) {
       _writeSelectEnum(shared, selectEnum);
     }
+    for (final keyEnum in model.keyEnums) {
+      _writeKeyEnum(shared, keyEnum);
+    }
     _writeInterfaces(shared, model.root);
 
     _deferred = false;
@@ -354,6 +369,9 @@ final class DartEmitter {
     _writeLocaleEnum(body);
     for (final selectEnum in model.enums) {
       _writeSelectEnum(body, selectEnum);
+    }
+    for (final keyEnum in model.keyEnums) {
+      _writeKeyEnum(body, keyEnum);
     }
     _writeInterfaces(body, model.root);
     body.write(implementations);
@@ -875,6 +893,58 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
       ..writeln();
   }
 
+  /// Emits the enum a string is parsed into to address one namespace.
+  ///
+  /// The whole point of the feature is in `tryParse`: it is the one nullable
+  /// step, at the boundary where a value from outside arrives, and after it
+  /// the key is a type the lookup is total over. A `switch` an application
+  /// writes over this enum is exhaustive, so adding a message to the
+  /// namespace is a compile error in the code that meant to handle each one —
+  /// which is the opposite of what a string keyed lookup does with a new key.
+  void _writeKeyEnum(StringBuffer buffer, KeyEnumModel keyEnum) {
+    buffer
+      ..writeln(
+        '/// Every message of `${keyEnum.namespacePath}`, as a value a '
+        'string can name.',
+      )
+      ..writeln('///')
+      ..writeln('/// Read one with `[]` on the namespace:')
+      ..writeln(
+        '/// `t.${keyEnum.namespacePath.split('.').map(DartIdentifiers.lowerCamel).join('.')}'
+        '[${keyEnum.name}.${keyEnum.values.first.dartName}]`.',
+      )
+      ..writeln('enum ${keyEnum.name} {');
+    for (final value in keyEnum.values) {
+      buffer
+        ..writeln('  /// `${keyEnum.namespacePath}.${value.key}`.')
+        ..writeln("  ${value.dartName}('${value.key}'),");
+    }
+    buffer
+      ..writeln(';')
+      ..writeln()
+      ..writeln('  const ${keyEnum.name}(this.key);')
+      ..writeln()
+      ..writeln(
+        '  /// The key as a string, relative to '
+        '`${keyEnum.namespacePath}`.',
+      )
+      ..writeln('  final String key;')
+      ..writeln()
+      ..writeln('  /// The value [key] names, or `null`.')
+      ..writeln('  ///')
+      ..writeln('  /// The one place a string can fail to be a key. Everything')
+      ..writeln('  /// downstream of it is typed, and the lookup it feeds')
+      ..writeln('  /// cannot miss.')
+      ..writeln('  static ${keyEnum.name}? tryParse(String key) {')
+      ..writeln('    for (final value in values) {')
+      ..writeln('      if (value.key == key) return value;')
+      ..writeln('    }')
+      ..writeln('    return null;')
+      ..writeln('  }')
+      ..writeln('}')
+      ..writeln();
+  }
+
   void _writeInterfaces(StringBuffer buffer, NamespaceModel namespace) {
     if (namespace.isRoot) {
       _writeRootInterface(buffer, namespace);
@@ -952,6 +1022,22 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
       _writeDoc(buffer, message);
       buffer
         ..writeln('  ${_signature(message)};')
+        ..writeln();
+    }
+    final keyEnum = _keyEnums[namespace.path];
+    if (keyEnum != null) {
+      buffer
+        ..writeln('  /// The message [key] names.')
+        ..writeln('  ///')
+        ..writeln(
+          '  /// Total over [${keyEnum.name}], so there is no `null` and no '
+          'key to',
+        )
+        ..writeln(
+          '  /// misspell: the string became a key in '
+          '[${keyEnum.name}.tryParse].',
+        )
+        ..writeln('  String operator [](${keyEnum.name} key);')
         ..writeln();
     }
   }
@@ -1109,6 +1195,8 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
       }
     }
 
+    _writeKeyLookup(buffer, namespace);
+
     for (final helper in helpers) {
       buffer
         ..write(helper)
@@ -1122,6 +1210,34 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
     for (final child in namespace.children) {
       _writeImplementation(buffer, child, locale);
     }
+  }
+
+  /// Emits `operator []` for a namespace named by `dynamic_keys`.
+  ///
+  /// A switch that delegates to the members rather than repeating their
+  /// bodies. Three things follow from that and all three are the reason:
+  /// an overridden message is overridden here too, a linked one resolves the
+  /// same way, and the lookup cannot drift from the member it stands for
+  /// because it *is* the member.
+  ///
+  /// What it costs is the compiler's ability to drop what nothing reads. Every
+  /// message of the namespace is referenced here, so `dart2js` keeps all of
+  /// them — which is why this is one namespace at a time and not the whole
+  /// project. The figure is in `evaluation/bundle_size.py`.
+  void _writeKeyLookup(StringBuffer buffer, NamespaceModel namespace) {
+    final keyEnum = _keyEnums[namespace.path];
+    if (keyEnum == null) return;
+    buffer
+      ..writeln('  @override')
+      ..writeln('  String operator [](${keyEnum.name} key) => switch (key) {');
+    for (final value in keyEnum.values) {
+      buffer.writeln(
+        '    ${keyEnum.name}.${value.dartName} => ${value.memberPath},',
+      );
+    }
+    buffer
+      ..writeln('  };')
+      ..writeln();
   }
 
   void _writeMember(

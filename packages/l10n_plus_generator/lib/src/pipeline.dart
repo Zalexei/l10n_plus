@@ -486,6 +486,7 @@ final class L10nPlusGenerator {
           locales: locales,
           baseSignatures: baseSignatures,
           diagnostics: diagnostics,
+          dynamicKeys: config.dynamicKeys,
         ).build(
           baseLocaleModel: localeModels.firstWhere(
             (locale) => locale.locale == config.baseLocale,

@@ -15,7 +15,7 @@ import 'goldens/deferred/app_localizations.g.dart';
 ///
 /// On the VM `loadLibrary` completes without doing any work — there are no
 /// chunks to fetch — so what is under test here is the state machine, not the
-/// download. The download is measured by `evaluation/lazy_bundle.py`.
+/// download. The download is measured by `evaluation/bundle_size.py`.
 ///
 /// What an *unloaded* locale reads as is asserted in
 /// `deferred_unloaded_test.dart` rather than here, because a loaded library

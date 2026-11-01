@@ -536,6 +536,86 @@ included: an override is the words of one branch, and a link is resolved before
 there are words. What the link **lends** is still overridable — `summary` never
 writes `{n}` and a bundle can place the count anyway.
 
+## When the server picks the message
+
+An error code arrives from an API and some message has to be shown for it. With
+a typed API that is a hand-written switch over every code; with a string-keyed
+package it is `tr('errors.$code')` and a typo renders as the key. One line asks
+for a third thing:
+
+```yaml
+dynamic_keys: [errors]
+```
+
+```dart
+final key = ErrorsKey.tryParse(response.code);   // ErrorsKey?
+final text = key == null ? t.errors.unknown : t.errors[key];
+```
+
+**What it generates is an enum, not a string lookup.** One value per message of
+that namespace, carrying the key as the translation file spells it:
+
+```dart
+enum ErrorsKey {
+  unknown('unknown'),
+  offline('offline'),
+  paymentDeclined('payment.declined'),
+  paymentExpired('payment.expired');
+  ...
+  static ErrorsKey? tryParse(String key) { ... }
+}
+```
+
+So the string stops being a string in exactly one place — `tryParse`, which
+returns `null` and nothing else — and everything after it is typed:
+`t.errors[key]` is total over the enum, returns a non-nullable `String`, and
+has no key to misspell. `ErrorsKey.values` is the contract you can check a
+server against, and a `switch` over the enum in your own code is exhaustive, so
+a message added to the namespace is a compile error in the code that meant to
+handle each one.
+
+Delete a key and `ErrorsKey.paymentExpired` stops existing. That is a compile
+error in your app — the thing a string-keyed lookup can never give you.
+
+### Per namespace, and the build says why
+
+Two kinds of message cannot be reached this way, and both are refused rather
+than silently skipped:
+
+```
+error[unaddressable_dynamic_key]: "declined" cannot be reached by key because
+  it takes 1 argument (last4).
+  A string naming a message cannot carry its values, and a map of them would be
+  the run time lookup this avoids. Move it to a namespace that is not addressed
+  by key and call it by name.
+```
+
+The other is a rich message, which renders a list of spans rather than a
+string. Naming a namespace that does not exist, or that is a message, or that
+has nothing under it, is a configuration error with the namespaces listed.
+
+### What it costs — measured
+
+`python3 evaluation/bundle_size.py`, 396 messages in four locales,
+`dart compile js -O4`, an entry point that reads one message:
+
+| | first download |
+| --- | --- |
+| no `dynamic_keys`, read by name | 49,047 |
+| one namespace declared, read by name | **49,047** |
+| one namespace declared, read through `[]` | 58,298 |
+| nine declared, `[]` called on one | **58,298** |
+| nine declared, `[]` called on all nine | 141,787 |
+
+Three things in that table. **Declaring a namespace costs nothing** — until
+something calls `[]`, `dart2js` drops the lookup and everything it reached.
+**Calling it costs that namespace**, 9,251 bytes here for 44 messages in four
+locales, because the lookup names every one of them and an unused getter is
+only droppable while it is unused. And **declaring nine but calling one costs
+one**, which is why the option is per namespace and not per project: the last
+row, 141,787 against 49,047, is what addressing a whole project by string
+costs, and it is the shape of a flat key-to-message map.
+
 ## Rich text
 
 A link or a bold word inside a sentence is not two translations with a widget
@@ -741,7 +821,7 @@ await tester.pump();
 
 ### What it actually saves — measured, both ways
 
-Run it yourself: `python3 evaluation/lazy_bundle.py` builds 396 messages in
+Run it yourself: `python3 evaluation/bundle_size.py` builds 396 messages in
 four locales, compiles each way with `dart compile js -O4` and prints the
 bytes.
 

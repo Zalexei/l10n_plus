@@ -1,17 +1,23 @@
 #!/usr/bin/env python3
-"""Measures what `deferred_locales` does to a web bundle.
+"""Measures what two options do to a web bundle.
 
-    python3 evaluation/lazy_bundle.py
+    python3 evaluation/bundle_size.py
 
 Builds a throwaway project, generates it both ways, compiles each with
 `dart compile js -O4`, and prints the bytes. The point of having it in the
 repository is that the figures in `docs/` should be re-runnable rather than
 taken on trust.
 
-Two corpus sizes, 396 messages and 36, because the answer changes sign between
-them: the deferred loader is a fixed cost in the first download, and a project
-has to carry more translation text than that before moving it out of the way
-buys anything.
+`deferred_locales` is measured at two corpus sizes, 396 messages and 36,
+because the answer changes sign between them: the deferred loader is a fixed
+cost in the first download, and a project has to carry more translation text
+than that before moving it out of the way buys anything.
+
+`dynamic_keys` is measured last, and it is the same fact from the other end.
+The lookup it generates names every message of the namespace it addresses, so
+those messages stop being droppable. One namespace of nine is the cost of
+opting one namespace in; the whole project would be the cost of the string
+keyed lookup this library does not have.
 
 Two scenarios, because they answer different questions and only one of them is
 the usual advertisement for lazy loading:
@@ -48,22 +54,28 @@ LOCALES = {
 }
 
 
-def keys(per_feature=PER_FEATURE):
-    """Every message key, as (namespace, member, kind)."""
+def keys(per_feature=PER_FEATURE, *, plain=False):
+    """Every message key, as (namespace, member, kind).
+
+    `plain` leaves out the messages that take arguments, which is what the
+    `dynamic_keys` section needs: a key naming a message cannot carry its
+    values, so the generator refuses those -- correctly, and the refusal is
+    not what that section is measuring.
+    """
     for feature in FEATURES:
         for i in range(per_feature):
-            if i % 7 == 0:
+            if not plain and i % 7 == 0:
                 yield feature, f'count{i}', 'plural'
-            elif i % 11 == 0:
+            elif not plain and i % 11 == 0:
                 yield feature, f'amount{i}', 'amount'
             else:
                 yield feature, f'label{i}', 'label'
 
 
-def translations(tag, per_feature):
+def translations(tag, per_feature, *, plain=False):
     title, total, plural = LOCALES[tag]
     doc = {}
-    for feature, member, kind in keys(per_feature):
+    for feature, member, kind in keys(per_feature, plain=plain):
         node = doc.setdefault(feature, {})
         if kind == 'plural':
             node[member] = plural
@@ -74,7 +86,8 @@ def translations(tag, per_feature):
     return doc
 
 
-def main_source(*, reads_everything, deferred, per_feature):
+def main_source(*, reads_everything, deferred, per_feature, plain=False,
+                lookup=False):
     """The entry point, which decides what `dart2js` may drop."""
     lines = [
         "import 'l10n/app_localizations.g.dart';",
@@ -87,7 +100,7 @@ def main_source(*, reads_everything, deferred, per_feature):
     if reads_everything:
         lines.append('  for (final locale in AppLocale.values) {')
         lines.append('    final t = AppLocalizations.forLocale(locale);')
-        for feature, member, kind in keys(per_feature):
+        for feature, member, kind in keys(per_feature, plain=plain):
             call = {
                 'plural': f'{member}(n: 3)',
                 'amount': f'{member}(v: 1)',
@@ -95,6 +108,19 @@ def main_source(*, reads_everything, deferred, per_feature):
             }[kind]
             lines.append(f'    sink.write(t.{feature}.{call});')
         lines.append('  }')
+    elif lookup:
+        # Through the generated lookup rather than by name. This is what makes
+        # a namespace's other messages reachable, and the only thing that
+        # does: declaring the namespace costs nothing until something calls
+        # `[]` on it. `lookup` is the namespaces called, so the last row can
+        # ask what addressing the whole project would cost -- which is the
+        # shape of a flat string keyed map, and the thing this design makes a
+        # project opt into one namespace at a time.
+        lines.append('  final t = AppLocalizations.forLocale(AppLocale.en);')
+        for feature in lookup:
+            enum = feature[0].upper() + feature[1:] + 'Key'
+            lines.append(f'  sink.write(t.{feature}[$enum.label1]);'.replace(
+                '$enum', enum))
     else:
         lines.append(
             '  sink.write(AppLocalizations.forLocale(AppLocale.en)'
@@ -109,7 +135,11 @@ def main_source(*, reads_everything, deferred, per_feature):
     return '\n'.join(lines)
 
 
-def config(*, deferred):
+def config(*, deferred, dynamic_keys=()):
+    keys = (
+        '' if not dynamic_keys
+        else 'dynamic_keys: [' + ', '.join(dynamic_keys) + ']\n'
+    )
     return (
         'input_directory: translations\n'
         'output_directory: lib/l10n\n'
@@ -117,6 +147,7 @@ def config(*, deferred):
         'fallback_locale: en\n'
         'file_per_locale: true\n'
         f'deferred_locales: {"true" if deferred else "false"}\n'
+        f'{keys}'
         'flutter:\n'
         '  enabled: false\n'
     )
@@ -146,13 +177,18 @@ def run(root, *args):
     return result.stdout
 
 
-def measure(root, *, reads_everything, deferred, per_feature):
-    (root / 'l10n_plus.yaml').write_text(config(deferred=deferred))
+def measure(root, *, reads_everything, deferred, per_feature,
+            dynamic_keys=(), plain=False, lookup=False):
+    (root / 'l10n_plus.yaml').write_text(
+        config(deferred=deferred, dynamic_keys=dynamic_keys)
+    )
     (root / 'lib' / 'main.dart').write_text(
         main_source(
             reads_everything=reads_everything,
             deferred=deferred,
             per_feature=per_feature,
+            plain=plain,
+            lookup=lookup,
         )
     )
     shutil.rmtree(root / 'lib' / 'l10n', ignore_errors=True)
@@ -209,6 +245,49 @@ def main():
                         f'   served {served:>8,}{parts}'
                     )
             print()
+
+        # `dynamic_keys`, at the larger corpus and with an entry point that
+        # reads one message: the question is only what stops being droppable.
+        for tag in LOCALES:
+            (root / 'translations' / f'{tag}.json').write_text(
+                json.dumps(translations(tag, 44, plain=True),
+                           ensure_ascii=False) + '\n'
+            )
+        print(
+            f'== {len(list(keys(44, plain=True)))} messages x '
+            f'{len(LOCALES)} locales, the entry point reads one of them'
+        )
+        rows = (
+            ((), (), 'dynamic_keys: none, read by name'),
+            ((FEATURES[0],), (), 'dynamic_keys: [auth], read by name'),
+            (
+                (FEATURES[0],),
+                (FEATURES[0],),
+                'dynamic_keys: [auth], read through []',
+            ),
+            (
+                FEATURES,
+                (FEATURES[0],),
+                'dynamic_keys: all 9, read through [] on one',
+            ),
+            (
+                FEATURES,
+                FEATURES,
+                'dynamic_keys: all 9, read through [] on all 9',
+            ),
+        )
+        for addressed, lookup, label in rows:
+            first, _ = measure(
+                root,
+                reads_everything=False,
+                deferred=False,
+                per_feature=44,
+                dynamic_keys=addressed,
+                plain=True,
+                lookup=lookup,
+            )
+            print(f'   {label:46} first {first:>8,}')
+        print()
 
 
 if __name__ == '__main__':

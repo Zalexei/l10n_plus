@@ -283,4 +283,32 @@ EOF
   print -r -- "-- which is the only line that decides whether a chunk exists:"
   grep -c 'part ' lib/l10n/app_localizations.g.dart; }
 
+probe 26 "a namespace addressed by key whose messages cannot be" && {
+  config <<'EOF'
+input_directory: translations
+output_directory: lib/l10n
+base_locale: en
+fallback_locale: en
+dynamic_keys: [errors, warnings]
+flutter:
+  enabled: false
+EOF
+  print '{"errors": {"offline": "You are offline", "declined": "Card {last4} declined"}}' \
+    > translations/en.json
+  gen
+  print -r -- "-- with the parameterised message moved out, a string becomes a key:"
+  print '{"errors": {"offline": "You are offline", "payment": {"declined": "Declined"}}, "warnings": {"slow": "This is taking a while"}}' \
+    > translations/en.json
+  config <<'EOF'
+input_directory: translations
+output_directory: lib/l10n
+base_locale: en
+fallback_locale: en
+dynamic_keys: [errors, warnings]
+flutter:
+  enabled: false
+EOF
+  gen > /dev/null
+  grep -n "^enum ErrorsKey\|^enum WarningsKey\|('payment.declined')\|String operator" lib/l10n/app_localizations.g.dart; }
+
 reset; base_config

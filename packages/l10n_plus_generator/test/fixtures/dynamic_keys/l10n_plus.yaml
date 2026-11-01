@@ -1,0 +1,16 @@
+input_directory: translations
+output_directory: lib/generated
+base_locale: en
+fallback_locale: en
+class_name: AppLocalizations
+locale_enum_name: AppLocale
+
+# One namespace addressed by key, and one that is not: `errors` is what a
+# server names, `auth` is read by name like everything else. Overrides are on
+# so the runtime test can show that the two features compose — the lookup
+# delegates to the members, so overriding a message overrides it here too.
+dynamic_keys: [errors]
+runtime_overrides: true
+
+flutter:
+  enabled: false

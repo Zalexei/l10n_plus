@@ -627,9 +627,76 @@ Diagnostics went from 72 codes to **81**: `rich_tag_mismatch`,
   still mean a person in between.
 * **The runtime tier is untouched**: no over-the-air overrides, ~~no lazy
   per-locale loading~~ (**done in Milestone 34**), ~~no linked translations~~
-  (**done in Milestone 33**), no dynamic key access. Those four all rewrite the emitter and the model, which is
+  (**done in Milestone 33**), ~~no dynamic key access~~ (**done in Milestone
+  35** — all four of them, in the end). Those four all rewrite the emitter and the model, which is
   why they were not attempted alongside rich text, and the first of them is the
   item below worth more than everything in this milestone.
+
+## Milestone 35 — a string from outside, turned into a key (done)
+
+The last of `slang`'s four runtime-tier advantages, and the one this document
+had called "the thesis's opposite" twice. It was right about the usual shape of
+the feature and wrong that there is only one shape.
+
+* **The question was where the string is, not how much checking to give up.**
+  Something has to turn a value from outside into something the program knows,
+  that step is the only one that can fail, and so it is the only one allowed
+  to: `ErrorsKey.tryParse` returns `ErrorsKey?`, and `t.errors[key]` is total
+  over the enum with a non-nullable `String` out. The same shape the library
+  already used for select branches, where its own test says *a typo cannot
+  reach run time*.
+* **The enum carries the translation key, not the Dart name.** `rate_limited`
+  is what a server sends; `rateLimited` is what this generator made of it, and
+  making the contract the identifier would make it a function of naming rules
+  no server should have to know. Relative to the namespace, too, because the
+  namespace is the contract.
+* **The lookup delegates to the members** rather than repeating their text, so
+  an overridden message is overridden through it, a linked one resolves the
+  same way, and it cannot drift from what it stands for. The runtime test
+  installs a bundle and reads the same message both ways.
+* **Two kinds of message are refused**, with the reason and the fix:
+  `unaddressable_dynamic_key` for one that takes arguments — a string cannot
+  carry its values, and a map of them is the run time lookup this avoids — and
+  for a rich message, which renders spans rather than a string. One new code,
+  registry at **102**. Everything else reuses `invalid_config` and
+  `identifier_collision`.
+* **And the measurement found something I did not expect.** Declaring a
+  namespace addressable costs **nothing**: 49,047 bytes either way, because
+  until something calls `[]` `dart2js` drops the lookup and every reference it
+  held. Calling it costs that namespace — 58,298, so 9,251 bytes for 44
+  messages in four locales. Declaring nine and calling one costs exactly one,
+  which is the per-namespace design measured rather than argued. And calling
+  all nine costs **141,787 against 49,047**, which is what addressing a whole
+  project by string costs and is the shape of a flat key-to-message map.
+* **Which closes the loop with Milestone 34.** `slang` generates that flat map
+  by default — `flat_map`, default `true`, and its over-the-air overrides
+  require it — so its translations cannot be tree-shaken, which is why lazy
+  loading matters as much to it as the previous milestone measured it not
+  mattering to us. The two features are one fact from opposite ends: what the
+  compiler is allowed to drop. Neither of us is wrong; we have made different
+  things droppable.
+
+### What this one leaves open
+
+* **No arguments, by design, and that is a real limit.** An error code whose
+  message needs a value cannot be addressed by key at all, so a project splits
+  its namespace. A `fill`-shaped call taking a map would serve it and would be
+  exactly the unverifiable thing the feature was shaped to avoid; the honest
+  position is that this feature does not cover that case rather than that it
+  covers it badly.
+* **The whole project cannot be addressed**, deliberately, and the 141,787 in
+  the table is the argument. A project that wants it writes nine entries and
+  pays for nine.
+* **`values` is a contract nothing checks against the server.** The list is
+  generated and an application can compare it to whatever the API documents,
+  but nothing in this repository reads an OpenAPI document or a protobuf and
+  tells you the two have diverged. That is the check that would make the
+  feature complete, and it is a different tool.
+* **A key enum is not a locale-aware list.** `ErrorsKey.values` is the same in
+  every locale, which is right — the keys are the API — but it means a locale
+  that is missing a key renders the base locale's text through the lookup
+  exactly as it does by name, and the lookup is not where you would learn
+  that. `analyze` is.
 
 ## Milestone 34 — locales that arrive when they are needed (done)
 
@@ -659,7 +726,7 @@ what it taught was a measurement that argues against it half the time.
   reads as the fallback. Driven through a real widget tree, including a
   controller disposed mid-download, which is what a popped settings screen is.
 * **And the measurement says not to turn it on by default.**
-  `evaluation/lazy_bundle.py` is in the repository because the figure should be
+  `evaluation/bundle_size.py` is in the repository because the figure should be
   re-runnable. 396 messages in four locales, `dart compile js -O4`: the first
   download goes from 189,632 bytes to **113,148** when the entry point reads
   every message — and from 49,047 to **69,995**, forty-three percent *worse*,

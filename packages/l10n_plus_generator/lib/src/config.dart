@@ -43,6 +43,7 @@ final class L10nPlusConfig {
     this.filePattern,
     this.filePerLocale = false,
     this.deferredLocales = false,
+    this.dynamicKeys = const [],
     this.fillMissingFromBase = false,
     this.runtimeOverrides = false,
     this.bidiIsolation = false,
@@ -160,6 +161,21 @@ final class L10nPlusConfig {
   /// fallback rather than throwing.
   final bool deferredLocales;
 
+  /// Namespaces whose messages can be reached by a string.
+  ///
+  /// Empty by default. Each entry is a dotted namespace path; the generator
+  /// emits one enum per entry, with a value per message in that subtree, and a
+  /// total lookup on the namespace. A string becomes a key through
+  /// `tryParse`, which is the one place it can fail and the one place a check
+  /// belongs.
+  ///
+  /// Per namespace rather than for the whole project, because the case this
+  /// exists for is always one subtree — error codes, country names, a block of
+  /// copy the server chooses — and because making every message reachable
+  /// from a string would both undo the type checking this library is for and
+  /// stop the compiler dropping the messages an application never reads.
+  final List<String> dynamicKeys;
+
   /// What to do with a key a locale has and the base locale does not.
   ///
   /// An error by default: the base locale is the API contract, and a key
@@ -237,6 +253,7 @@ final class L10nPlusConfig {
       'format_plural_numbers',
       'file_pattern',
       'deferred_locales',
+      'dynamic_keys',
       'file_per_locale',
       'fill_missing_from_base',
       'runtime_overrides',
@@ -349,6 +366,7 @@ final class L10nPlusConfig {
       filePattern: _filePattern(document, diagnostics),
       filePerLocale: filePerLocale,
       deferredLocales: deferredLocales,
+      dynamicKeys: _dynamicKeys(document, diagnostics),
       fillMissingFromBase:
           _bool(document, 'fill_missing_from_base', diagnostics) ?? false,
       runtimeOverrides:
@@ -358,6 +376,61 @@ final class L10nPlusConfig {
       ignoreDiagnostics: _ignoreDiagnostics(document, diagnostics),
       flutter: flutter,
     );
+  }
+
+  /// Reads `dynamic_keys`, dropping entries that cannot be a namespace path.
+  ///
+  /// Whether the path *exists* is not decided here: this file has never seen a
+  /// translation. The model builder answers that, where the namespaces are.
+  static List<String> _dynamicKeys(
+    YamlMap map,
+    DiagnosticCollector diagnostics,
+  ) {
+    final node = map['dynamic_keys'];
+    if (node == null) return const [];
+    final span = map.nodes['dynamic_keys']?.span ?? map.span;
+    if (node is! YamlList) {
+      diagnostics.add(
+        Diagnostic.warning(
+          code: 'invalid_config',
+          message: '"dynamic_keys" must be a list of namespace paths.',
+          span: span,
+          details:
+              'For example:\n'
+              '  dynamic_keys: [errors, catalog.countries]',
+        ),
+      );
+      return const [];
+    }
+
+    final paths = <String>[];
+    for (final entry in node.nodes) {
+      final value = entry.value;
+      if (value is! String || value.isEmpty) {
+        diagnostics.add(
+          Diagnostic.warning(
+            code: 'invalid_config',
+            message:
+                '"dynamic_keys" entries must be dotted namespace paths, not '
+                '"$value".',
+            span: entry.span,
+          ),
+        );
+        continue;
+      }
+      if (paths.contains(value)) {
+        diagnostics.add(
+          Diagnostic.warning(
+            code: 'invalid_config',
+            message: '"dynamic_keys" names "$value" twice.',
+            span: entry.span,
+          ),
+        );
+        continue;
+      }
+      paths.add(value);
+    }
+    return paths;
   }
 
   /// Reads `ignore_diagnostics`, dropping entries that cannot mean anything.

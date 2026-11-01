@@ -6,6 +6,7 @@ import '../ast/rich_ast.dart';
 import '../codegen/intl_formatters.dart';
 import '../ast/translation_tree.dart';
 import '../diagnostic.dart';
+import '../nearest_key.dart';
 import '../rich/rich_key.dart';
 import '../rich/rich_message_parser.dart';
 import '../validation/cross_locale_validator.dart';
@@ -27,6 +28,7 @@ final class ModelBuilder {
     required this.locales,
     required this.baseSignatures,
     required this.diagnostics,
+    this.dynamicKeys = const [],
   });
 
   /// Generated root class name.
@@ -46,6 +48,9 @@ final class ModelBuilder {
 
   /// Where problems are reported.
   final DiagnosticCollector diagnostics;
+
+  /// Namespace paths whose messages get a key enum, from `dynamic_keys`.
+  final List<String> dynamicKeys;
 
   final Map<String, SelectEnumModel> _enums = {};
   final Map<String, _TopLevelName> _topLevelNames = {};
@@ -78,6 +83,11 @@ final class ModelBuilder {
     final root = _namespace(base.root);
     if (diagnostics.hasErrors) return null;
 
+    // After the walk: a key enum is a view over namespaces that already
+    // exist, and every name it could collide with has been claimed.
+    final keyEnums = _keyEnums(root);
+    if (diagnostics.hasErrors) return null;
+
     final enums = _enums.values.toList(growable: false)
       ..sort((a, b) => a.name.compareTo(b.name));
 
@@ -89,6 +99,201 @@ final class ModelBuilder {
       locales: localeModels,
       root: root,
       enums: enums,
+      keyEnums: keyEnums,
+    );
+  }
+
+  /// Builds one key enum per entry of [dynamicKeys].
+  ///
+  /// A view over the namespaces the walk already produced rather than
+  /// something built alongside them: the enum adds no member and renames
+  /// nothing, it only says that this subtree can be reached from a string.
+  List<KeyEnumModel> _keyEnums(NamespaceModel root) {
+    if (dynamicKeys.isEmpty) return const [];
+
+    final namespaces = <String, NamespaceModel>{};
+    final messages = <String>{};
+    void index(NamespaceModel namespace) {
+      namespaces[namespace.path] = namespace;
+      for (final message in namespace.messages) {
+        messages.add(message.path);
+      }
+      namespace.children.forEach(index);
+    }
+
+    index(root);
+
+    final models = <KeyEnumModel>[];
+    for (final path in dynamicKeys) {
+      final namespace = namespaces[path];
+      if (namespace == null) {
+        // No span: this came from the configuration file, which the model
+        // builder has never read. The name of the key and the list of what
+        // does exist is what a reader needs anyway.
+        final groups = namespaces.keys.where((key) => key.isNotEmpty).toList()
+          ..sort();
+        final nearest = NearestKey.of(path, groups);
+        diagnostics.add(
+          Diagnostic.error(
+            code: 'invalid_config',
+            message: messages.contains(path)
+                ? '"dynamic_keys" names "$path", which is a message rather '
+                      'than a namespace.'
+                : '"dynamic_keys" names "$path", which is not a namespace.',
+            details: [
+              if (nearest != null) 'Did you mean "$nearest"?',
+              'A key enum addresses the messages *under* a namespace, so the '
+                  'entry names the group rather than one of its messages.',
+              if (groups.isNotEmpty)
+                'Namespaces:\n${groups.map((key) => '  $key').join('\n')}',
+            ].join('\n'),
+          ),
+        );
+        continue;
+      }
+
+      final name = '${DartIdentifiers.upperCamelPath(path.split('.'))}Key';
+      final free = _claimTopLevel(
+        name,
+        _TopLevelName(
+          'the key enum of the namespace "$path"',
+          span: namespace.messages.isEmpty
+              ? null
+              : namespace.messages.first.keySpan,
+          translationKey: path,
+          isEnum: true,
+        ),
+      );
+      if (!free) continue;
+
+      final values = <KeyEnumValueModel>[];
+      final used = <String, String>{};
+      // Whether something under the namespace was reported already. The
+      // "nothing to address" error below is only useful when nothing was:
+      // otherwise it is a second diagnostic about the first one's cause.
+      var refused = false;
+
+      // Each level's own messages before its children, recursively. The
+      // original interleaving of keys and groups is not in the model and does
+      // not matter here; what matters is that the order is the base locale's
+      // and therefore the same on every machine.
+      void walk(NamespaceModel node, String memberPrefix) {
+        for (final message in node.messages) {
+          // The translation key, relative to the namespace — not the Dart
+          // member name. What a server sends is what the translation file
+          // calls the message; `payment_declined` is one string and
+          // `paymentDeclined` is the identifier it generated.
+          final key = RichKey.baseName(message.path).substring(path.length + 1);
+          if (message.isRich) {
+            _unaddressable(
+              key: key,
+              path: path,
+              message: message,
+              reason:
+                  'it is a rich message, so what it renders is a list of '
+                  'spans rather than a string',
+              fix:
+                  'A key enum is a lookup that returns one `String`. Read a '
+                  'rich message by name, where its builders are parameters '
+                  'the compiler checks.',
+            );
+            refused = true;
+            continue;
+          }
+          if (message.arguments.isNotEmpty) {
+            _unaddressable(
+              key: key,
+              path: path,
+              message: message,
+              reason:
+                  'it takes ${message.arguments.length} '
+                  '${message.arguments.length == 1 ? 'argument' : 'arguments'} '
+                  '(${message.arguments.map((argument) => argument.name).join(', ')})',
+              fix:
+                  'A string naming a message cannot carry its values, and a '
+                  'map of them would be the run time lookup this avoids. '
+                  'Move it to a namespace that is not addressed by key and '
+                  'call it by name.',
+            );
+            refused = true;
+            continue;
+          }
+          final valueName = DartIdentifiers.enumConstant(
+            key.split('.').join('_'),
+          );
+          final previous = used[valueName];
+          if (previous != null) {
+            diagnostics.add(
+              Diagnostic.error(
+                code: 'identifier_collision',
+                message:
+                    'Keys "$previous" and "$key" both become the "$name" '
+                    'value "$valueName".',
+                span: message.keySpan,
+                translationKey: message.path,
+                details:
+                    'A key enum names one value per message of "$path", and '
+                    'the dots in a nested key become camel case. Rename one '
+                    'of the two keys.',
+              ),
+            );
+            refused = true;
+            continue;
+          }
+          used[valueName] = key;
+          values.add(
+            KeyEnumValueModel(
+              dartName: valueName,
+              key: key,
+              memberPath: '$memberPrefix${message.dartName}',
+            ),
+          );
+        }
+        for (final child in node.children) {
+          walk(child, '$memberPrefix${child.dartName}.');
+        }
+      }
+
+      walk(namespace, '');
+
+      if (values.isEmpty && !refused) {
+        diagnostics.add(
+          Diagnostic.error(
+            code: 'invalid_config',
+            message:
+                '"dynamic_keys" names "$path", which has no addressable '
+                'message under it.',
+            details:
+                'An enum cannot be empty, so there is nothing to generate: '
+                'the namespace holds only groups.',
+          ),
+        );
+        continue;
+      }
+
+      models.add(KeyEnumModel(name: name, namespacePath: path, values: values));
+    }
+
+    return models..sort((a, b) => a.name.compareTo(b.name));
+  }
+
+  void _unaddressable({
+    required String key,
+    required String path,
+    required MessageModel message,
+    required String reason,
+    required String fix,
+  }) {
+    diagnostics.add(
+      Diagnostic.error(
+        code: 'unaddressable_dynamic_key',
+        message: '"$key" cannot be reached by key because $reason.',
+        span: message.keySpan,
+        translationKey: message.path,
+        details:
+            '"dynamic_keys" names "$path", so every message under it has to '
+            'be something a key can stand for.\n$fix',
+      ),
     );
   }
 

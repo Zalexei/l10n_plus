@@ -189,7 +189,7 @@ exit=1
 l10n_plus.yaml:5:17
 warning[unknown_config_key]: Unknown configuration key "file_per_local".
   Did you mean "file_per_locale"?
-  Known keys: base_locale, bidi_isolation, class_name, deferred_locales, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, locale_enum_name, output_directory, runtime_overrides.
+  Known keys: base_locale, bidi_isolation, class_name, deferred_locales, dynamic_keys, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, locale_enum_name, output_directory, runtime_overrides.
   ╷
 5 │ file_per_local: true
   │                 ^^^^
@@ -208,7 +208,7 @@ exit=1
 l10n_plus.yaml:5:17
 warning[unknown_config_key]: Unknown configuration key "file_per_local".
   Did you mean "file_per_locale"?
-  Known keys: base_locale, bidi_isolation, class_name, deferred_locales, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, locale_enum_name, output_directory, runtime_overrides.
+  Known keys: base_locale, bidi_isolation, class_name, deferred_locales, dynamic_keys, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, locale_enum_name, output_directory, runtime_overrides.
   ╷
 5 │ file_per_local: true
   │                 ^^^^
@@ -424,3 +424,30 @@ exit=1
 8:import 'app_localizations_ru.g.dart' deferred as _l10nRu;
 -- which is the only line that decides whether a chunk exists:
 0
+
+######## 26. a namespace addressed by key whose messages cannot be ########
+evaluation/probes/workspace/translations/en.json:1:43
+errors.declined
+error[unaddressable_dynamic_key]: "declined" cannot be reached by key because it takes 1 argument (last4).
+  "dynamic_keys" names "errors", so every message under it has to be something a key can stand for.
+  A string naming a message cannot carry its values, and a map of them would be the run time lookup this avoids. Move it to a namespace that is not addressed by key and call it by name.
+  ╷
+1 │ {"errors": {"offline": "You are offline", "declined": "Card {last4} declined"}}
+  │                                           ^^^^^^^^^^
+  ╵
+
+error[invalid_config]: "dynamic_keys" names "warnings", which is not a namespace.
+  A key enum addresses the messages *under* a namespace, so the entry names the group rather than one of its messages.
+  Namespaces:
+    errors
+
+2 error(s), 0 warning(s).
+exit=1
+-- with the parameterised message moved out, a string becomes a key:
+42:enum ErrorsKey {
+47:  paymentDeclined('payment.declined');
+71:enum WarningsKey {
+141:  String operator [](ErrorsKey key);
+159:  String operator [](WarningsKey key);
+192:  String operator [](ErrorsKey key) => switch (key) {
+216:  String operator [](WarningsKey key) => switch (key) {

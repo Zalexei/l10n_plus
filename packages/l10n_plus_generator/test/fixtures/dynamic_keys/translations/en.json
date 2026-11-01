@@ -1,0 +1,15 @@
+{
+  "auth": {
+    "title": "Log in",
+    "greeting": "Hello again, {name}"
+  },
+  "errors": {
+    "unknown": "Something went wrong",
+    "offline": "You are offline",
+    "rate_limited": "Too many attempts",
+    "payment": {
+      "declined": "Your card was declined",
+      "expired": "Your card has expired"
+    }
+  }
+}

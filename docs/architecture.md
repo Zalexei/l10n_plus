@@ -1534,7 +1534,7 @@ never calls `load()`: it gets the fallback with nothing saying so.
 
 ### What lazy loading is worth, and when it is negative
 
-`evaluation/lazy_bundle.py` builds 396 messages in four locales, generates both
+`evaluation/bundle_size.py` builds 396 messages in four locales, generates both
 ways, compiles with `dart compile js -O4` and prints the bytes. Two scenarios,
 because they disagree:
 
@@ -1560,6 +1560,83 @@ At 36 messages per locale the trade has already inverted — 64,011 bytes one
 library against 73,118 deferred. Hence the option is off by default and the
 README tells a project to measure its own app, which is the only honest advice
 available when the sign of the answer depends on the corpus.
+
+### `dynamic_keys`: where the string stops being a string
+
+The feature this library had no business having. Reaching a message by a string
+is the failure class the whole project exists to move to build time: a typo, a
+renamed key or a message that needs arguments all become wrong text on a screen
+and nothing says so. And server-driven copy is real, so refusing to have it is
+refusing to be useful for a case that exists.
+
+What resolves that is not a compromise on the amount of checking but a decision
+about *where the string is*. A string arrives from outside; something has to
+turn it into something the program knows. That step is the only one that can
+fail, so it is the only one that should be able to:
+
+```dart
+final key = ErrorsKey.tryParse(response.code);   // ErrorsKey?
+final text = key == null ? t.errors.unknown : t.errors[key];
+```
+
+`tryParse` is nullable and total — a `for` over `values`, nothing clever — and
+after it the key is a type. `operator []` is total over that type, returns a
+non-nullable `String`, and has no name to misspell. The same shape the library
+already uses for select branches, where the project's own test name says it:
+*select branches are enums, so a typo cannot reach run time*.
+
+**The enum carries the translation key, not the Dart name.** `rate_limited` is
+the string a server sends; `rateLimited` is the identifier this generator
+produced from it. Making the contract the identifier would make it a function
+of this generator's naming rules, which is not something a server should have
+to know. The key is also relative to the namespace, because the namespace is
+the contract: a project that renames the group above it should not have to
+renegotiate every error code.
+
+**The lookup delegates to the members.** `ErrorsKey.offline => offline` rather
+than a second copy of the text. Three things follow and all three are the
+reason: an overridden message is overridden through the lookup, a linked one
+resolves the same way, and the lookup cannot drift from the member it stands
+for because it *is* the member.
+
+**Two kinds of message are refused.** One that takes arguments — a string
+naming a message cannot carry its values, and a map of them would be the run
+time lookup this design exists to avoid. And a rich message, which renders a
+list of spans rather than a string. `unaddressable_dynamic_key` names which and
+why; the fix is to keep those in a namespace that is read by name.
+
+### What a key lookup costs, and why it is per namespace
+
+`evaluation/bundle_size.py`, 396 messages in four locales, `dart compile js
+-O4`, an entry point that reads one message:
+
+| | first download |
+| --- | --- |
+| no `dynamic_keys`, read by name | 49,047 |
+| `dynamic_keys: [auth]`, read by name | **49,047** |
+| `dynamic_keys: [auth]`, read through `[]` | 58,298 |
+| nine namespaces declared, `[]` called on one | **58,298** |
+| nine namespaces declared, `[]` called on all nine | 141,787 |
+
+**Declaring costs nothing.** Until something calls `[]`, `dart2js` drops the
+lookup and with it every reference it held, so the messages stay droppable.
+That was not the expected answer and it is the useful one: a project can add
+the option and pay only on the code paths that use it.
+
+**Calling costs the namespace.** 9,251 bytes for 44 messages in four locales,
+because the lookup names all of them. And declaring nine while calling one
+costs exactly one — each namespace has its own `operator []` and only the
+called one is live. That is the per-namespace design, measured rather than
+asserted.
+
+**The last row is the comparison.** 141,787 against 49,047, 2.9 times, is what
+addressing a whole project by string costs — and that is the shape of a flat
+key-to-message map. `slang` generates one by default (`flat_map`, default
+`true`, and its over-the-air overrides require it), which is also why its
+translations cannot be tree-shaken and why lazy loading matters as much to it
+as [the measurement two sections up](#what-lazy-loading-is-worth-and-when-it-is-negative)
+says it does not to us. The two options are one fact seen from both ends: what
+the compiler is allowed to drop.
 
 ### `date` is permissive about skeletons, `time` is not
 

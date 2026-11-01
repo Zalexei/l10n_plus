@@ -240,6 +240,7 @@ abstract final class DiagnosticCodes {
     'select_branch_collision',
     'select_branch_mismatch',
     'type_name_collision',
+    'unaddressable_dynamic_key',
     'unexpected_currency_code',
     'unexpected_placeholder_format',
     'unknown_ordinal_language',

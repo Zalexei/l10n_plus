@@ -40,6 +40,57 @@ final class SelectEnumModel {
   final String argumentName;
 }
 
+/// One value of a generated key enum: a message, and the string that names it.
+final class KeyEnumValueModel {
+  /// Creates a value.
+  const KeyEnumValueModel({
+    required this.dartName,
+    required this.key,
+    required this.memberPath,
+  });
+
+  /// Dart identifier, e.g. `paymentDeclined`.
+  final String dartName;
+
+  /// The key as a string, relative to the namespace: `payment.declined`.
+  ///
+  /// What a server sends and what `tryParse` matches. Relative rather than
+  /// absolute because the namespace is the contract: a project that renames
+  /// its root group should not have to renegotiate every error code.
+  final String key;
+
+  /// How the generated code reaches the message from the namespace, e.g.
+  /// `payment.declined`.
+  ///
+  /// The members, not the keys: both are dotted and they are usually the same
+  /// string, but a key with a hyphen is one identifier and not the other.
+  final String memberPath;
+}
+
+/// A generated enum standing for every addressable message of one namespace.
+///
+/// What `dynamic_keys` produces. The point of it is where the string stops
+/// being a string: `tryParse` is the one nullable step, at the boundary where
+/// a value from outside arrives, and everything after it is a typed key that
+/// the generated lookup is total over.
+final class KeyEnumModel {
+  /// Creates a key enum model.
+  const KeyEnumModel({
+    required this.name,
+    required this.namespacePath,
+    required this.values,
+  });
+
+  /// Dart type name, e.g. `ErrorsKey`.
+  final String name;
+
+  /// Dotted path of the namespace it addresses, e.g. `errors`.
+  final String namespacePath;
+
+  /// Values in generated order, which is the base locale's document order.
+  final List<KeyEnumValueModel> values;
+}
+
 /// A Dart parameter of a generated message method.
 final class ArgumentModel {
   /// Creates an argument model.
@@ -225,6 +276,7 @@ final class LocalizationModel {
     required this.locales,
     required this.root,
     required this.enums,
+    this.keyEnums = const [],
   });
 
   /// Name of the generated root class, e.g. `AppLocalizations`.
@@ -247,4 +299,11 @@ final class LocalizationModel {
 
   /// Generated select enums, sorted by name.
   final List<SelectEnumModel> enums;
+
+  /// Generated key enums, sorted by name.
+  ///
+  /// Empty unless `dynamic_keys` named a namespace, which is what keeps a
+  /// project that does not address messages by string generating exactly what
+  /// it generated before.
+  final List<KeyEnumModel> keyEnums;
 }
