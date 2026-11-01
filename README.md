@@ -1101,6 +1101,52 @@ its bundles anyway. It identifies, it does not authenticate — anybody who can
 replace the bundle can replace the fingerprint in it, and the download is TLS's
 business.
 
+### A release is a directory, not twelve invocations
+
+Twelve languages is twelve bundles, and `--from` takes the directory they are
+in:
+
+```bash
+dart run l10n_plus_generator check-overrides --from=overrides/ --stamp
+```
+
+```
+overrides/ar.json  ar  2 of 20 message(s), 3 text(s)  04e15327e0a5ff8b  stamped
+overrides/en.json  en  3 of 20 message(s), 4 text(s)  176950849f196557  stamped
+overrides/ru.json  ru  4 of 20 message(s), 8 text(s)  8b052faf63c2d73f  stamped
+3 bundle(s) in "overrides/", 3 of 4 locale(s). No errors.
+No bundle for: de. Those locales keep the text they compiled.
+```
+
+Every `.json` in the directory, each for the locale it names, each signed with
+its own surface. It is not a loop for convenience: three of those answers do
+not exist a file at a time, and a rollout checked a file at a time can pass
+twelve times and still be wrong as a set.
+
+**Which locales have no bundle.** The last line. Not overriding a locale is
+normal and correct — it keeps the text it compiled — and it is also what a
+rollout forgets. Nothing about `overrides/de.json` not existing is visible when
+you are naming files one by one.
+
+**Two bundles for one locale.** An old bundle left beside the new one: both are
+valid, both pass every per-file check, and which of them your application
+installs is decided by whatever serves them. A bundle's locale comes from
+`@@locale` or from its file name, so the clash can be between two declarations,
+two names, or one of each.
+
+```
+error[duplicate_override_locale]: Two bundles here are for "en":
+  "overrides/en.json" and "overrides/old_en.json".
+  A locale has one overridable surface, and the application installs one
+  bundle for it. Which of these two takes effect is decided by whatever serves
+  them, so both passing this check says nothing about which text ships.
+```
+
+**The release is signed whole or not at all.** `--stamp` validates every bundle
+before it writes any. A release in which some bundles carry a fingerprint and
+some do not is one where nothing on disk says which of them was checked, so one
+bad branch in Russian leaves all twelve unstamped — and says so.
+
 With the option off — the default — none of this is generated and your output is
 byte for byte what it was. With it on, a message read costs 1.8 ns more while
 nothing is installed.

@@ -267,6 +267,128 @@ flutter:
       expect('${result.stderr}', contains('--write'));
     });
 
+    group('a directory of bundles', () {
+      // A release of bundles rather than a bundle, which is the scale a
+      // twelve language rollout is actually assembled at. Three of these are
+      // questions a file at a time cannot be asked: which locales have no
+      // bundle, whether two files are for the same locale, and whether the
+      // set may be signed at all.
+      void writeRelease() {
+        write('l10n_plus.yaml', overrideConfig);
+        write(
+          'translations/en.json',
+          '{"title": "Log in", '
+              '"items": "{n, plural, one{# item} other{# items}}"}',
+        );
+        write(
+          'translations/ru.json',
+          '{"title": "Войти", "items": "{n, plural, one{# товар} '
+              'few{# товара} many{# товаров} other{# товара}}"}',
+        );
+        write(
+          'translations/de.json',
+          '{"title": "Anmelden", '
+              '"items": "{n, plural, one{# Artikel} other{# Artikel}}"}',
+        );
+        Directory(p.join(root.path, 'overrides')).createSync();
+      }
+
+      String bundleOf(String name) =>
+          File(p.join(root.path, 'overrides', name)).readAsStringSync();
+
+      test('every bundle is reported, and every locale without one', () {
+        writeRelease();
+        write('overrides/en.json', '{"@@locale": "en", "title": "Sign in"}');
+        write('overrides/ru.json', '{"@@locale": "ru", "title": "Вход"}');
+
+        final result = check(['--from=overrides', '--stamp']);
+        expect(result.exitCode, 0, reason: '${result.stdout}${result.stderr}');
+        final out = '${result.stdout}';
+        expect(out, contains('overrides/en.json'));
+        expect(out, contains('overrides/ru.json'));
+        expect(out, contains('2 bundle(s)'));
+        expect(out, contains('2 of 3 locale(s)'));
+        // The line that only exists at this scale, and the omission a rollout
+        // makes: German is generated, nobody wrote a bundle for it, and the
+        // application will keep the German it compiled.
+        expect(out, contains('No bundle for: de'));
+      });
+
+      test('each locale is signed with its own surface, not a shared one', () {
+        // The locale tag is part of the canonical form, so two locales of
+        // identical shape still sign differently — and a bundle cannot be
+        // installed for a locale it was not checked against.
+        writeRelease();
+        write('overrides/en.json', '{"@@locale": "en", "title": "Sign in"}');
+        write('overrides/ru.json', '{"@@locale": "ru", "title": "Вход"}');
+        expect(check(['--from=overrides', '--stamp']).exitCode, 0);
+
+        final signatures = {
+          for (final name in ['en.json', 'ru.json'])
+            RegExp(
+              r'"@@fingerprint": "([0-9a-f]{16})"',
+            ).firstMatch(bundleOf(name))!.group(1),
+        };
+        expect(signatures, hasLength(2));
+
+        // And the whole set re-checks without --stamp, which is the CI step.
+        final again = check(['--from=overrides']);
+        expect(again.exitCode, 0, reason: '${again.stdout}${again.stderr}');
+      });
+
+      test('one bad bundle leaves the whole release unstamped', () {
+        // The decision this form has to make: a release in which some bundles
+        // carry a fingerprint and some do not is one where nothing on disk
+        // says which of them was checked, so the good ones wait.
+        writeRelease();
+        write('overrides/en.json', '{"@@locale": "en", "title": "Sign in"}');
+        write(
+          'overrides/ru.json',
+          '{"@@locale": "ru", "items": {"two": "# штуки"}}',
+        );
+
+        final result = check(['--from=overrides', '--stamp']);
+        expect(result.exitCode, 1);
+        expect('${result.stderr}', contains('unknown_override_branch'));
+        expect('${result.stderr}', contains('Nothing was stamped'));
+        expect(bundleOf('en.json'), isNot(contains('@@fingerprint')));
+        expect(bundleOf('ru.json'), isNot(contains('@@fingerprint')));
+      });
+
+      test('two bundles for one locale is refused', () {
+        writeRelease();
+        write('overrides/en.json', '{"@@locale": "en", "title": "Sign in"}');
+        write('overrides/old_en.json', '{"@@locale": "en", "title": "Log in"}');
+
+        final result = check(['--from=overrides', '--stamp']);
+        expect(result.exitCode, 1);
+        expect('${result.stderr}', contains('duplicate_override_locale'));
+        expect('${result.stderr}', contains('old_en.json'));
+        expect(bundleOf('en.json'), isNot(contains('@@fingerprint')));
+      });
+
+      test('a .json that is not a bundle is named, not skipped', () {
+        // Every .json in the directory is read as a bundle, so pointing
+        // --from at the wrong directory is an error rather than a pass over
+        // nothing. Which file is wrong is in the report.
+        writeRelease();
+        write('overrides/en.json', '{"@@locale": "en", "title": "Sign in"}');
+        write('overrides/tsconfig.json', '{"compilerOptions": {}}');
+
+        final result = check(['--from=overrides']);
+        expect(result.exitCode, 1);
+        expect('${result.stderr}', contains('tsconfig.json'));
+        expect('${result.stderr}', contains('unknown_override_locale'));
+      });
+
+      test('a directory with no bundle in it says so', () {
+        writeRelease();
+        final result = check(['--from=overrides']);
+        expect(result.exitCode, 1);
+        expect('${result.stderr}', contains('No .json file in'));
+      });
+    });
+
     test('a project with the option off is told to turn it on', () {
       // Checking a bundle against a project that consults nothing would pass
       // and then do nothing, which is the worst of the available answers.
@@ -289,13 +411,19 @@ flutter:
       expect('${result.stderr}', contains('icu_unclosed_argument'));
     });
 
-    test('a file that is not there, and a directory that is', () {
+    test('a file that is not there, and a directory with nothing in it', () {
+      // A directory used to be refused outright. It is now a release of
+      // bundles, so the failure is that this one holds none — and both
+      // failures still exit one, which is the whole contract with CI.
       writeProject();
-      expect(check(['--from=nothing.json']).exitCode, 1);
+      final missing = check(['--from=nothing.json']);
+      expect(missing.exitCode, 1);
+      expect('${missing.stderr}', contains('does not exist'));
+
       Directory(p.join(root.path, 'bundles')).createSync();
-      final result = check(['--from=bundles']);
-      expect(result.exitCode, 1);
-      expect('${result.stderr}', contains('one locale'));
+      final empty = check(['--from=bundles']);
+      expect(empty.exitCode, 1);
+      expect('${empty.stderr}', contains('No .json file in'));
     });
 
     test(

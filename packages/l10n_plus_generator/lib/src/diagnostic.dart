@@ -183,6 +183,7 @@ abstract final class DiagnosticCodes {
     'conflicting_currency_code',
     'conflicting_key_kind',
     'duplicate_key',
+    'duplicate_override_locale',
     'empty_key',
     'enum_name_collision',
     'extra_placeholder',

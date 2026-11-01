@@ -22,6 +22,59 @@ import 'override_schema.dart';
 /// real CLDR category and a real mistake in English, and knowing that needs
 /// the same 222 language table the generator compiles its conditions from.
 abstract final class OverrideChecker {
+  /// Reports everything wrong with [bundles], which are one release.
+  ///
+  /// A directory of bundles is checked as a unit rather than one file at a
+  /// time, because one question only exists at that scale: two bundles can
+  /// claim one locale — an `en.json` left beside an `overrides_en.json` — and
+  /// then which of them the application installs is decided by whatever serves
+  /// them rather than by anything here. Per-file checking cannot see it, and
+  /// the bundle that loses is often the one that was just translated.
+  ///
+  /// A locale with no bundle at all is the other thing only this scale sees,
+  /// and it is reported by the caller: not overriding a locale is normal, so
+  /// it is information about a run rather than a fault in a file.
+  static void checkAll({
+    required List<OverrideBundle> bundles,
+    required OverrideCatalog catalog,
+    required DiagnosticCollector diagnostics,
+    bool requireFingerprint = true,
+  }) {
+    final seen = <String, OverrideBundle>{};
+    for (final bundle in bundles) {
+      final first = seen[bundle.localeTag];
+      if (first == null) {
+        seen[bundle.localeTag] = bundle;
+      } else {
+        diagnostics.add(
+          Diagnostic.error(
+            code: 'duplicate_override_locale',
+            message:
+                'Two bundles here are for "${bundle.localeTag}": '
+                '"${first.path}" and "${bundle.path}".',
+            span: bundle.localeSpan ?? bundle.rootSpan,
+            details:
+                'A locale has one overridable surface, and the application '
+                'installs one bundle for it. Which of these two takes effect '
+                'is decided by whatever serves them, so both passing this '
+                'check says nothing about which text ships.\n'
+                'The locale comes from "@@locale", or from the file name when '
+                'the file states none. Remove the bundle that is not '
+                'shipping, or move it out of this directory.',
+          ),
+        );
+      }
+      // Checked anyway, duplicate or not: a report naming one of six mistakes
+      // costs six round trips, and that is as true of six files as of one.
+      check(
+        bundle: bundle,
+        catalog: catalog,
+        diagnostics: diagnostics,
+        requireFingerprint: requireFingerprint,
+      );
+    }
+  }
+
   /// Reports everything wrong with [bundle] against [catalog].
   ///
   /// Reports as much as it can rather than stopping at the first problem: a
@@ -44,7 +97,11 @@ abstract final class OverrideChecker {
           code: 'unknown_override_locale',
           message:
               'This project has no "${bundle.localeTag}" locale to override.',
-          span: bundle.localeSpan,
+          // The whole object when the file declared no "@@locale", so the
+          // report still says which file. A bundle named after its locale is
+          // the normal shape in a directory of them, and a report of twelve
+          // that cannot name the one that is wrong is a hunt.
+          span: bundle.localeSpan ?? bundle.rootSpan,
           details:
               'Locales:\n'
               '${catalog.localeTags.map((tag) => '  $tag').join('\n')}',

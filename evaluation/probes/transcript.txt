@@ -323,3 +323,24 @@ wrote lib/l10n/app_localizations.g.dart
 exit=0
 -- and with bidi_isolation: true, the value is wrapped:
 83:  String greeting({required String name}) => 'שלום \u{2068}$name\u{2069} בוקר';
+
+######## 22. a release of bundles with two of them claiming one locale ########
+overrides/overrides_en.json:1:1
+error[duplicate_override_locale]: Two bundles here are for "en": "overrides/en.json" and "overrides/overrides_en.json".
+  A locale has one overridable surface, and the application installs one bundle for it. Which of these two takes effect is decided by whatever serves them, so both passing this check says nothing about which text ships.
+  The locale comes from "@@locale", or from the file name when the file states none. Remove the bundle that is not shipping, or move it out of this directory.
+  ╷
+1 │ {"title": "Log in again"}
+  │ ^^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+
+1 error(s), 0 warning(s).
+An override is text; the shape around it is the one the application compiled.
+Nothing was stamped. A directory is signed whole or not at all: a release in which some bundles carry a fingerprint and some do not is one where nothing on disk says which of them was checked.
+exit=1
+fingerprints written: 0
+-- and with the stale file gone, the release signs as a whole:
+overrides/en.json  en  1 of 2 message(s), 1 text(s)  c2ac7409fef2b131  stamped
+overrides/ru.json  ru  1 of 2 message(s), 1 text(s)  81e17b3d5637b514  stamped
+2 bundle(s) in "overrides", 2 of 3 locale(s). No errors.
+No bundle for: de. Those locales keep the text they compiled.

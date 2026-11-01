@@ -102,6 +102,38 @@ Diagnostic _only(String bundle, {String path = 'overrides_en.json'}) {
   return reports.single;
 }
 
+/// Reports of checking several bundles as one release.
+///
+/// Keyed by path, valued by content, in the order a sorted directory listing
+/// would hand them over — which is the order the CLI reads them in, and the
+/// order that decides which of two bundles for one locale is named first.
+List<Diagnostic> _checkMany(
+  Map<String, String> bundles, {
+  Map<String, String> project = _project,
+}) {
+  final result = runGenerator(project, configYaml: _config);
+  expect(errorsOf(result), isEmpty, reason: result.diagnostics.join('\n'));
+
+  final diagnostics = DiagnosticCollector();
+  final read = <OverrideBundle>[];
+  for (final entry in bundles.entries) {
+    final bundle = OverrideBundle.read(
+      content: entry.value,
+      uri: Uri.file('/tmp/${entry.key}'),
+      path: entry.key,
+      diagnostics: diagnostics,
+    );
+    if (bundle != null) read.add(bundle);
+  }
+  OverrideChecker.checkAll(
+    bundles: read,
+    catalog: result.overrides,
+    diagnostics: diagnostics,
+    requireFingerprint: false,
+  );
+  return diagnostics.diagnostics;
+}
+
 void main() {
   test('a bundle that is right says nothing', () {
     expect(
@@ -615,6 +647,78 @@ void main() {
       ]) {
         expect(DiagnosticCodes.alwaysErrors, contains(code), reason: code);
       }
+    });
+  });
+
+  group('a directory of bundles, checked as one release', () {
+    // The questions that only exist once the unit is a release rather than a
+    // file. Everything else above is per bundle and says the same thing
+    // whether one file was named or twelve.
+    test('two bundles for one locale name each other', () {
+      // The likeliest way a rollout goes wrong: an old file left beside the
+      // new one. Both are valid, both pass every per-file check, and which of
+      // them the application installs is decided by whatever serves them.
+      final reports = _checkMany({
+        'en.json': '{"@@locale": "en", "title": "Sign in"}',
+        'overrides_en.json': '{"@@locale": "en", "title": "Log in again"}',
+      });
+      expect(reports.map((d) => d.code), ['duplicate_override_locale']);
+      final message = reports.single.message;
+      expect(message, contains('en.json'));
+      expect(message, contains('overrides_en.json'));
+    });
+
+    test('the locale a file name states counts as a claim on it', () {
+      // Neither file declares "@@locale", so the clash is between two guesses
+      // from two names — and a release served by file name is exactly where
+      // that matters.
+      expect(
+        _checkMany({
+          'en.json': '{"title": "Sign in"}',
+          'overrides_en.json': '{"title": "Log in again"}',
+        }).map((d) => d.code),
+        ['duplicate_override_locale'],
+      );
+    });
+
+    test('a duplicate is still checked for everything else', () {
+      // Reporting as much as possible is this class's rule, and it is as true
+      // of six files as of one: a report that stopped at the duplicate would
+      // cost a round trip to learn the branch was wrong too.
+      expect(
+        _checkMany({
+          'en.json': '{"@@locale": "en", "title": "Sign in"}',
+          'overrides_en.json': '{"@@locale": "en", "items": {"few": "# x"}}',
+        }).map((d) => d.code),
+        ['duplicate_override_locale', 'unknown_override_branch'],
+      );
+    });
+
+    test('two locales are two surfaces, not a duplicate', () {
+      expect(
+        _checkMany({
+          'en.json': '{"@@locale": "en", "title": "Sign in"}',
+          'ru.json': '{"@@locale": "ru", "title": "Вход"}',
+        }),
+        isEmpty,
+      );
+    });
+
+    test('a bundle whose locale the project lacks still names its file', () {
+      // With one file you knew which one you pointed at. With twelve, a
+      // report that cannot say which is a hunt — and a bundle named after its
+      // locale, which is the normal shape here, declares no "@@locale" to
+      // point at.
+      final reports = _checkMany({'fr.json': '{"title": "Connexion"}'});
+      expect(reports.map((d) => d.code), ['unknown_override_locale']);
+      expect(reports.single.span?.sourceUrl?.path, endsWith('fr.json'));
+    });
+
+    test('the code is an error, like every other override code', () {
+      expect(
+        DiagnosticCodes.alwaysErrors,
+        contains('duplicate_override_locale'),
+      );
     });
   });
 

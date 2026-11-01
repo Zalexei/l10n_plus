@@ -204,4 +204,32 @@ EOF
   gen > /dev/null
   grep -n 'u{2068}' lib/l10n/app_localizations.g.dart; }
 
+probe 22 "a release of bundles with two of them claiming one locale" && {
+  config <<'EOF'
+input_directory: translations
+output_directory: lib/l10n
+base_locale: en
+fallback_locale: en
+runtime_overrides: true
+flutter:
+  enabled: false
+EOF
+  print '{"title": "Log in", "items": "{n, plural, one{# item} other{# items}}"}' > translations/en.json
+  print '{"title": "Войти", "items": "{n, plural, one{# товар} few{# товара} many{# товаров} other{# товара}}"}' > translations/ru.json
+  print '{"title": "Anmelden", "items": "{n, plural, one{# Artikel} other{# Artikel}}"}' > translations/de.json
+  gen > /dev/null
+  mkdir -p overrides
+  # Neither of the two en files declares "@@locale", so both claim en by name
+  # alone -- which is how an old bundle survives beside a new one.
+  print '{"title": "Sign in"}' > overrides/en.json
+  print '{"title": "Log in again"}' > overrides/overrides_en.json
+  print '{"title": "Вход"}' > overrides/ru.json
+  dart run l10n_plus_generator check-overrides --from=overrides --stamp 2>&1
+  print -r -- "exit=$?"
+  print -r -- "fingerprints written: $(grep -l fingerprint overrides/*.json 2>/dev/null | wc -l | tr -d ' ')"
+  print -r -- "-- and with the stale file gone, the release signs as a whole:"
+  rm overrides/overrides_en.json
+  dart run l10n_plus_generator check-overrides --from=overrides --stamp 2>&1
+  rm -rf overrides; }
+
 reset; base_config

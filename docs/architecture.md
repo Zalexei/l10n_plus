@@ -1345,6 +1345,47 @@ and because `install` is also what a test and an in-Dart assembly call, where
 there is no build to speak of. Build time decides what may ship; run time
 decides what is safe to do with what shipped.
 
+### A directory is the unit a release is assembled in
+
+`check-overrides --from` takes a bundle or a directory of them, and the second
+is not a convenience loop over the first. Three of its answers do not exist at
+the scale of one file, and a twelve language rollout checked a file at a time
+can pass twelve times and still be wrong as a set.
+
+**A locale with no bundle.** Reported by the command rather than as a
+diagnostic, because it is not a fault: a locale nobody wrote a bundle for keeps
+the text it compiled, which is correct. It is also the omission a rollout
+actually makes, and it is invisible while you are naming files one at a time.
+
+**Two bundles claiming one locale.** `duplicate_override_locale`, the one new
+code. An `en.json` beside an `overrides_en.json` — both valid, both passing
+every per-file check, and which of them the application installs decided by
+whatever serves them rather than by anything here. The locale of a bundle comes
+from `@@locale` or from its file name, so the clash can be between two
+declarations, two names, or one of each; all three are the same mistake. The
+duplicate is still checked for everything else, because reporting as much as
+possible is as true of six files as of one.
+
+**Whether the set may be signed.** `--stamp` on a directory validates every
+bundle before it writes any. A release in which some bundles carry a fingerprint
+and some do not is the worst available state — nothing on disk says which of
+them was checked — so one wrong branch in Russian leaves all twelve unstamped,
+and the report says that it did. The one file case runs the same two passes with
+one entry, so the two forms cannot drift apart.
+
+Selection is every `.json` directly in the directory, sorted, and nothing below
+it: a release of bundles is flat, and recursing would read whatever else a
+repository keeps in JSON. A `.json` that is not a bundle is an error naming the
+file rather than a silent skip, which is what makes pointing `--from` at the
+wrong directory a failure instead of a pass over nothing.
+
+One report at that scale needed a fix nothing else had asked for:
+`unknown_override_locale` pointed at the `@@locale` span, which is `null` for a
+bundle named after its locale — the normal shape in a directory of them. With
+one file you knew which file you had named; with twelve, a report that cannot
+say is a hunt. It now falls back to the whole object, so the file is always in
+the span.
+
 ### `date` is permissive about skeletons, `time` is not
 
 `DateFormat` skeletons are one namespace, so nothing stopped `{t, time, yMMMd}`

@@ -631,6 +631,66 @@ Diagnostics went from 72 codes to **81**: `rich_tag_mismatch`,
   alongside rich text, and the first of them is the item below worth more than
   everything in this milestone.
 
+## Milestone 32 — a release of bundles is one thing (done)
+
+`check-overrides` took one file, so a twelve language rollout was twelve
+invocations and twelve re-stamps. The directory form is not that loop with the
+typing removed: three of its answers do not exist a file at a time.
+
+* **Which locales have no bundle.** Printed by the command, not as a
+  diagnostic: a locale nobody overrode keeps the text it compiled, which is
+  correct, and is also the omission a rollout makes. Invisible while you name
+  files one at a time, because the files you did not name are not in the
+  question.
+* **Two bundles claiming one locale** — `duplicate_override_locale`, the one new
+  code, registry at **95**. An `en.json` left beside an `overrides_en.json`:
+  both valid, both passing every per-file check, and which of them the
+  application installs decided by whatever serves them. A bundle's locale comes
+  from `@@locale` or from its file name, so the clash can be two declarations,
+  two names, or one of each — tested as all three. The duplicate is still
+  checked for everything else, because a report naming one of six mistakes
+  costs six round trips whether the six sit in one file or in six.
+* **Whether the set may be signed.** `--stamp` validates every bundle before it
+  writes any. A release where some bundles carry a fingerprint and some do not
+  is the worst state available — nothing on disk says which were checked — so
+  one wrong Russian branch leaves all twelve unstamped and the report says so.
+  Measured, not argued: the CLI test writes two bundles, breaks one, and
+  asserts neither file gained a fingerprint.
+* **The one file form is unchanged**, to the byte of its output: it keeps its
+  two prose lines, because at that scale the fingerprint is a value somebody
+  copies rather than a column. It runs the same two passes with one entry, so
+  the forms cannot drift apart.
+* **A fix the scale asked for.** `unknown_override_locale` pointed at the
+  `@@locale` span, which is `null` for a bundle named after its locale — the
+  normal shape in a directory of them. With one file you knew which file you
+  named. It now falls back to the whole object, so every report says which file.
+  Found by running the command, not by reading it.
+* **Selection says its rule**: every `.json` directly in the directory, sorted,
+  nothing below it. A `.json` that is not a bundle is an error naming the file
+  rather than a skip, so `--from` at the wrong directory fails instead of
+  passing over nothing. Probe 22 shows the duplicate, the zero fingerprints
+  written, and then the same release signing as a whole.
+
+### What this one leaves open
+
+* **Nothing installs a directory at run time.** `installOverrides` is per
+  locale on the generated enum, so an application that fetched twelve bundles
+  makes twelve calls. That is the honest shape — each is checked against its own
+  fingerprint — but an `installAll` taking a map of locale to bundle would be one
+  call and one failure to handle.
+* **Nothing serves bundles by fingerprint.** The build-time half is done; which
+  bundle a running application is handed for its build is still the
+  application's problem, and the mismatch exception is what makes getting it
+  wrong visible rather than silent.
+* **A locale with no bundle is a line, not a flag.** A release that *intends* to
+  ship all twelve cannot ask the command to fail when one is missing; it reads
+  the line, or counts the files itself. `--require-all-locales` is one flag and
+  was not written, because nothing yet says how often a release is meant to be
+  complete.
+* **One directory, one project.** A monorepo with two applications and one
+  translation service still runs the command once per project, which is right —
+  the surface it checks against is one build's.
+
 ## Milestone 31 — a value cannot be reordered against its sentence (done)
 
 The last thing the competitive review found that nothing here fixed, and the
@@ -757,8 +817,10 @@ wrong text with every check passing.
 ### What this one leaves open
 
 * **A fingerprint is per locale, so a twelve-language rollout re-stamps twelve
-  files** — and `check-overrides` still takes one file at a time, so that is
-  twelve invocations.
+  files.** Still true, and it has to be: the locale tag is inside the value.
+  ~~And `check-overrides` still takes one file at a time, so that is twelve
+  invocations.~~ **Closed in Milestone 32** — `--from` takes the directory, one
+  run re-stamps all twelve, and all twelve wait on the last of them.
 * **Nothing serves bundles by fingerprint.** It is the natural cache key for a
   CDN path, and saying so in the README is as far as this goes.
 * **An unfingerprinted bundle is still installable**, deliberately, as above. A
@@ -819,8 +881,8 @@ generated one.
 ### What is still open after it
 
 * ~~**No bundle fingerprint.**~~ **Closed in Milestone 30.**
-* **`check-overrides` takes one file**, so a rollout in twelve languages is
-  twelve invocations.
+* ~~**`check-overrides` takes one file**, so a rollout in twelve languages is
+  twelve invocations.~~ **Closed in Milestone 32.**
 * **Untested combinations:** `fill_missing_from_base` together with overrides,
   and ARB or YAML sources with the flag on (the fixture is JSON).
 * **Every install repaints every reader**, since the store does not say which

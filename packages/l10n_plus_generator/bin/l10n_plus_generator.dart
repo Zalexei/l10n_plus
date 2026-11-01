@@ -52,7 +52,8 @@ Future<void> main(List<String> arguments) async {
       help:
           'What "import" reads: the csv file, or the arb bundle or directory '
           'of bundles, that came back from the translators. What '
-          '"check-overrides" reads: the json override bundle.',
+          '"check-overrides" reads: one json override bundle, or a directory '
+          'of them.',
       valueHelp: 'dir|file',
     )
     ..addFlag(
@@ -150,12 +151,14 @@ Future<void> main(List<String> arguments) async {
   }
   if (command == 'check-overrides' && from == null) {
     stderr.writeln(
-      '"check-overrides" needs --from: the override bundle to check.',
+      '"check-overrides" needs --from: the override bundle to check, or the '
+      'directory the release\'s bundles are in.',
     );
     stderr.writeln(
       'For example:\n'
       '  dart run l10n_plus_generator check-overrides '
-      '--from=overrides_en.json',
+      '--from=overrides_en.json\n'
+      '  dart run l10n_plus_generator check-overrides --from=overrides/',
     );
     exit(_exitCodeUsage);
   }
@@ -311,7 +314,7 @@ _RunOutcome _runCommand({
   return _RunOutcome(0, config);
 }
 
-/// Validates a runtime override bundle against what the project emitted.
+/// Validates runtime override bundles against what the project emitted.
 ///
 /// Runs after generation rather than instead of it, and the order is the
 /// point: the slots a bundle is checked against are the lookups the emitter
@@ -319,6 +322,13 @@ _RunOutcome _runCommand({
 /// an answer here would be a guess. The two interchange commands run *before*
 /// validation for the opposite reason — an incomplete locale is why somebody
 /// exports, and it is never why somebody ships an override.
+///
+/// [from] is one bundle or a directory of them. A directory is not a loop for
+/// convenience: it is the unit a release is assembled in, and three of the
+/// answers below only exist at that scale — which locales have no bundle,
+/// whether two bundles claim one locale, and whether the whole set may be
+/// signed. A twelve language rollout checked a file at a time can pass twelve
+/// times and still be wrong as a set.
 int _checkOverrides({
   required GenerationResult result,
   required String from,
@@ -340,50 +350,71 @@ int _checkOverrides({
     return _exitCodeDiagnostics;
   }
 
-  if (Directory(from).existsSync()) {
-    _report([
-      Diagnostic.error(
-        code: 'invalid_override',
-        message: '"$from" is a directory, and a bundle is one locale.',
-        details:
-            'Name the .json file. Run the command once per locale: each '
-            'bundle is checked against that locale\'s own plural '
-            'categories, which is most of what this command is for.',
-      ),
-    ], highlight: highlight);
-    return _exitCodeDiagnostics;
-  }
-  final file = File(from);
-  if (!file.existsSync()) {
-    _report([
-      Diagnostic.error(
-        code: 'invalid_override',
-        message: 'Nothing to check: "$from" does not exist.',
-      ),
-    ], highlight: highlight);
-    return _exitCodeDiagnostics;
+  // Every `.json` directly in the directory, and nothing below it: a release
+  // of bundles is flat, and recursing would quietly read whatever else a
+  // repository keeps in JSON. Sorted, so a report of twelve locales is the
+  // same twelve lines in the same order on every machine.
+  final isDirectory = Directory(from).existsSync();
+  final List<File> files;
+  if (isDirectory) {
+    files =
+        Directory(from)
+            .listSync()
+            .whereType<File>()
+            .where((file) => p.extension(file.path).toLowerCase() == '.json')
+            .toList(growable: false)
+          ..sort((a, b) => a.path.compareTo(b.path));
+    if (files.isEmpty) {
+      _report([
+        Diagnostic.error(
+          code: 'invalid_override',
+          message: 'No .json file in "$from".',
+          details:
+              'A directory is read as a set of bundles, one per locale, and '
+              'this one holds none. Name the file instead, or point --from at '
+              'the directory the bundles are written to.',
+        ),
+      ], highlight: highlight);
+      return _exitCodeDiagnostics;
+    }
+  } else {
+    final file = File(from);
+    if (!file.existsSync()) {
+      _report([
+        Diagnostic.error(
+          code: 'invalid_override',
+          message: 'Nothing to check: "$from" does not exist.',
+        ),
+      ], highlight: highlight);
+      return _exitCodeDiagnostics;
+    }
+    files = [file];
   }
 
   final diagnostics = DiagnosticCollector();
-  final content = file.readAsStringSync();
-  final bundle = OverrideBundle.read(
-    content: content,
-    uri: file.uri,
-    path: file.path,
-    diagnostics: diagnostics,
-  );
-  if (bundle != null) {
-    OverrideChecker.check(
-      bundle: bundle,
-      catalog: result.overrides,
+  final read = <({File file, String content, OverrideBundle bundle})>[];
+  for (final file in files) {
+    final content = file.readAsStringSync();
+    final bundle = OverrideBundle.read(
+      content: content,
+      uri: file.uri,
+      path: file.path,
       diagnostics: diagnostics,
-      // With --stamp the fingerprint is an output rather than an input, so
-      // the two diagnostics about it would be complaints about the work this
-      // run is here to do. Everything else is still checked, and nothing is
-      // written if any of it fails: a stamp says this bundle was validated.
-      requireFingerprint: !stamp,
     );
+    if (bundle != null) {
+      read.add((file: file, content: content, bundle: bundle));
+    }
   }
+  OverrideChecker.checkAll(
+    bundles: [for (final entry in read) entry.bundle],
+    catalog: result.overrides,
+    diagnostics: diagnostics,
+    // With --stamp the fingerprint is an output rather than an input, so the
+    // two diagnostics about it would be complaints about the work this run is
+    // here to do. Everything else is still checked, and nothing is written if
+    // any of it fails: a stamp says this bundle was validated.
+    requireFingerprint: !stamp,
+  );
   _report(diagnostics.diagnostics, highlight: highlight);
 
   if (diagnostics.hasErrors) {
@@ -392,33 +423,104 @@ int _checkOverrides({
       'An override is text; the shape around it is the one the application '
       'compiled.',
     );
+    if (stamp && read.length > 1) {
+      stderr.writeln(
+        'Nothing was stamped. A directory is signed whole or not at all: a '
+        'release in which some bundles carry a fingerprint and some do not is '
+        'one where nothing on disk says which of them was checked.',
+      );
+    }
     return _exitCodeDiagnostics;
   }
 
-  final texts = bundle!.messages.fold<int>(
+  // Validated first, written second, for the same reason. The one file case
+  // is the same code path with one entry, so the two cannot drift apart.
+  final surfaces = {
+    for (final entry in read)
+      entry.file.path: OverrideFingerprint.of(
+        result.overrides.forLocale(entry.bundle.localeTag)!,
+      ),
+  };
+  final stamps = <String, String>{};
+  if (stamp) {
+    for (final entry in read) {
+      final stamped = _stamp(
+        content: entry.content,
+        bundle: entry.bundle,
+        fingerprint: surfaces[entry.file.path]!,
+      );
+      if (stamped == null) {
+        stamps[entry.file.path] = 'unchanged';
+      } else {
+        entry.file.writeAsStringSync(stamped);
+        stamps[entry.file.path] = 'stamped';
+      }
+    }
+  }
+
+  int textsOf(OverrideBundle bundle) => bundle.messages.fold<int>(
     0,
     (total, message) => total + message.texts.length,
   );
-  final schema = result.overrides.forLocale(bundle.localeTag)!;
-  final fingerprint = OverrideFingerprint.of(schema);
-  if (stamp) {
-    final stamped = _stamp(
-      content: content,
-      bundle: bundle,
-      fingerprint: fingerprint,
+
+  if (!isDirectory) {
+    // One file keeps the prose it had: at this scale the fingerprint is a
+    // value somebody copies, not a column.
+    final entry = read.single;
+    final bundle = entry.bundle;
+    final schema = result.overrides.forLocale(bundle.localeTag)!;
+    final state = stamps[entry.file.path];
+    if (state != null) stdout.writeln('$state ${entry.file.path}');
+    stdout.writeln(
+      '${bundle.messages.length} of ${schema.messages.length} message(s) '
+      'overridden in "${bundle.localeTag}", ${textsOf(bundle)} text(s). '
+      'No errors.',
     );
-    if (stamped == null) {
-      stdout.writeln('unchanged ${file.path}');
-    } else {
-      file.writeAsStringSync(stamped);
-      stdout.writeln('stamped ${file.path}');
+    stdout.writeln(
+      'Overridable surface of "${bundle.localeTag}": '
+      '${surfaces[entry.file.path]}',
+    );
+    return 0;
+  }
+
+  var pathWidth = 0;
+  var tagWidth = 0;
+  for (final entry in read) {
+    if (entry.file.path.length > pathWidth) pathWidth = entry.file.path.length;
+    if (entry.bundle.localeTag.length > tagWidth) {
+      tagWidth = entry.bundle.localeTag.length;
     }
   }
+  for (final entry in read) {
+    final bundle = entry.bundle;
+    final schema = result.overrides.forLocale(bundle.localeTag)!;
+    final state = stamps[entry.file.path];
+    stdout.writeln(
+      '${entry.file.path.padRight(pathWidth)}  '
+      '${bundle.localeTag.padRight(tagWidth)}  '
+      '${bundle.messages.length} of ${schema.messages.length} message(s), '
+      '${textsOf(bundle)} text(s)  '
+      '${surfaces[entry.file.path]}'
+      '${state == null ? '' : '  $state'}',
+    );
+  }
+
+  final covered = {for (final entry in read) entry.bundle.localeTag};
+  final locales = result.overrides.localeTags;
   stdout.writeln(
-    '${bundle.messages.length} of ${schema.messages.length} message(s) '
-    'overridden in "${bundle.localeTag}", $texts text(s). No errors.',
+    '${read.length} bundle(s) in "$from", ${covered.length} of '
+    '${locales.length} locale(s). No errors.',
   );
-  stdout.writeln('Overridable surface of "${bundle.localeTag}": $fingerprint');
+  // The line the one file form cannot print, and the omission a rollout
+  // actually makes: a locale nobody wrote a bundle for stays on the text the
+  // application compiled, which is correct and is also silent.
+  final missing = locales.where((tag) => !covered.contains(tag));
+  if (missing.isNotEmpty) {
+    stdout.writeln(
+      'No bundle for: ${missing.join(', ')}. '
+      'Those locales keep the text they compiled.',
+    );
+  }
   return 0;
 }
 
@@ -862,7 +964,8 @@ Commands:
              project's own formats and file layout. Prints what it would
              change and writes nothing until --write.
   check-overrides
-             Validate a runtime override bundle against this project. Needs
+             Validate runtime override bundles against this project: one
+             file, or a directory of them as a release. Needs
              runtime_overrides: true, and exits non-zero on any problem.
 
 Translator workflow:
@@ -887,6 +990,7 @@ Translator workflow:
 Runtime overrides:
   dart run l10n_plus_generator check-overrides --from=overrides_en.json
   dart run l10n_plus_generator check-overrides --from=overrides_en.json --stamp
+  dart run l10n_plus_generator check-overrides --from=overrides/ --stamp
 
   A bundle is JSON, flat, keyed by the dotted translation key: a string for a
   message with one form, and one string per branch for a plural or a select.
@@ -920,6 +1024,15 @@ Runtime overrides:
 
   The generated AppLocale.en.installOverrides(bundle) passes this build's own
   and refuses any other, leaving the application on the text it compiled.
+
+  A directory is read as one release: every .json in it, each for the locale
+  it names, checked as a set. That scale answers three things a file at a time
+  cannot -- which of the project's locales have no bundle, whether two files
+  are for the same locale and so cannot both be the one that ships, and
+  whether the set may be signed. --stamp on a directory validates every bundle
+  before it writes any, because a release where some bundles carry a
+  fingerprint and some do not is one where nothing on disk says which were
+  checked.
 
 Options:
 ${parser.usage}''';

@@ -84,6 +84,7 @@ final class OverrideBundleMessage {
 final class OverrideBundle {
   /// Creates a bundle.
   OverrideBundle({
+    required this.path,
     required this.localeTag,
     required this.localeSpan,
     required this.messages,
@@ -92,6 +93,13 @@ final class OverrideBundle {
     this.rootSpan,
     this.firstMemberSpan,
   });
+
+  /// The file this was read from, as the command line named it.
+  ///
+  /// Carried because one question about a bundle is about the others beside
+  /// it: two files in a directory can be for one locale, and saying which two
+  /// is the whole of that report.
+  final String path;
 
   /// The locale the bundle is for, as a file tag.
   final String localeTag;
@@ -328,6 +336,7 @@ final class OverrideBundle {
     }
 
     return OverrideBundle(
+      path: path,
       localeTag: localeTag,
       localeSpan: localeSpan,
       messages: messages,
