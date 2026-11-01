@@ -31,6 +31,12 @@ final class L10nController<L extends AppLocaleBase, T extends BaseTranslations>
     // screen instead of showing up on the next one that happens to rebuild —
     // the reason the roadmap's objection to global state does not apply here.
     L10nOverrides.addListener(_handleOverridesChanged);
+    // The initial locale may be one whose translations are a deferred chunk,
+    // which is the ordinary case for a web app launched in a language that is
+    // not the fallback. Nothing has to be awaited for the first frame to
+    // render — it renders the fallback — and this repaints it when the real
+    // one arrives.
+    _load(_locale);
   }
 
   /// Locales the app has translations for.
@@ -43,6 +49,7 @@ final class L10nController<L extends AppLocaleBase, T extends BaseTranslations>
 
   late L _locale;
   bool _followSystem;
+  bool _disposed = false;
 
   /// The active locale.
   L get locale => _locale;
@@ -68,9 +75,34 @@ final class L10nController<L extends AppLocaleBase, T extends BaseTranslations>
   bool get followsSystemLocale => _followSystem;
 
   /// Switches to [locale] and stops following the system locale.
+  ///
+  /// Synchronous even when the locale's translations are a deferred chunk:
+  /// the switch happens now, the chunk is requested, and the screen repaints
+  /// when it arrives. Until then the locale renders the fallback's text, the
+  /// same thing an unsupported locale renders. [setLocaleAsync] is the version
+  /// that waits, for a caller that would rather not show that frame.
   void setLocale(L locale) {
     _followSystem = false;
     _set(locale);
+  }
+
+  /// Switches to [locale] once its translations are in memory.
+  ///
+  /// With `deferred_locales` off there is nothing to load and this is
+  /// [setLocale] with a future around it. With it on, awaiting this is how a
+  /// caller avoids the frame in which the new locale still reads as the
+  /// fallback — a settings screen that pops a route on completion, say.
+  ///
+  /// Loading does not depend on this: [setLocale] starts it too. This only
+  /// decides whether the switch is visible before or after the download.
+  Future<void> setLocaleAsync(L locale) async {
+    // Typed as `Object` so the test promotes to `DeferredAppLocale` itself:
+    // `L`'s bound is `AppLocaleBase`, and promoting a type variable to an
+    // unrelated interface gives an intersection whose members the analyzer
+    // will not resolve.
+    final Object candidate = locale;
+    if (candidate is DeferredAppLocale) await candidate.load();
+    setLocale(locale);
   }
 
   /// Follows the operating system locale again.
@@ -110,10 +142,12 @@ final class L10nController<L extends AppLocaleBase, T extends BaseTranslations>
   /// dart run l10n_plus_generator check-overrides --from=overrides_en.json --stamp
   /// ```
   ///
-  /// [setLocale] stays synchronous. The roadmap expected this feature to make
-  /// it asynchronous; it does not, because the fetch happens before the
+  /// [setLocale] stays synchronous. The roadmap expected *this* feature to
+  /// make it asynchronous; it does not, because the fetch happens before the
   /// install, in the application's own code, and the install itself is a map
-  /// assignment.
+  /// assignment. `deferred_locales` is the feature that did need an
+  /// asynchronous companion, and it got [setLocaleAsync] rather than a second
+  /// meaning for this one.
   void clearOverrides([L10nLocale? locale]) => L10nOverrides.clear(locale);
 
   /// Repaints every reader when the override store changes.
@@ -128,6 +162,7 @@ final class L10nController<L extends AppLocaleBase, T extends BaseTranslations>
     // Before `super.dispose()`: a notification arriving after disposal would
     // throw, and installing a bundle while a screen is being torn down is
     // exactly when that happens.
+    _disposed = true;
     L10nOverrides.removeListener(_handleOverridesChanged);
     super.dispose();
   }
@@ -136,6 +171,22 @@ final class L10nController<L extends AppLocaleBase, T extends BaseTranslations>
     if (_locale == locale) return;
     _locale = locale;
     notifyListeners();
+    _load(locale);
+  }
+
+  /// Starts loading [locale]'s translations, repainting when they arrive.
+  ///
+  /// Nothing waits on this, which is what keeps [setLocale] synchronous. Two
+  /// guards on the way back: a controller disposed in the meantime would throw
+  /// if notified, and a locale switched away from again should not repaint a
+  /// screen that has moved on.
+  void _load(L locale) {
+    final Object candidate = locale;
+    if (candidate is! DeferredAppLocale || candidate.isLoaded) return;
+    candidate.load().then((_) {
+      if (_disposed || _locale != locale) return;
+      notifyListeners();
+    });
   }
 
   L _resolveSystem(List<L10nLocale> systemLocales) {

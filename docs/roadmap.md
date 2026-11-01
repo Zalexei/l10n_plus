@@ -625,18 +625,98 @@ Diagnostics went from 72 codes to **81**: `rich_tag_mismatch`,
   carries them.
 * **No PO/XLIFF and no vendor API.** ARB and CSV travel; Crowdin and Lokalise
   still mean a person in between.
-* **The runtime tier is untouched**: no over-the-air overrides, no lazy
-  per-locale loading, ~~no linked translations~~ (**done in Milestone 33**), no
-  dynamic key access. Those four all rewrite the emitter and the model, which is
+* **The runtime tier is untouched**: no over-the-air overrides, ~~no lazy
+  per-locale loading~~ (**done in Milestone 34**), ~~no linked translations~~
+  (**done in Milestone 33**), no dynamic key access. Those four all rewrite the emitter and the model, which is
   why they were not attempted alongside rich text, and the first of them is the
   item below worth more than everything in this milestone.
+
+## Milestone 34 — locales that arrive when they are needed (done)
+
+`deferred_locales: true`, the last of `slang`'s four runtime-tier advantages.
+The feature itself is small; what it cost was a decision about the API and
+what it taught was a measurement that argues against it half the time.
+
+* **The layout is the feature.** `file_per_locale` writes `part` files, and a
+  `part` is compiled into its library — there is nothing for a deferred import
+  to load. So the locales become libraries, imported `deferred` by the shared
+  file, and the option requires `file_per_locale` rather than implying it: the
+  layout key decides which files a repository holds.
+* **The fallback locale is never deferred**, so something is always
+  renderable, and an unloaded locale renders *its* text. That is the decision:
+  `forLocale` stays synchronous and non nullable, and an unloaded locale is an
+  unsupported locale — a failure mode the library already had, reached by a
+  different route, rather than a new one in the middle of the API it exists to
+  make safe.
+* **`const` survived again.** `const` of a class behind a deferred prefix is a
+  compile error, so each locale library exposes one public getter building its
+  own `const` instance, and what crosses the boundary is an interface the
+  shared file declared. `identical` holds across two reads, asserted, because
+  it is the property that could have been lost.
+* **The controller makes the feature invisible.** `setLocale` stays
+  synchronous: it switches, starts the load and repaints when the chunk lands.
+  `setLocaleAsync` is for a caller that would rather not show the frame that
+  reads as the fallback. Driven through a real widget tree, including a
+  controller disposed mid-download, which is what a popped settings screen is.
+* **And the measurement says not to turn it on by default.**
+  `evaluation/lazy_bundle.py` is in the repository because the figure should be
+  re-runnable. 396 messages in four locales, `dart compile js -O4`: the first
+  download goes from 189,632 bytes to **113,148** when the entry point reads
+  every message — and from 49,047 to **69,995**, forty-three percent *worse*,
+  when it reads one. Two causes, both measured: `dart2js` already tree-shakes
+  messages nothing reads, because a generated message is a getter on a `const`
+  class and an unused getter is dead code — which is exactly what is not true
+  of a package that builds a map at run time — and the deferred loader is a
+  fixed 20,948 bytes, since the chunks in that row hold 597 bytes each. At 36
+  messages per locale the trade has already inverted.
+* **No new diagnostic code at all**, which is unusual for a milestone this
+  size and is a consequence of the fallback decision: the one thing a project
+  can get wrong is asking for `deferred_locales` without `file_per_locale`, and
+  that is the existing `invalid_config` with the line to add in its details.
+  There is no wrong *state* to report, because an unloaded locale is not a
+  wrong state. The registry stays at **101**.
+
+### What this one leaves open
+
+* **No assert on reading an unloaded locale.** This project's usual answer to a
+  quiet hazard, and it cannot be used here: the legitimate path reads the
+  fallback for a frame or two while the chunk arrives, so the assert would fire
+  on the feature working. An application that bypasses the controller and never
+  calls `load()` gets the fallback with nothing saying so.
+* **Nothing splits one locale.** A chunk is a whole language. An application
+  that shows three screens of nine namespaces downloads all nine, and
+  per-namespace chunks would need a deferred import per namespace per locale —
+  which is where `dart2js`'s own tree-shaking is already better than anything
+  this generator could decide.
+* **The formatters are duplicated per chunk.** Independence costs that, and it
+  is inside the measurement above rather than beside it.
+* **Measured with `dart compile js`, not with `flutter build web`.** The
+  compiler and the optimisation level are the ones a release Flutter web build
+  uses, so the figures are about the translations; what they are not is a
+  fraction of a real Flutter bundle, which is a megabyte and a half of engine
+  before any of this.
+* **A deferred load does not complete under a widget test's fake clock, and
+  starting one there spends the locale.** Measured while writing the test: a
+  `load()` begun in fake async never finishes, and awaiting its future inside
+  `runAsync` afterwards does not rescue it, because `loadLibrary` hands out one
+  future per library and that one belongs to a zone the test has stopped
+  advancing. So an application testing a locale switch has to drive it inside
+  `runAsync`, and no two tests in one isolate can use the same locale. Nothing
+  in the library says so except the test, the README and this line; a
+  `WidgetTester` extension could, and would be the Flutter package growing a
+  test-only surface it has so far done without.
+* **Nothing is measured on the VM or on AOT**, where a deferred import loads
+  nothing and the feature is inert. That is the honest shape — there are no
+  chunks off the web — but it means the option is dead weight in a mobile-only
+  project, and nothing in the generator says so.
 
 ## Milestone 33 — one message inside another (done)
 
 `@:other.key`, the second of `slang`'s four runtime-tier advantages to be
-taken — and the last of them this library's thesis has any business taking:
-dynamic key access is the thesis's opposite, and lazy loading is a question
-about build output rather than a feature. It brings with it the one capability
+taken. (The sentence here used to add "and the last of them this library's
+thesis has any business taking", on the grounds that lazy loading is a question
+about build output rather than a feature. Milestone 34 took it anyway, and
+found that the build output question was the interesting part.) It brings with it the one capability
 ICU cannot express: two plurals in one sentence, each selecting on its own
 count.
 

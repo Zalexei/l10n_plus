@@ -512,6 +512,7 @@ final class L10nPlusGenerator {
       final rendered = emitter.emitSplit(
         sharedFileName: config.outputFileName,
         partFileName: (locale) => config.localeOutputFileName(locale.tag),
+        deferred: config.deferredLocales,
       );
       rendered.forEach((name, contents) {
         core.add(

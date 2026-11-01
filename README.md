@@ -691,6 +691,95 @@ targets:
 
 If you miss one, the builder names the file it wanted to write.
 
+### Loading locales on demand
+
+On the web, every locale you support is in the first download. One more line
+puts each of them in a chunk of its own:
+
+```yaml
+file_per_locale: true
+deferred_locales: true
+```
+
+The locales stop being `part` files and become libraries behind deferred
+imports — all but the **fallback locale**, which stays in the first download so
+that something is always renderable. Your import still does not change.
+
+```dart
+await AppLocale.ru.load();     // one chunk, fetched now
+AppLocale.ru.isLoaded;         // true
+await AppLocale.loadAll();     // or pay for everything at once
+```
+
+**Nothing throws and nothing is null.** `AppLocalizations.forLocale` stays
+synchronous: a locale nobody has loaded reads as the fallback locale, which is
+exactly what a locale this app *does not support* has always read as. Loading
+is what stops it falling back.
+
+**And an application switching locales needs none of the above.**
+`L10nController` starts the load itself and repaints when the chunk lands:
+
+```dart
+controller.setLocale(AppLocale.ru);        // switches now, repaints on arrival
+await controller.setLocaleAsync(AppLocale.ru);  // or skip the fallback frame
+```
+
+One thing to know before you write a widget test for that switch: a deferred
+load **does not complete under a widget test's fake clock**, and awaiting its
+future afterwards does not rescue it — `loadLibrary` hands out one future per
+library and that one is stuck. A side effect worth knowing too: no two tests in
+one file can load the same locale, because a half-loaded one cannot be retried.
+Drive the switch inside `runAsync`:
+
+```dart
+await tester.runAsync(() async {
+  controller.setLocale(AppLocale.ru);
+  while (!AppLocale.ru.isLoaded) await Future<void>.delayed(Duration.zero);
+});
+await tester.pump();
+```
+
+### What it actually saves — measured, both ways
+
+Run it yourself: `python3 evaluation/lazy_bundle.py` builds 396 messages in
+four locales, compiles each way with `dart compile js -O4` and prints the
+bytes.
+
+| 396 messages × 4 locales | first download | everything served |
+| --- | --- | --- |
+| one library | 189,632 | 189,632 |
+| `deferred_locales` | **113,148** | 208,206 |
+
+A 40% smaller first download, and 10% more bytes if the user eventually loads
+every language. That is the trade, and it is the expected one.
+
+**The unexpected one is the row below**, and it is why this option is off by
+default. With the same four locales and an entry point that reads *one*
+message:
+
+| 396 messages × 4 locales, one read | first download |
+| --- | --- |
+| one library | 49,047 |
+| `deferred_locales` | 69,995 |
+
+Deferred loading made the bundle **43% bigger**. Two things cause it. `dart2js`
+already tree-shakes the messages an app never reads — a generated message is a
+getter on a `const` class, and an unused getter is dead code, which is not true
+of a package whose translations are a map built at run time. And the deferred
+loader itself is a fixed cost: those two numbers differ by 20,948 bytes while
+the chunks hold 597 bytes each, so that is the chunk-loading machinery and
+nothing else.
+
+So the option pays for itself when an application renders a lot of its
+messages in a lot of languages, and costs you about 21 KB when it does not. At
+36 messages per locale it is already the wrong trade — 64,011 bytes one library
+against 73,118 deferred, which is the second size the script prints. Measure
+your own app before turning it on.
+
+For context: a release Flutter web build is a megabyte and a half of engine and
+framework before any of this, so 76 KB is real but it is not the number that
+decides your load time.
+
 ## Using the generated API
 
 With `flutter.enabled`, the generator writes two libraries: the translations

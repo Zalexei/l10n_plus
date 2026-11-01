@@ -1473,6 +1473,94 @@ one file you knew which file you had named; with twelve, a report that cannot
 say is a hunt. It now falls back to the whole object, so the file is always in
 the span.
 
+### `deferred_locales`: the layout decides whether a chunk can exist
+
+`file_per_locale` writes one file per locale as a `part` of one library, for
+reasons that are all about reachability: the formatters are private top level
+finals, parts keep them private and shared, and the application's import does
+not change. Every one of those reasons works against a chunk. A `part` is
+compiled into its library; there is nothing for a deferred import to load.
+
+So `deferred_locales: true` keeps the file boundaries and changes what the
+files *are*: a library each, imported `deferred` by the shared file. It
+requires `file_per_locale` rather than implying it — the layout key decides
+which files a repository contains, and turning it on from under a loading key
+would change that without the project having said so.
+
+**Three consequences, each a real cost.**
+
+*The formatters are duplicated.* A deferred library has to be loadable on its
+own, so a chunk may not name another locale's library — a chunk that did would
+be a chunk that loads it too. Each locale therefore declares, privately, every
+formatter it uses, including the base locale's formatters it inherited through
+`fill_missing_from_base`, and its own `DateFormat` helper. Two locales that
+format money the same way carry one declaration each. That duplication is what
+independence costs, and it is counted in the measurement below.
+
+*The `const` instance has to be built on the far side.* `const` of a class
+behind a deferred prefix is a compile error — `const_deferred_class` — so the
+shared file cannot name the implementation class at all. Each locale library
+exposes one public name, `AppLocalizations get translations => const
+AppLocalizationsRu()`, and what crosses the boundary is an interface the shared
+file declared itself. The `const` is an ordinary `const` where it is written,
+so Dart still canonicalizes it: `identical` holds across two reads, which
+`deferred_runtime_test.dart` asserts because it is the one property that could
+have been lost.
+
+*The access is a field read, not a `const` switch.* `translations` becomes
+`_l10nRuLoaded ?? _l10nEn.translations` — one nullable top level variable per
+locale rather than a map, because every `context.l10n` goes through this and a
+map read is a hash on that path.
+
+### An unloaded locale is an unsupported locale
+
+The design decision this feature turns on. `AppLocalizations.forLocale` is
+synchronous and non nullable, and that is most of what this library is: a
+`null` or a throw there would put a run time hazard in the middle of the API
+the whole project exists to make safe.
+
+So a locale nothing has loaded renders the **fallback locale's** text. Not a
+new failure mode: it is what a locale the application does not support has
+always rendered, reached by a different route. `isLoaded` says which case you
+are in, and `load()` is what stops it falling back.
+
+There is no debug assert on reading an unloaded locale, although that is this
+project's usual answer to a quiet hazard. It would fire on the legitimate path:
+`L10nController.setLocale` switches synchronously, starts the load, and
+repaints when the chunk lands, so one or two frames reading the fallback is the
+feature working. `setLocaleAsync` is for a caller that would rather not show
+them. What is left open is an application that bypasses the controller and
+never calls `load()`: it gets the fallback with nothing saying so.
+
+### What lazy loading is worth, and when it is negative
+
+`evaluation/lazy_bundle.py` builds 396 messages in four locales, generates both
+ways, compiles with `dart compile js -O4` and prints the bytes. Two scenarios,
+because they disagree:
+
+| 396 messages × 4 locales | first download | everything served |
+| --- | --- | --- |
+| reads everything, one library | 189,632 | 189,632 |
+| reads everything, deferred | **113,148** | 208,206 |
+| reads one message, one library | **49,047** | 49,047 |
+| reads one message, deferred | 69,995 | 71,809 |
+
+The first pair is the advertisement: 40% off the first download, 10% more total
+bytes if every language is eventually fetched.
+
+The second pair is the finding. **`dart2js` already tree-shakes the messages an
+application never reads**, because a generated message is a getter on a `const`
+class and an unused getter is dead code. The usual argument for lazy
+translations assumes they are data that cannot be dropped, which is true of a
+package that builds a map at run time and false here. And the deferred loader
+is a fixed cost: those two rows differ by 20,948 bytes while the chunks hold
+597 bytes each, so that figure is the chunk-loading machinery and nothing else.
+
+At 36 messages per locale the trade has already inverted — 64,011 bytes one
+library against 73,118 deferred. Hence the option is off by default and the
+README tells a project to measure its own app, which is the only honest advice
+available when the sign of the answer depends on the corpus.
+
 ### `date` is permissive about skeletons, `time` is not
 
 `DateFormat` skeletons are one namespace, so nothing stopped `{t, time, yMMMd}`

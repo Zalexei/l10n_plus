@@ -189,7 +189,7 @@ exit=1
 l10n_plus.yaml:5:17
 warning[unknown_config_key]: Unknown configuration key "file_per_local".
   Did you mean "file_per_locale"?
-  Known keys: base_locale, bidi_isolation, class_name, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, locale_enum_name, output_directory, runtime_overrides.
+  Known keys: base_locale, bidi_isolation, class_name, deferred_locales, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, locale_enum_name, output_directory, runtime_overrides.
   ╷
 5 │ file_per_local: true
   │                 ^^^^
@@ -208,7 +208,7 @@ exit=1
 l10n_plus.yaml:5:17
 warning[unknown_config_key]: Unknown configuration key "file_per_local".
   Did you mean "file_per_locale"?
-  Known keys: base_locale, bidi_isolation, class_name, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, locale_enum_name, output_directory, runtime_overrides.
+  Known keys: base_locale, bidi_isolation, class_name, deferred_locales, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, locale_enum_name, output_directory, runtime_overrides.
   ╷
 5 │ file_per_local: true
   │                 ^^^^
@@ -406,3 +406,21 @@ exit=1
 78:  String hello({required String name, required num n});
 105:  String hello({required String name, required num n}) =>
 146:  String hello({required String name, required num n}) =>
+
+######## 25. deferred locales asked for without the layout that allows them ########
+l10n_plus.yaml:5:19
+error[invalid_config]: "deferred_locales" needs "file_per_locale" as well.
+  A deferred import loads a library, and with "file_per_locale" off every locale is part of one. Add it:
+    file_per_locale: true
+    deferred_locales: true
+  ╷
+5 │ deferred_locales: true
+  │                   ^^^^
+  ╵
+
+exit=1
+-- and with the layout key added, the locales become libraries:
+7:import 'app_localizations_en.g.dart' as _l10nEn;
+8:import 'app_localizations_ru.g.dart' deferred as _l10nRu;
+-- which is the only line that decides whether a chunk exists:
+0

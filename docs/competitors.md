@@ -109,7 +109,7 @@ config lines rather than 1.
 | Extraction from source | N | ~ (`$wip apply`) | N | N |
 | CLI command count | 6 | ~12 | 1 | 2 |
 | Watch mode | Y | Y | **Y, inside `flutter run`** | n/a |
-| Lazy / deferred per-locale loading | **N** | Y (default on) | ~ opt-in, web | N |
+| Lazy / deferred per-locale loading | **Y — opt-in, with the bundle measured both ways** | Y (default on) | ~ opt-in, web | N |
 | Over-the-air / runtime overrides | **Y — branch text, checked and fingerprinted at build time, per bundle or per release** | Y | N | ~ 23-line loader, no cache |
 | Asset obfuscation | N | Y | N | N |
 | Typed locale enum + typed switching | Y | Y | **N** | ~ |
@@ -136,7 +136,7 @@ python3 evaluation/tally.py
 
 | | `Y` | `~` | `N` |
 | --- | --- | --- | --- |
-| `l10n_plus` | **35** | 4 | 8 |
+| `l10n_plus` | **36** | 4 | 7 |
 | `slang` | **31** | 6 | 10 |
 | `gen_l10n` | 12 | 10 | 25 |
 | `easy_localization` | 8 | 12 | 27 |
@@ -155,17 +155,25 @@ Which is the more useful finding, again, and why the script is in the
 repository now: a comparison nobody can re-run is not a measurement, and a
 script nobody keeps is nobody re-running it.
 
-**Three of this revision's cells are one milestone's, and one of them is a row
+**Four of this revision's cells are two milestones', and one of them is a row
 we added.** Milestone 33 flipped "linked translations" and "several plurals in
 one sentence" from `N` to `Y`, and introduced "a link cycle is a build error",
-which no package but this one passes. Adding a row on the axis you have just
-won is the easiest way to inflate your own total, so: without that row it is
-**34 against 31 over 46 rows**, and with it **35 against 31 over 47**. The row
-stays because whether a ring of links breaks the build or ships is a question a
-user has, and because the two `N`s in it were read in the two packages' sources
-rather than assumed — but the honest figure is the one without it.
+which no package but this one passes. Milestone 34 flipped "lazy / deferred
+per-locale loading". Adding a row on the axis you have just won is the easiest
+way to inflate your own total, so: without that row it is **35 against 31 over
+46 rows**, and with it **36 against 31 over 47**. The row stays because whether
+a ring of links breaks the build or ships is a question a user has, and because
+the two `N`s in it were read in the two packages' sources rather than assumed —
+but the honest figure is the one without it.
 
-**And four cells ahead is not a lead either.** A `Y` is not a unit of value: "asset
+And the lazy-loading cell deserves its own caveat. We have the feature, and the
+measurement in `evaluation/lazy_bundle.py` says it makes the bundle *larger*
+for an application that does not read most of its messages — so the `Y` is
+honest about the capability and says nothing about whether a project should
+want it. `slang`'s is on by default; ours is off, with the figures in the
+README. One cell, two different bets again.
+
+**And five cells ahead is not a lead either.** A `Y` is not a unit of value: "asset
 obfuscation" and "222 CLDR plural languages" are one cell each, and a table that
 can be moved by picking different rows is a sketch of the field rather than a
 verdict on it. What the two columns disagree about matters more than the total,
@@ -267,25 +275,23 @@ and on its own, because it is the only one that touches the runtime:
 
 ## 6. Where we are still behind, in priority order
 
-1. **No lazy loading.** `slang` defers per-locale imports by default; at
-   810 messages × many locales this is a web bundle-size argument we lose.
-2. **No maps, lists or dynamic key access**, so server-driven copy
+1. **No maps, lists or dynamic key access**, so server-driven copy
    (`tr('error.$code')`) is structurally impossible — a genuine advantage of
    every string-keyed package.
-3. **No PO/XLIFF, and no vendor API.** ARB and CSV now travel; Crowdin,
+2. **No PO/XLIFF, and no vendor API.** ARB and CSV now travel; Crowdin,
    Lokalise and POEditor still mean a human in between.
-4. **No extraction from source**, and `import` writes translations but never
+3. **No extraction from source**, and `import` writes translations but never
    creates a file or a locale.
-5. **Six CLI commands against `slang`'s ~12** (`edit`, `stats`, `migrate`,
+4. **Six CLI commands against `slang`'s ~12** (`edit`, `stats`, `migrate`,
    `clean`, `configure` have no equivalent here).
-6. **No relative links or link modifiers.** `slang` has `@:.sibling`;
+5. **No relative links or link modifiers.** `slang` has `@:.sibling`;
    `easy_localization` has `@.upper:key`. Both were refused with the reason
    written down rather than left unimplemented, which is a smaller gap than it
    was, but it is still theirs.
-7. **No ambient context-free accessor** (deferred deliberately, with the
+6. **No ambient context-free accessor** (deferred deliberately, with the
    footgun written down), **no asset obfuscation**, **no IDE plugin**, and no
    Material/Cupertino strings of our own.
-8. **Nothing published on pub.dev** — no community, no Stack Overflow answer,
+7. **Nothing published on pub.dev** — no community, no Stack Overflow answer,
    no name. Unchanged by any of the above, and still the largest gap of all.
 
 ~~**No linked translations**, therefore no two plurals in one sentence.~~

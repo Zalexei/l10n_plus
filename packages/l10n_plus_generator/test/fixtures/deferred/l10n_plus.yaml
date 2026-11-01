@@ -1,0 +1,18 @@
+input_directory: translations
+output_directory: lib/generated
+base_locale: en
+fallback_locale: en
+class_name: AppLocalizations
+locale_enum_name: AppLocale
+
+# The two keys together: a deferred import loads a library, and
+# `file_per_locale` is what makes each locale one instead of a `part`. The
+# `split` fixture is the same two keys minus the second, so comparing the two
+# goldens shows what the layout change is. Five locales, because a loaded
+# library cannot be unloaded and the tests need one locale each.
+file_per_locale: true
+deferred_locales: true
+
+flutter:
+  enabled: true
+  context_extension: l10n

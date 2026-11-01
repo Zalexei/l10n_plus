@@ -1,0 +1,11 @@
+{
+  "auth": {
+    "title": "Connexion",
+    "greeting": "Bon retour, {name}"
+  },
+  "wallet": {
+    "transactions": "{count, plural, =0{Aucun paiement} one{# paiement} other{# paiements}}",
+    "total": "Débité {amount, number, currency:EUR}",
+    "statement": "Relevé du {day, date, yMMMd}"
+  }
+}

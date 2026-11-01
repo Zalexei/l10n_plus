@@ -254,4 +254,33 @@ probe 24 "a link that lends its parameters, and one locale forgetting them" && {
   gen > /dev/null
   grep -n "String hello" lib/l10n/app_localizations.g.dart; }
 
+probe 25 "deferred locales asked for without the layout that allows them" && {
+  config <<'EOF'
+input_directory: translations
+output_directory: lib/l10n
+base_locale: en
+fallback_locale: en
+deferred_locales: true
+flutter:
+  enabled: false
+EOF
+  print '{"title": "Log in"}' > translations/en.json
+  gen
+  print -r -- "-- and with the layout key added, the locales become libraries:"
+  config <<'EOF'
+input_directory: translations
+output_directory: lib/l10n
+base_locale: en
+fallback_locale: en
+file_per_locale: true
+deferred_locales: true
+flutter:
+  enabled: false
+EOF
+  print '{"title": "Войти"}' > translations/ru.json
+  gen > /dev/null
+  grep -n "^import 'app_localizations" lib/l10n/app_localizations.g.dart
+  print -r -- "-- which is the only line that decides whether a chunk exists:"
+  grep -c 'part ' lib/l10n/app_localizations.g.dart; }
+
 reset; base_config

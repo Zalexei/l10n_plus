@@ -42,6 +42,7 @@ final class L10nPlusConfig {
     this.formatPluralNumbers = false,
     this.filePattern,
     this.filePerLocale = false,
+    this.deferredLocales = false,
     this.fillMissingFromBase = false,
     this.runtimeOverrides = false,
     this.bidiIsolation = false,
@@ -146,6 +147,19 @@ final class L10nPlusConfig {
   /// is unchanged either way.
   final bool filePerLocale;
 
+  /// Whether every locale but the fallback is loaded on demand.
+  ///
+  /// Off by default. On, each locale becomes a Dart library of its own behind
+  /// a deferred import, which a web build compiles into a chunk of its own —
+  /// so an application downloads the languages it shows rather than all of
+  /// them. Requires [filePerLocale], because a deferred import needs a
+  /// library and [filePerLocale]'s files are `part`s of one.
+  ///
+  /// The fallback locale is never deferred: something has to be renderable
+  /// before anything has loaded, and reading an unloaded locale gives the
+  /// fallback rather than throwing.
+  final bool deferredLocales;
+
   /// What to do with a key a locale has and the base locale does not.
   ///
   /// An error by default: the base locale is the API contract, and a key
@@ -222,6 +236,7 @@ final class L10nPlusConfig {
       'locale_enum_name',
       'format_plural_numbers',
       'file_pattern',
+      'deferred_locales',
       'file_per_locale',
       'fill_missing_from_base',
       'runtime_overrides',
@@ -295,6 +310,31 @@ final class L10nPlusConfig {
       }
     }
 
+    final filePerLocale =
+        _bool(document, 'file_per_locale', diagnostics) ?? false;
+    final deferredLocales =
+        _bool(document, 'deferred_locales', diagnostics) ?? false;
+    if (deferredLocales && !filePerLocale) {
+      // Not defaulted for them: a deferred import needs a library, and
+      // `file_per_locale` decides whether the locales *are* libraries or
+      // `part`s of one. Turning the layout key on from under the loading key
+      // would change which files the project generates without the project
+      // having said so, and the generated file names are in a repository.
+      diagnostics.add(
+        Diagnostic.error(
+          code: 'invalid_config',
+          message: '"deferred_locales" needs "file_per_locale" as well.',
+          span: document.nodes['deferred_locales']?.span ?? document.span,
+          details:
+              'A deferred import loads a library, and with "file_per_locale" '
+              'off every locale is part of one. Add it:\n'
+              '  file_per_locale: true\n'
+              '  deferred_locales: true',
+        ),
+      );
+      return null;
+    }
+
     return L10nPlusConfig(
       inputDirectory:
           _string(document, 'input_directory', diagnostics) ?? 'translations',
@@ -307,7 +347,8 @@ final class L10nPlusConfig {
       formatPluralNumbers:
           _bool(document, 'format_plural_numbers', diagnostics) ?? false,
       filePattern: _filePattern(document, diagnostics),
-      filePerLocale: _bool(document, 'file_per_locale', diagnostics) ?? false,
+      filePerLocale: filePerLocale,
+      deferredLocales: deferredLocales,
       fillMissingFromBase:
           _bool(document, 'fill_missing_from_base', diagnostics) ?? false,
       runtimeOverrides:

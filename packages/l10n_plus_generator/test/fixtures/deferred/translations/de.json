@@ -1,0 +1,11 @@
+{
+  "auth": {
+    "title": "Anmelden",
+    "greeting": "Willkommen zurück, {name}"
+  },
+  "wallet": {
+    "transactions": "{count, plural, =0{Keine Zahlungen} one{# Zahlung} other{# Zahlungen}}",
+    "total": "Belastet {amount, number, currency:EUR}",
+    "statement": "Abrechnung vom {day, date, yMMMd}"
+  }
+}

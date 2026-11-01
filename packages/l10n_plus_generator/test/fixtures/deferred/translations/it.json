@@ -1,0 +1,11 @@
+{
+  "auth": {
+    "title": "Accedi",
+    "greeting": "Bentornato, {name}"
+  },
+  "wallet": {
+    "transactions": "{count, plural, =0{Nessun pagamento} one{# pagamento} other{# pagamenti}}",
+    "total": "Addebitato {amount, number, currency:EUR}",
+    "statement": "Estratto conto del {day, date, yMMMd}"
+  }
+}

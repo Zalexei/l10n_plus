@@ -122,4 +122,39 @@ void main() {
       expect(diagnostic.details, contains('file_per_locale'));
     });
   });
+
+  group('deferred_locales', () {
+    const base =
+        'input_directory: translations\n'
+        'base_locale: en\n'
+        'fallback_locale: en\n';
+
+    test('needs file_per_locale, and says which line to add', () {
+      // A deferred import loads a library, and with `file_per_locale` off
+      // every locale is part of one. Defaulting the layout key from under the
+      // loading key would change which files a project generates without the
+      // project having said so.
+      final result = parse('${base}deferred_locales: true\n');
+      expect(result.config, isNull);
+      final diagnostic = result.diagnostics.single;
+      expect(diagnostic.code, 'invalid_config');
+      expect(diagnostic.severity, Severity.error);
+      expect(diagnostic.message, contains('file_per_locale'));
+      expect(diagnostic.details, contains('file_per_locale: true'));
+    });
+
+    test('the two together parse', () {
+      final result = parse(
+        '${base}file_per_locale: true\ndeferred_locales: true\n',
+      );
+      expect(result.diagnostics, isEmpty);
+      expect(result.config!.deferredLocales, isTrue);
+      expect(result.config!.filePerLocale, isTrue);
+    });
+
+    test('off by default, and file_per_locale alone stays what it was', () {
+      final result = parse('${base}file_per_locale: true\n');
+      expect(result.config!.deferredLocales, isFalse);
+    });
+  });
 }
