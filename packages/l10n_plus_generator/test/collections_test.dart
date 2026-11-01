@@ -126,17 +126,23 @@ void main() {
       expect(report.message, contains('Element "fr" of "c"'));
     });
 
-    test('a group inside a collection', () {
-      final report = _only('{"steps": [{"a": "A"}]}');
+    test('an element that is itself a list', () {
+      // An object element is a record, as of Milestone 37. A list element is
+      // not: it would need an index that is a type.
+      final report = _only('{"steps": [["a"]]}');
       expect(report.code, 'invalid_collection_entry');
-      expect(report.message, contains('Element 0 of "steps" is not a string'));
-      expect(report.details, contains('a type per element'));
+      expect(
+        report.message,
+        contains('Element 0 of "steps" is not a message or a record'),
+      );
+      expect(report.details, contains('an index that is a type'));
     });
 
-    test('a map whose value is a group', () {
-      final report = _only('{"c(map)": {"inner": {"a": "A"}}}');
+    test('messages and records in one collection', () {
+      final report = _only('{"steps": ["A", {"title": "B"}]}');
       expect(report.code, 'invalid_collection_entry');
-      expect(report.message, contains('Element "inner" of "c" is a group'));
+      expect(report.message, contains('mixes 1 message(s) with 1 record(s)'));
+      expect(report.details, contains('one element type'));
     });
 
     test('a rich element', () {
@@ -167,6 +173,143 @@ void main() {
         DiagnosticCodes.alwaysErrors,
         contains('invalid_collection_entry'),
       );
+    });
+  });
+
+  group('a collection of records', () {
+    test('one interface and one class per locale, not per element', () {
+      final source = _generated(
+        '{"s": [{"title": "A", "body": "B"}, {"title": "C", "body": "D"}]}',
+      );
+      expect(source, contains(r'abstract interface class $SItem {'));
+      expect(source, contains('String get title;'));
+      expect(
+        source,
+        contains(r'const $SItemEn({required this.title, required this.body});'),
+      );
+      expect(source, contains(r'List<$SItem> get s => const ['));
+      // The values are known while generating, so they are fields rather than
+      // getters over a switch, and the list is one canonicalized constant.
+      expect(source, contains(r"$SItemEn(title: 'A', body: 'B')"));
+    });
+
+    test('named arguments, because a record of five is a line to read', () {
+      expect(
+        _generated('{"s": [{"a": "1", "b": "2", "c": "3"}]}'),
+        contains(r"$SItemEn(a: '1', b: '2', c: '3')"),
+      );
+    });
+
+    test('the first element declares the fields, in its own order', () {
+      final source = _generated('{"s": [{"b": "1", "a": "2"}]}');
+      expect(
+        source,
+        contains(r'const $SItemEn({required this.b, required this.a});'),
+      );
+    });
+
+    test('a map of records is keyed by the map, typed by the element', () {
+      final source = _generated(
+        '{"p(map)": {"free": {"name": "Free"}, "pro": {"name": "Pro"}}}',
+      );
+      expect(source, contains(r'Map<String, $PItem> get p => const {'));
+      expect(source, contains(r"'free': $PItemEn(name: 'Free')"));
+    });
+
+    test('a field may hold a link, which resolves like anywhere else', () {
+      expect(
+        _generated('{"brand": "Acme", "s": [{"note": "Try @:brand"}]}'),
+        contains(r"$SItemEn(note: 'Try Acme')"),
+      );
+    });
+
+    test('an element missing a field the first element has', () {
+      // The check this feature exists to make. A package that built a map at
+      // run time could only fail at the field that was missing, on the screen
+      // that read it.
+      final report = _only('{"s": [{"a": "1", "b": "2"}, {"a": "3"}]}');
+      expect(report.code, 'invalid_collection_entry');
+      expect(report.message, contains('Element 1 of "s" has no "b"'));
+      expect(report.details, contains('"a", "b"'));
+    });
+
+    test('an element with a field the first element has not', () {
+      final report = _only('{"s": [{"a": "1"}, {"a": "2", "b": "3"}]}');
+      expect(report.code, 'invalid_collection_entry');
+      expect(
+        report.message,
+        contains('has a field "b" that Element 0 of "s" does not'),
+      );
+    });
+
+    test('a field that is itself an object', () {
+      // One level deep: a nested field would need a type of its own, and then
+      // so would its fields.
+      final report = _only('{"s": [{"a": {"b": "B"}}]}');
+      expect(report.code, 'invalid_collection_entry');
+      expect(report.message, contains('is a group'));
+      expect(report.details, contains('one level deep'));
+    });
+
+    test('a field that takes an argument', () {
+      final report = _only('{"s": [{"a": "Hi {name}"}]}');
+      expect(report.code, 'invalid_collection_entry');
+      expect(report.message, contains('"a" of Element 0 of "s" takes 1'));
+      // And the fix names the link, which is how a value gets in.
+      expect(report.details, contains('Interpolate with a link'));
+    });
+
+    test('a rich field', () {
+      final report = _only('{"s": [{"a(rich)": "See <b>x</b>"}]}');
+      expect(report.code, 'invalid_collection_entry');
+      expect(report.message, contains('is rich'));
+    });
+
+    test('an element with no fields at all', () {
+      final report = _only('{"s": [{}]}');
+      expect(report.code, 'invalid_collection_entry');
+      expect(report.message, contains('has no fields'));
+    });
+
+    test('two fields that become one Dart name', () {
+      final report = _only('{"s": [{"sub_title": "A", "subTitle": "B"}]}');
+      expect(report.code, 'identifier_collision');
+      expect(report.message, contains('subTitle'));
+    });
+
+    test('one error per mistake, not a cascade', () {
+      // A refused field used to also report "the element has no such field",
+      // which is the same mistake said twice — and once said it about the
+      // element that declares the fields, against itself.
+      for (final messages in [
+        '{"s": [{"a": "Hi {name}"}]}',
+        '{"s": [{"a(rich)": "See <b>x</b>"}]}',
+        '{"s": [{"a": {"b": "B"}}]}',
+      ]) {
+        final reports = runGenerator({
+          'en.json': messages,
+        }, configYaml: _config).diagnostics;
+        expect(reports, hasLength(1), reason: '$messages\n${reports.join()}');
+      }
+    });
+
+    test('a locale missing one field is the missing key', () {
+      final reports = runGenerator({
+        'en.json': '{"s": [{"a": "1", "b": "2"}]}',
+        'ru.json': '{"s": [{"a": "1"}]}',
+      }, configYaml: _config).diagnostics;
+      expect(
+        reports.firstWhere((d) => d.code == 'missing_key').message,
+        contains('s.0.b'),
+      );
+    });
+
+    test('every field is a message for coverage', () {
+      final result = runGenerator({
+        'en.json': '{"s": [{"a": "1", "b": "2"}]}',
+      }, configYaml: _config);
+      expect(errorsOf(result), isEmpty);
+      expect(result.coverage.single.total, 2);
     });
   });
 

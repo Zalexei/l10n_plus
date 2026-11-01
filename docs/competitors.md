@@ -92,7 +92,7 @@ config lines rather than 1.
 | Non-nullable accessor | Y | Y | ~ nullable by default | n/a |
 | Number / date / currency | Y — 11 styles + skeletons | Y | Y — 41 `DateFormat` variants | ~ re-exports `intl` |
 | Rich text / `TextSpan` / links | **Y — `(rich)` keys, a builder required per tag** | Y | N | N |
-| Lists, maps, dynamic key access | ~ **lists, `(map)` groups and key enums; no list of objects** | Y | N | Y (keys are strings) |
+| Lists, maps, dynamic key access | **Y — lists, maps, records, and keys as a generated enum** | Y | N | Y (keys are strings) |
 | Linked translations `@:` | **Y — resolved at build time, parameters typed through** | Y | N | Y — at run time |
 | A link cycle is a build error | **Y** — the ring named in order | N — guarded only while gathering parameters | n/a | N — `// TODO` in its own source |
 | Interfaces / polymorphic subtrees | **N** | Y | N | N |
@@ -136,7 +136,7 @@ python3 evaluation/tally.py
 
 | | `Y` | `~` | `N` |
 | --- | --- | --- | --- |
-| `l10n_plus` | **36** | 5 | 6 |
+| `l10n_plus` | **37** | 4 | 6 |
 | `slang` | **31** | 6 | 10 |
 | `gen_l10n` | 12 | 10 | 25 |
 | `easy_localization` | 8 | 12 | 27 |
@@ -155,19 +155,20 @@ Which is the more useful finding, again, and why the script is in the
 repository now: a comparison nobody can re-run is not a measurement, and a
 script nobody keeps is nobody re-running it.
 
-**Four of this revision's cells are two milestones', and one of them is a row
+**Five of this revision's cells are three milestones', and one of them is a row
 we added.** Milestone 33 flipped "linked translations" and "several plurals in
 one sentence" from `N` to `Y`, and introduced "a link cycle is a build error",
 which no package but this one passes. Milestone 34 flipped "lazy / deferred
-per-locale loading". Milestones 35 and 36 between them moved "lists, maps,
-dynamic key access" from `N` only as far as `~` — key access, lists and maps
-are all there now, and a list whose elements are objects is not, so the `Y`
-count did not move at all. Two milestones for a tilde is the honest outcome of
-a row that holds three capabilities.
+per-locale loading". Milestones 35, 36 and 37 between them moved "lists,
+maps, dynamic key access" from `N` through `~` to `Y` — key access as a
+generated enum, then lists and maps, then records. Three milestones for one
+cell is what a row that holds three capabilities actually costs, and the two
+revisions where it sat at `~` are in the git history rather than smoothed
+over.
 
 Adding a row on the axis you have just won is the easiest way to inflate your
-own total, so: without the cycle row it is **35 against 31 over 46 rows**, and
-with it **36 against 31 over 47**. The row stays because whether
+own total, so: without the cycle row it is **36 against 31 over 46 rows**, and
+with it **37 against 31 over 47**. The row stays because whether
 a ring of links breaks the build or ships is a question a user has, and because
 the two `N`s in it were read in the two packages' sources rather than assumed —
 but the honest figure is the one without it.
@@ -179,7 +180,7 @@ honest about the capability and says nothing about whether a project should
 want it. `slang`'s is on by default; ours is off, with the figures in the
 README. One cell, two different bets again.
 
-**And five cells ahead is not a lead either.** A `Y` is not a unit of value: "asset
+**And six cells ahead is not a lead either.** A `Y` is not a unit of value: "asset
 obfuscation" and "222 CLDR plural languages" are one cell each, and a table that
 can be moved by picking different rows is a sketch of the field rather than a
 verdict on it. What the two columns disagree about matters more than the total,
@@ -281,24 +282,20 @@ and on its own, because it is the only one that touches the runtime:
 
 ## 6. Where we are still behind, in priority order
 
-1. **No list of objects.** Lists and maps arrived in Milestone 36; a list whose
-   elements are themselves objects — the onboarding shape with a title and a
-   body per step — is refused with the reason written down, and `slang`
-   generates it.
-2. **No PO/XLIFF, and no vendor API.** ARB and CSV now travel; Crowdin,
+1. **No PO/XLIFF, and no vendor API.** ARB and CSV now travel; Crowdin,
    Lokalise and POEditor still mean a human in between.
-3. **No extraction from source**, and `import` writes translations but never
+2. **No extraction from source**, and `import` writes translations but never
    creates a file or a locale.
-4. **Six CLI commands against `slang`'s ~12** (`edit`, `stats`, `migrate`,
+3. **Six CLI commands against `slang`'s ~12** (`edit`, `stats`, `migrate`,
    `clean`, `configure` have no equivalent here).
-5. **No relative links or link modifiers.** `slang` has `@:.sibling`;
+4. **No relative links or link modifiers.** `slang` has `@:.sibling`;
    `easy_localization` has `@.upper:key`. Both were refused with the reason
    written down rather than left unimplemented, which is a smaller gap than it
    was, but it is still theirs.
-6. **No ambient context-free accessor** (deferred deliberately, with the
+5. **No ambient context-free accessor** (deferred deliberately, with the
    footgun written down), **no asset obfuscation**, **no IDE plugin**, and no
    Material/Cupertino strings of our own.
-7. **Nothing published on pub.dev** — no community, no Stack Overflow answer,
+6. **Nothing published on pub.dev** — no community, no Stack Overflow answer,
    no name. Unchanged by any of the above, and still the largest gap of all.
 
 ~~**No linked translations**, therefore no two plurals in one sentence.~~

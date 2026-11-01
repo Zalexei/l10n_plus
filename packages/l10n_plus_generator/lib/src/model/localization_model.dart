@@ -217,15 +217,34 @@ final class MessageModel {
   String get richWrapperName => '${dartName}Rich';
 }
 
+/// One element of a collection: a message, or a record of them.
+final class CollectionEntryModel {
+  /// Creates an entry.
+  const CollectionEntryModel({required this.key, required this.values});
+
+  /// The element's own key: its index in a list, or the key a map wrote.
+  final String key;
+
+  /// One message for a collection of text, or one per field — in the
+  /// collection's field order — for a collection of records.
+  final List<MessageModel> values;
+}
+
 /// A group of messages generated as one `List` or `Map` accessor.
 ///
 /// The entries are ordinary [MessageModel]s — parsed, validated and rendered
 /// by the same code every other message goes through — and every one of them
 /// takes no arguments. That is checked rather than assumed, and it is what
-/// makes the accessor a `const` collection: a list whose elements needed
-/// values would allocate on every read, and its signature would be the union
-/// of what each element happens to use, which is a parameter list no caller
-/// could read.
+/// makes the accessor a `const` collection: an element that needed values
+/// would allocate on every read, and its signature would be the union of what
+/// each element happens to use, which is a parameter list no caller could
+/// read. An element that wants a value interpolated uses a link, which is
+/// resolved before there is a signature at all.
+///
+/// An element may be a *record*: an object rather than a string, which
+/// generates one interface the elements implement and one implementation per
+/// locale. Then [fields] is the record's field names and every element has to
+/// have all of them, because a list has one element type.
 final class CollectionModel {
   /// Creates a collection model.
   const CollectionModel({
@@ -234,6 +253,8 @@ final class CollectionModel {
     required this.dartName,
     required this.keySpan,
     required this.entries,
+    this.fields = const [],
+    this.interfaceName,
   });
 
   /// Whether this is a list or a map. Never [CollectionKind.namespace].
@@ -249,13 +270,31 @@ final class CollectionModel {
   final SourceSpan keySpan;
 
   /// The elements, in the base locale's order.
+  final List<CollectionEntryModel> entries;
+
+  /// Field names of the record each element is, in the first element's order.
   ///
-  /// For a list, keyed by index; for a map, by the key the source wrote.
-  final List<MessageModel> entries;
+  /// Empty for a collection of plain text, which is what [isRecord] reads.
+  final List<String> fields;
+
+  /// Name of the generated interface each element implements, e.g.
+  /// `$OnboardingStepsItem`. `null` for a collection of plain text.
+  final String? interfaceName;
+
+  /// Whether the elements are records rather than single messages.
+  bool get isRecord => fields.isNotEmpty;
+
+  /// The Dart type one element has.
+  String get elementType => interfaceName ?? 'String';
 
   /// The Dart type the accessor returns.
-  String get type =>
-      kind == CollectionKind.list ? 'List<String>' : 'Map<String, String>';
+  String get type => kind == CollectionKind.list
+      ? 'List<$elementType>'
+      : 'Map<String, $elementType>';
+
+  /// Every message of every element, which is what a translator is asked for.
+  Iterable<MessageModel> get messages =>
+      entries.expand((entry) => entry.values);
 }
 
 /// A nested namespace, generated as its own class.

@@ -11,10 +11,10 @@ export 'package:l10n_plus/l10n_plus.dart'
 /// Every locale this app has translations for.
 enum AppLocale implements AppLocaleBase {
   /// `en`
-  en(L10nLocale('en'), '5a0760f3fbbdd4c4'),
+  en(L10nLocale('en'), 'dc6e2e89c1e19366'),
 
   /// `ru`
-  ru(L10nLocale('ru'), 'daf3e26e0c691b1e');
+  ru(L10nLocale('ru'), 'a424724d4250f508');
 
   const AppLocale(this.l10nLocale, this.overrideFingerprint);
 
@@ -99,6 +99,18 @@ abstract interface class AppLocalizations implements BaseTranslations {
 
   /// `en`: 3 messages, keyed fr, de, jp.
   Map<String, String> get countries;
+
+  /// `en`: 2 messages, keyed free, pro.
+  Map<String, $PlansItem> get plans;
+}
+
+/// One element of `plans`.
+abstract interface class $PlansItem {
+  /// `en`: Free
+  String get name;
+
+  /// `en`: One project
+  String get note;
 }
 
 /// Translations under `auth`.
@@ -114,6 +126,18 @@ abstract interface class $Auth {
 abstract interface class $Onboarding {
   /// `en`: 3 messages, in order.
   List<String> get steps;
+
+  /// `en`: 2 messages, in order.
+  List<$OnboardingPagesItem> get pages;
+}
+
+/// One element of `onboarding.pages`.
+abstract interface class $OnboardingPagesItem {
+  /// `en`: Create an account
+  String get title;
+
+  /// `en`: It takes a minute
+  String get body;
 }
 
 /// `en` translations.
@@ -163,6 +187,52 @@ class AppLocalizationsEn implements AppLocalizations {
     'de': _countries$de,
     'jp': _countries$jp,
   };
+
+  /// Element `free`, `name`, so an override can reach it.
+  String get _plans$free$name {
+    final $override = L10nOverrides.text(_$locale, 'plans.free.name');
+    if ($override != null) return $override;
+    return 'Free';
+  }
+
+  /// Element `free`, `note`, so an override can reach it.
+  String get _plans$free$note {
+    final $override = L10nOverrides.text(_$locale, 'plans.free.note');
+    if ($override != null) return $override;
+    return 'One project';
+  }
+
+  /// Element `pro`, `name`, so an override can reach it.
+  String get _plans$pro$name {
+    final $override = L10nOverrides.text(_$locale, 'plans.pro.name');
+    if ($override != null) return $override;
+    return 'Pro';
+  }
+
+  /// Element `pro`, `note`, so an override can reach it.
+  String get _plans$pro$note {
+    final $override = L10nOverrides.text(_$locale, 'plans.pro.note');
+    if ($override != null) return $override;
+    return 'Everything';
+  }
+
+  @override
+  Map<String, $PlansItem> get plans => {
+    'free': $PlansItemEn(name: _plans$free$name, note: _plans$free$note),
+    'pro': $PlansItemEn(name: _plans$pro$name, note: _plans$pro$note),
+  };
+}
+
+/// `en` element of `plans`.
+class $PlansItemEn implements $PlansItem {
+  /// Creates one element.
+  const $PlansItemEn({required this.name, required this.note});
+
+  @override
+  final String name;
+
+  @override
+  final String note;
 }
 
 /// `en` translations under `auth`.
@@ -198,21 +268,21 @@ class $OnboardingEn implements $Onboarding {
   /// The locale every override lookup here is keyed by.
   static const L10nLocale _$locale = L10nLocale('en');
 
-  /// Element `0`, so an override can reach it.
+  /// Element 0, so an override can reach it.
   String get _steps$0 {
     final $override = L10nOverrides.text(_$locale, 'onboarding.steps.0');
     if ($override != null) return $override;
     return 'Create an account';
   }
 
-  /// Element `1`, so an override can reach it.
+  /// Element 1, so an override can reach it.
   String get _steps$1 {
     final $override = L10nOverrides.text(_$locale, 'onboarding.steps.1');
     if ($override != null) return $override;
     return 'Add a card';
   }
 
-  /// Element `2`, so an override can reach it.
+  /// Element 2, so an override can reach it.
   String get _steps$2 {
     final $override = L10nOverrides.text(_$locale, 'onboarding.steps.2');
     if ($override != null) return $override;
@@ -221,6 +291,52 @@ class $OnboardingEn implements $Onboarding {
 
   @override
   List<String> get steps => [_steps$0, _steps$1, _steps$2];
+
+  /// Element 0, `title`, so an override can reach it.
+  String get _pages$0$title {
+    final $override = L10nOverrides.text(_$locale, 'onboarding.pages.0.title');
+    if ($override != null) return $override;
+    return 'Create an account';
+  }
+
+  /// Element 0, `body`, so an override can reach it.
+  String get _pages$0$body {
+    final $override = L10nOverrides.text(_$locale, 'onboarding.pages.0.body');
+    if ($override != null) return $override;
+    return 'It takes a minute';
+  }
+
+  /// Element 1, `title`, so an override can reach it.
+  String get _pages$1$title {
+    final $override = L10nOverrides.text(_$locale, 'onboarding.pages.1.title');
+    if ($override != null) return $override;
+    return 'Add a card';
+  }
+
+  /// Element 1, `body`, so an override can reach it.
+  String get _pages$1$body {
+    final $override = L10nOverrides.text(_$locale, 'onboarding.pages.1.body');
+    if ($override != null) return $override;
+    return 'We never store it';
+  }
+
+  @override
+  List<$OnboardingPagesItem> get pages => [
+    $OnboardingPagesItemEn(title: _pages$0$title, body: _pages$0$body),
+    $OnboardingPagesItemEn(title: _pages$1$title, body: _pages$1$body),
+  ];
+}
+
+/// `en` element of `onboarding.pages`.
+class $OnboardingPagesItemEn implements $OnboardingPagesItem {
+  /// Creates one element.
+  const $OnboardingPagesItemEn({required this.title, required this.body});
+
+  @override
+  final String title;
+
+  @override
+  final String body;
 }
 
 /// `ru` translations.
@@ -270,6 +386,52 @@ class AppLocalizationsRu implements AppLocalizations {
     'de': _countries$de,
     'jp': _countries$jp,
   };
+
+  /// Element `free`, `name`, so an override can reach it.
+  String get _plans$free$name {
+    final $override = L10nOverrides.text(_$locale, 'plans.free.name');
+    if ($override != null) return $override;
+    return 'Бесплатно';
+  }
+
+  /// Element `free`, `note`, so an override can reach it.
+  String get _plans$free$note {
+    final $override = L10nOverrides.text(_$locale, 'plans.free.note');
+    if ($override != null) return $override;
+    return 'Один проект';
+  }
+
+  /// Element `pro`, `name`, so an override can reach it.
+  String get _plans$pro$name {
+    final $override = L10nOverrides.text(_$locale, 'plans.pro.name');
+    if ($override != null) return $override;
+    return 'Про';
+  }
+
+  /// Element `pro`, `note`, so an override can reach it.
+  String get _plans$pro$note {
+    final $override = L10nOverrides.text(_$locale, 'plans.pro.note');
+    if ($override != null) return $override;
+    return 'Всё';
+  }
+
+  @override
+  Map<String, $PlansItem> get plans => {
+    'free': $PlansItemRu(name: _plans$free$name, note: _plans$free$note),
+    'pro': $PlansItemRu(name: _plans$pro$name, note: _plans$pro$note),
+  };
+}
+
+/// `ru` element of `plans`.
+class $PlansItemRu implements $PlansItem {
+  /// Creates one element.
+  const $PlansItemRu({required this.name, required this.note});
+
+  @override
+  final String name;
+
+  @override
+  final String note;
 }
 
 /// `ru` translations under `auth`.
@@ -305,21 +467,21 @@ class $OnboardingRu implements $Onboarding {
   /// The locale every override lookup here is keyed by.
   static const L10nLocale _$locale = L10nLocale('ru');
 
-  /// Element `0`, so an override can reach it.
+  /// Element 0, so an override can reach it.
   String get _steps$0 {
     final $override = L10nOverrides.text(_$locale, 'onboarding.steps.0');
     if ($override != null) return $override;
     return 'Создайте аккаунт';
   }
 
-  /// Element `1`, so an override can reach it.
+  /// Element 1, so an override can reach it.
   String get _steps$1 {
     final $override = L10nOverrides.text(_$locale, 'onboarding.steps.1');
     if ($override != null) return $override;
     return 'Добавьте карту';
   }
 
-  /// Element `2`, so an override can reach it.
+  /// Element 2, so an override can reach it.
   String get _steps$2 {
     final $override = L10nOverrides.text(_$locale, 'onboarding.steps.2');
     if ($override != null) return $override;
@@ -328,4 +490,50 @@ class $OnboardingRu implements $Onboarding {
 
   @override
   List<String> get steps => [_steps$0, _steps$1, _steps$2];
+
+  /// Element 0, `title`, so an override can reach it.
+  String get _pages$0$title {
+    final $override = L10nOverrides.text(_$locale, 'onboarding.pages.0.title');
+    if ($override != null) return $override;
+    return 'Создайте аккаунт';
+  }
+
+  /// Element 0, `body`, so an override can reach it.
+  String get _pages$0$body {
+    final $override = L10nOverrides.text(_$locale, 'onboarding.pages.0.body');
+    if ($override != null) return $override;
+    return 'Это займёт минуту';
+  }
+
+  /// Element 1, `title`, so an override can reach it.
+  String get _pages$1$title {
+    final $override = L10nOverrides.text(_$locale, 'onboarding.pages.1.title');
+    if ($override != null) return $override;
+    return 'Добавьте карту';
+  }
+
+  /// Element 1, `body`, so an override can reach it.
+  String get _pages$1$body {
+    final $override = L10nOverrides.text(_$locale, 'onboarding.pages.1.body');
+    if ($override != null) return $override;
+    return 'Мы её не храним';
+  }
+
+  @override
+  List<$OnboardingPagesItem> get pages => [
+    $OnboardingPagesItemRu(title: _pages$0$title, body: _pages$0$body),
+    $OnboardingPagesItemRu(title: _pages$1$title, body: _pages$1$body),
+  ];
+}
+
+/// `ru` element of `onboarding.pages`.
+class $OnboardingPagesItemRu implements $OnboardingPagesItem {
+  /// Creates one element.
+  const $OnboardingPagesItemRu({required this.title, required this.body});
+
+  @override
+  final String title;
+
+  @override
+  final String body;
 }

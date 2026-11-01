@@ -200,19 +200,31 @@ final class JsonSourceParser implements TranslationSourceParser {
     final children = <TranslationNode>[];
     for (var index = 0; index < array.items.length; index++) {
       final value = array.items[index];
+      if (value is JsonObject) {
+        // A record: the element becomes a group of its fields, and the model
+        // builder is what says every element has to have the same ones.
+        children.add(
+          _group(
+            object: value,
+            key: '$index',
+            path: '$path.$index',
+            keySpan: keySpan,
+            diagnostics: diagnostics,
+          ),
+        );
+        continue;
+      }
       if (value is! JsonString) {
         diagnostics.add(
           Diagnostic.error(
             code: 'invalid_collection_entry',
-            message: 'Element $index of "$key" is not a string.',
+            message: 'Element $index of "$key" is not a message or a record.',
             span: value.span,
             translationKey: '$path.$index',
             details:
-                'Found ${_describe(value)}. A list holds messages, and a '
-                'message is a string — a list of lists or of objects would '
-                'generate a type per element.\n'
-                'Nest a group under this key instead and read its members by '
-                'name.',
+                'Found ${_describe(value)}. An element is a string, or an '
+                'object whose fields are strings — a list of lists would '
+                'need an index that is a type.',
           ),
         );
         continue;

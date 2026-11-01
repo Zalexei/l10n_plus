@@ -457,7 +457,7 @@ evaluation/probes/workspace/translations/en.json:1:2
 steps.1
 error[invalid_collection_entry]: Element 1 of "steps" takes 1 argument (last4), and an element takes none.
   Every element of a collection would have to accept every element's arguments, which is a parameter list no caller can read — and the accessor could no longer be a `const` collection.
-  Keep the parameterised message outside the collection and read it by name.
+  Interpolate with a link, or keep the parameterised message outside the collection and read it by name.
   ╷
 1 │ {"steps": ["Create an account", "Add a card {last4}"], "c(map)": {"a(rich)": "See <b>this</b>"}}
   │  ^^^^^^^
@@ -465,7 +465,7 @@ error[invalid_collection_entry]: Element 1 of "steps" takes 1 argument (last4), 
 
 evaluation/probes/workspace/translations/en.json:1:67
 c(map).a(rich)
-error[invalid_collection_entry]: Element "a" of "c" is rich, and an element has to be a string.
+error[invalid_collection_entry]: Element "a" of "c" is rich, and it has to be a string.
   A rich message renders a list of spans, so a collection of them would be a list of lists with a builder per element.
   Keep it outside the collection and read it by name.
   ╷
@@ -489,6 +489,37 @@ error[missing_key]: Key "steps.1" is missing in ru.
   ╷
 1 │ {"steps": ["Создайте аккаунт"], "countries(map)": {"fr": "Франция", "de": "Германия"}}
   │  ^^^^^^^
+  ╵
+
+1 error(s), 0 warning(s).
+exit=1
+
+######## 28. a list of records whose elements are not the same record ########
+evaluation/probes/workspace/translations/en.json:1:17
+onboarding.pages.1
+error[invalid_collection_entry]: Element 1 of "pages" has no "body", which Element 0 of "pages" has.
+  Every element is one type, and the first element declares it: "title", "body".
+  ╷
+1 │ {"onboarding": {"pages": [{"title": "Create an account", "body": "A minute"}, {"title": "Add a card"}]}}
+  │                 ^^^^^^^
+  ╵
+
+1 error(s), 0 warning(s).
+exit=1
+-- with the field added, one interface and one class per locale:
+74:  List<$OnboardingPagesItem> get pages;
+78:abstract interface class $OnboardingPagesItem {
+107:  List<$OnboardingPagesItem> get pages => const [
+116:  const $OnboardingPagesItemEn({required this.title, required this.body});
+-- and a field that wants a value is told where values come from:
+evaluation/probes/workspace/translations/en.json:1:45
+onboarding.pages.0.title
+error[invalid_collection_entry]: "title" of Element 0 of "pages" takes 1 argument (app), and an element takes none.
+  Every element of a collection would have to accept every element's arguments, which is a parameter list no caller can read — and the accessor could no longer be a `const` collection.
+  Interpolate with a link, or keep the parameterised message outside the collection and read it by name.
+  ╷
+1 │ {"brand": "Acme", "onboarding": {"pages": [{"title": "Welcome to {app}"}]}}
+  │                                             ^^^^^^^
   ╵
 
 1 error(s), 0 warning(s).

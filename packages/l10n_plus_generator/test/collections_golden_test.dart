@@ -132,6 +132,47 @@ void main() {
     expect(source, isNot(contains('countries(map).fr')));
   });
 
+  test('a record is one interface and one class per locale', () {
+    // Not a class per element: the values are known while generating, so the
+    // class carries them as fields and the list is one canonicalized
+    // constant — or, with overrides on as here, one list of members.
+    final source = _file(_run(), 'app_localizations.g.dart');
+    expect(
+      source,
+      contains('abstract interface class \$OnboardingPagesItem {'),
+    );
+    expect(source, contains('String get title;'));
+    expect(
+      source,
+      contains(
+        'const \$OnboardingPagesItemEn({'
+        'required this.title, required this.body});',
+      ),
+    );
+    // One class per locale, not per element.
+    expect(
+      RegExp(r'class \$OnboardingPagesItem[A-Z]').allMatches(source).length,
+      2,
+    );
+    expect(source, contains('List<\$OnboardingPagesItem> get pages;'));
+  });
+
+  test('a map of records is keyed by the map and typed by the element', () {
+    final source = _file(_run(), 'app_localizations.g.dart');
+    expect(source, contains('Map<String, \$PlansItem> get plans;'));
+    expect(source, contains('abstract interface class \$PlansItem {'));
+  });
+
+  test('a record field is overridable on its own', () {
+    final source = _file(_run(), 'app_localizations.g.dart');
+    expect(source, contains(r'String get _pages$0$title {'));
+    expect(
+      source,
+      contains("L10nOverrides.text(_\$locale, 'onboarding.pages.1.body')"),
+    );
+    expect(source, contains(r'$OnboardingPagesItemEn(title: _pages$1$title'));
+  });
+
   test('every element is in the overridable surface', () {
     // So `check-overrides` can refuse a bundle naming an element that does
     // not exist, which is what makes the keys a build-time fact here too.

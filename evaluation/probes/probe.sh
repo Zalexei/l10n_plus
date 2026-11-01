@@ -327,4 +327,18 @@ probe 27 "a list and a map whose elements cannot be either" && {
     > translations/ru.json
   gen; }
 
+probe 28 "a list of records whose elements are not the same record" && {
+  print '{"onboarding": {"pages": [{"title": "Create an account", "body": "A minute"}, {"title": "Add a card"}]}}' \
+    > translations/en.json
+  gen
+  print -r -- "-- with the field added, one interface and one class per locale:"
+  print '{"onboarding": {"pages": [{"title": "Create an account", "body": "A minute"}, {"title": "Add a card", "body": "Never stored"}]}}' \
+    > translations/en.json
+  gen > /dev/null
+  grep -n 'abstract interface class \$OnboardingPagesItem\|get pages\|const \$OnboardingPagesItemEn({' lib/l10n/app_localizations.g.dart
+  print -r -- "-- and a field that wants a value is told where values come from:"
+  print '{"brand": "Acme", "onboarding": {"pages": [{"title": "Welcome to {app}"}]}}' \
+    > translations/en.json
+  gen; }
+
 reset; base_config

@@ -958,9 +958,72 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
         ..writeln('}')
         ..writeln();
     }
+    for (final collection in namespace.collections) {
+      _writeElementInterface(buffer, collection);
+    }
     for (final child in namespace.children) {
       _writeInterfaces(buffer, child);
     }
+  }
+
+  /// Emits the interface one element of a record collection implements.
+  ///
+  /// One type for the whole collection, because a list has one element type —
+  /// which is also why every element has to have the same fields, and why
+  /// that is a thing the build can check.
+  void _writeElementInterface(StringBuffer buffer, CollectionModel collection) {
+    if (!collection.isRecord) return;
+    buffer
+      ..writeln('/// One element of `${MapKey.baseName(collection.path)}`.')
+      ..writeln('abstract interface class ${collection.interfaceName} {');
+    for (final field in collection.fields) {
+      final value =
+          collection.entries.first.values[collection.fields.indexOf(field)];
+      _writeDoc(buffer, value);
+      buffer
+        ..writeln('  String get $field;')
+        ..writeln();
+    }
+    buffer
+      ..writeln('}')
+      ..writeln();
+  }
+
+  /// Emits one locale's element class for a record collection.
+  ///
+  /// Fields rather than getters over a switch: the values are known while
+  /// generating, a field read is cheaper than a branch, and the class stays
+  /// `const` constructible — so with overrides off the whole list is one
+  /// canonicalized constant.
+  void _writeElementClass(
+    StringBuffer buffer,
+    CollectionModel collection,
+    LocaleModel locale,
+  ) {
+    if (!collection.isRecord) return;
+    final className = '${collection.interfaceName}${locale.classSuffix}';
+    buffer
+      ..writeln(
+        '/// `${locale.locale.toLanguageTag()}` element of '
+        '`${MapKey.baseName(collection.path)}`.',
+      )
+      ..writeln('class $className implements ${collection.interfaceName} {')
+      ..writeln('  /// Creates one element.')
+      ..writeln(
+        '  const $className({'
+        '${collection.fields.map((field) => 'required this.$field').join(', ')}'
+        '});',
+      )
+      ..writeln();
+    for (final field in collection.fields) {
+      buffer
+        ..writeln('  @override')
+        ..writeln('  final String $field;')
+        ..writeln();
+    }
+    buffer
+      ..writeln('}')
+      ..writeln();
   }
 
   void _writeRootInterface(StringBuffer buffer, NamespaceModel namespace) {
@@ -1217,6 +1280,10 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
       ..writeln('}')
       ..writeln();
 
+    for (final collection in namespace.collections) {
+      _writeElementClass(buffer, collection, locale);
+    }
+
     for (final child in namespace.children) {
       _writeImplementation(buffer, child, locale);
     }
@@ -1234,9 +1301,7 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
     if (collection.kind == CollectionKind.list) {
       return '`$tag`: $count $plural, in order.';
     }
-    final keys = collection.entries
-        .map((entry) => entry.path.split('.').last)
-        .join(', ');
+    final keys = collection.entries.map((entry) => entry.key).join(', ');
     return '`$tag`: $count $plural, keyed ${keys.isEmpty ? 'by nothing' : keys}.';
   }
 
@@ -1257,43 +1322,59 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
   ) {
     for (final collection in namespace.collections) {
       final parts = <String>[];
-      for (var index = 0; index < collection.entries.length; index++) {
-        final entry = collection.entries[index];
-        final translated = entry.bodies[locale.tag];
-        final body = translated ?? entry.bodies[model.baseLocale.tag];
-        if (body == null) continue; // Reported by the validator.
-        final source = translated == null ? model.baseLocale : locale;
-        final context = _MessageContext(entry, source);
-        final key = entry.path.split('.').last;
+      for (final entry in collection.entries) {
+        final rendered = <String>[];
+        for (final value in entry.values) {
+          final translated = value.bodies[locale.tag];
+          final body = translated ?? value.bodies[model.baseLocale.tag];
+          if (body == null) continue; // Reported by the validator.
+          final source = translated == null ? model.baseLocale : locale;
+          final context = _MessageContext(value, source);
 
-        final String value;
-        if (config.runtimeOverrides) {
-          final name =
-              '_${collection.dartName}\$'
-              '${collection.kind == CollectionKind.list ? index : DartIdentifiers.lowerCamel(key)}';
-          buffer.writeln('  /// Element `$key`, so an override can reach it.');
-          _writeMember(buffer, entry, body, context, name: name);
-          buffer.writeln();
-          helpers.addAll(context.helpers);
-          (_overrideMessages[locale.tag] ??= []).add(
-            OverrideMessage(
-              key: entry.path,
-              keySpan: entry.keySpan,
-              isRich: false,
-              slots: List.of(context.slots),
-              pluralCategories: Map.of(context.pluralCategories),
-              choices: Map.of(context.choiceSelectors),
-            ),
-          );
-          value = name;
+          if (config.runtimeOverrides) {
+            final name = _elementMember(collection, entry, value);
+            buffer.writeln(
+              '  /// ${_elementDoc(collection, entry, value)}, so an override '
+              'can reach it.',
+            );
+            _writeMember(buffer, value, body, context, name: name);
+            buffer.writeln();
+            helpers.addAll(context.helpers);
+            (_overrideMessages[locale.tag] ??= []).add(
+              OverrideMessage(
+                key: value.path,
+                keySpan: value.keySpan,
+                isRich: false,
+                slots: List.of(context.slots),
+                pluralCategories: Map.of(context.pluralCategories),
+                choices: Map.of(context.choiceSelectors),
+              ),
+            );
+            rendered.add(name);
+          } else {
+            rendered.add(_expression(body, context));
+            helpers.addAll(context.helpers);
+          }
+        }
+
+        final String element;
+        if (!collection.isRecord) {
+          element = rendered.single;
         } else {
-          value = _expression(body, context);
-          helpers.addAll(context.helpers);
+          // Named arguments, because a record of five fields built from five
+          // positional strings is a line nobody can read.
+          final arguments = [
+            for (var index = 0; index < collection.fields.length; index++)
+              if (index < rendered.length)
+                '${collection.fields[index]}: ${rendered[index]}',
+          ].join(', ');
+          element =
+              '${collection.interfaceName}${locale.classSuffix}($arguments)';
         }
         parts.add(
           collection.kind == CollectionKind.list
-              ? value
-              : '${_stringLiteral(key)}: $value',
+              ? element
+              : '${_stringLiteral(entry.key)}: $element',
         );
       }
 
@@ -1310,6 +1391,31 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
         )
         ..writeln();
     }
+  }
+
+  /// Name of the private member holding one element, or one of its fields.
+  String _elementMember(
+    CollectionModel collection,
+    CollectionEntryModel entry,
+    MessageModel value,
+  ) {
+    final slot = collection.kind == CollectionKind.list
+        ? entry.key
+        : DartIdentifiers.lowerCamel(entry.key);
+    final suffix = collection.isRecord ? '\$${value.dartName}' : '';
+    return '_${collection.dartName}\$$slot$suffix';
+  }
+
+  /// How a doc comment names one element, or one of its fields.
+  String _elementDoc(
+    CollectionModel collection,
+    CollectionEntryModel entry,
+    MessageModel value,
+  ) {
+    final where = collection.kind == CollectionKind.list
+        ? 'Element ${entry.key}'
+        : 'Element `${entry.key}`';
+    return collection.isRecord ? '$where, `${value.dartName}`' : where;
   }
 
   /// Emits `operator []` for a namespace named by `dynamic_keys`.

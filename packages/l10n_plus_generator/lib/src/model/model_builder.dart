@@ -497,10 +497,10 @@ final class ModelBuilder {
   /// Builds the model of one list or map.
   ///
   /// The elements are built by [_message] like any other message, which is
-  /// what gives them placeholders, formats, plurals and links for free. Two
-  /// things are checked here because they are the two a collection cannot
-  /// carry: an element that is itself a group, and an element that needs
-  /// arguments.
+  /// what gives them placeholders, formats and links for free. What is checked
+  /// here is what a collection cannot carry: an element that needs arguments,
+  /// a rich element, and — once the elements are records — a shape that is not
+  /// the same for all of them, because a list has one element type.
   CollectionModel? _collection(TranslationGroup group) {
     final dartName = DartIdentifiers.lowerCamel(MapKey.baseName(group.key));
     if (dartName.isEmpty) {
@@ -523,77 +523,39 @@ final class ModelBuilder {
         ? 'Element $key of "$name"'
         : 'Element "$key" of "$name"';
 
-    final entries = <MessageModel>[];
-    for (final child in group.children) {
-      switch (child) {
-        case final TranslationGroup nested:
-          diagnostics.add(
-            Diagnostic.error(
-              code: 'invalid_collection_entry',
-              message:
-                  '${element(nested.key)} is a group, and an element has to '
-                  'be a message.',
-              span: nested.keySpan,
-              translationKey: nested.path,
-              details:
-                  'A list or a map holds strings. An element that is itself a '
-                  'collection would need a generated type of its own, and '
-                  'reading it back would need the index to be a type too.\n'
-                  'Make this a plain group — drop the array or the "(map)" '
-                  'suffix — and read its members by name.',
-            ),
-          );
-        case final TranslationLeaf leaf:
-          if (RichKey.isRich(leaf.key)) {
-            diagnostics.add(
-              Diagnostic.error(
-                code: 'invalid_collection_entry',
-                message:
-                    '${element(RichKey.baseName(leaf.key))} is rich, and an '
-                    'element has to be a string.',
-                span: leaf.keySpan,
-                translationKey: leaf.path,
-                details:
-                    'A rich message renders a list of spans, so a collection '
-                    'of them would be a list of lists with a builder per '
-                    'element.\n'
-                    'Keep it outside the collection and read it by name.',
-              ),
-            );
-            continue;
-          }
-          final message = _message(
-            leaf,
-            DartIdentifiers.lowerCamel(leaf.key),
-            isRich: false,
-            path: '${MapKey.baseName(group.path)}.${leaf.key}',
-          );
-          if (message == null) continue;
-          if (message.arguments.isNotEmpty) {
-            diagnostics.add(
-              Diagnostic.error(
-                code: 'invalid_collection_entry',
-                message:
-                    '${element(leaf.key)} takes '
-                    '${message.arguments.length} '
-                    '${message.arguments.length == 1 ? 'argument' : 'arguments'} '
-                    '(${message.arguments.map((argument) => argument.name).join(', ')}), '
-                    'and an element takes none.',
-                span: leaf.keySpan,
-                translationKey: leaf.path,
-                details:
-                    'Every element of a collection would have to accept every '
-                    "element's arguments, which is a parameter list no caller "
-                    'can read — and the accessor could no longer be a `const` '
-                    'collection.\n'
-                    'Keep the parameterised message outside the collection '
-                    'and read it by name.',
-              ),
-            );
-            continue;
-          }
-          entries.add(message);
-      }
+    final records = group.children.whereType<TranslationGroup>().toList();
+    final texts = group.children.whereType<TranslationLeaf>().toList();
+    if (records.isNotEmpty && texts.isNotEmpty) {
+      diagnostics.add(
+        Diagnostic.error(
+          code: 'invalid_collection_entry',
+          message:
+              '"$name" mixes ${texts.length} message(s) with '
+              '${records.length} record(s).',
+          span: group.keySpan,
+          translationKey: group.path,
+          details:
+              'A list has one element type, so either every element is a '
+              'message or every element is an object with the same fields.',
+        ),
+      );
+      return null;
+    }
+
+    if (records.isNotEmpty) {
+      return _recordCollection(group, dartName: dartName, name: name);
+    }
+
+    final entries = <CollectionEntryModel>[];
+    for (final leaf in texts) {
+      final message = _collectionMessage(
+        leaf,
+        group: group,
+        describe: element(RichKey.baseName(leaf.key)),
+        path: '${MapKey.baseName(group.path)}.${leaf.key}',
+      );
+      if (message == null) continue;
+      entries.add(CollectionEntryModel(key: leaf.key, values: [message]));
     }
 
     return CollectionModel(
@@ -603,6 +565,263 @@ final class ModelBuilder {
       keySpan: group.keySpan,
       entries: entries,
     );
+  }
+
+  /// Builds the model of a list or map whose elements are objects.
+  ///
+  /// The first element decides the record's fields, because a list has one
+  /// element type and something has to decide it; every element after it has
+  /// to have the same ones. That is the check this feature exists to make — a
+  /// package that built a map at run time could only fail at the field that
+  /// was missing, on the screen that read it.
+  CollectionModel? _recordCollection(
+    TranslationGroup group, {
+    required String dartName,
+    required String name,
+  }) {
+    final elements = group.children.whereType<TranslationGroup>().toList();
+    String describe(String key) => group.collection == CollectionKind.list
+        ? 'Element $key of "$name"'
+        : 'Element "$key" of "$name"';
+
+    // The field names come from the first element, in its own order, which is
+    // the order the generated constructor takes them in.
+    final fields = <String, String>{};
+    // Whether the first element itself was reported about. The errors below
+    // are all shaped as "and the first element has it", which is nonsense
+    // when the first element is the one that is wrong.
+    var declaringFailed = false;
+    for (final child in elements.first.children) {
+      if (child is! TranslationLeaf) {
+        diagnostics.add(
+          Diagnostic.error(
+            code: 'invalid_collection_entry',
+            message:
+                '"${child.key}" of ${describe(elements.first.key)} is a '
+                'group, and a record field has to be a message.',
+            span: child.keySpan,
+            translationKey: child.path,
+            details:
+                'A record is one level deep: its fields are strings. A field '
+                'that is itself an object would need a type of its own, and '
+                'then so would its fields.\n'
+                'Flatten it, or make this a plain group and read its members '
+                'by name.',
+          ),
+        );
+        declaringFailed = true;
+        continue;
+      }
+      final field = DartIdentifiers.lowerCamel(RichKey.baseName(child.key));
+      final previous = fields[field];
+      if (previous != null) {
+        diagnostics.add(
+          Diagnostic.error(
+            code: 'identifier_collision',
+            message:
+                'Fields "$previous" and "${child.key}" both become the Dart '
+                'identifier "$field".',
+            span: child.keySpan,
+            translationKey: child.path,
+            details:
+                'Keys are normalized to lower camel case, so "sub_title" and '
+                '"subTitle" collide. Rename one of them.',
+          ),
+        );
+        declaringFailed = true;
+        continue;
+      }
+      fields[field] = child.key;
+    }
+    if (fields.isEmpty) {
+      // Reported above when the first element's own fields were refused.
+      if (declaringFailed) return null;
+      diagnostics.add(
+        Diagnostic.error(
+          code: 'invalid_collection_entry',
+          message: '${describe(elements.first.key)} has no fields.',
+          span: elements.first.keySpan,
+          translationKey: elements.first.path,
+          details:
+              'The first element decides what a record of "$name" is, and an '
+              'interface of nothing is not something an element can '
+              'implement.',
+        ),
+      );
+      return null;
+    }
+
+    final interfaceName =
+        '\$${DartIdentifiers.upperCamelPath(MapKey.baseName(group.path).split('.'))}Item';
+    final free = _claimTopLevel(
+      interfaceName,
+      _TopLevelName(
+        'the element type of "${MapKey.baseName(group.path)}"',
+        span: group.keySpan,
+        translationKey: group.path,
+      ),
+    );
+    if (!free) return null;
+    for (final locale in _localeModels) {
+      _claimTopLevel(
+        '$interfaceName${locale.classSuffix}',
+        _TopLevelName(
+          'the ${locale.tag} element type of "${MapKey.baseName(group.path)}"',
+          span: group.keySpan,
+          translationKey: group.path,
+        ),
+      );
+    }
+
+    final entries = <CollectionEntryModel>[];
+    for (final item in elements) {
+      final byField = <String, MessageModel>{};
+      var failed = false;
+      for (final child in item.children) {
+        if (child is! TranslationLeaf) {
+          if (item != elements.first) {
+            diagnostics.add(
+              Diagnostic.error(
+                code: 'invalid_collection_entry',
+                message:
+                    '"${child.key}" of ${describe(item.key)} is a group, and '
+                    'a record field has to be a message.',
+                span: child.keySpan,
+                translationKey: child.path,
+                details: 'A record is one level deep: its fields are strings.',
+              ),
+            );
+          }
+          failed = true;
+          continue;
+        }
+        final field = DartIdentifiers.lowerCamel(RichKey.baseName(child.key));
+        if (!fields.containsKey(field)) {
+          diagnostics.add(
+            Diagnostic.error(
+              code: 'invalid_collection_entry',
+              message:
+                  '${describe(item.key)} has a field "${child.key}" that '
+                  '${describe(elements.first.key)} does not.',
+              span: child.keySpan,
+              translationKey: child.path,
+              details:
+                  'Every element is one type, and the first element declares '
+                  'it: ${fields.values.map((key) => '"$key"').join(', ')}.\n'
+                  'Add the field to every element, or drop it from this one.',
+            ),
+          );
+          failed = true;
+          continue;
+        }
+        final message = _collectionMessage(
+          child,
+          group: group,
+          describe: '"${child.key}" of ${describe(item.key)}',
+          path:
+              '${MapKey.baseName(group.path)}.${item.key}.'
+              '${RichKey.baseName(child.key)}',
+        );
+        if (message == null) {
+          failed = true;
+          continue;
+        }
+        byField[field] = message;
+      }
+
+      // Only when nothing else about this element was reported: "it has no
+      // title" under "its title takes an argument" is the same mistake twice.
+      for (final field in failed ? const <String>[] : fields.keys) {
+        if (byField.containsKey(field)) continue;
+        diagnostics.add(
+          Diagnostic.error(
+            code: 'invalid_collection_entry',
+            message:
+                '${describe(item.key)} has no "${fields[field]}", which '
+                '${describe(elements.first.key)} has.',
+            span: item.keySpan,
+            translationKey: item.path,
+            details:
+                'Every element is one type, and the first element declares '
+                'it: ${fields.values.map((key) => '"$key"').join(', ')}.',
+          ),
+        );
+        failed = true;
+      }
+      if (failed) continue;
+
+      entries.add(
+        CollectionEntryModel(
+          key: item.key,
+          values: [for (final field in fields.keys) byField[field]!],
+        ),
+      );
+    }
+
+    return CollectionModel(
+      kind: group.collection,
+      path: group.path,
+      dartName: dartName,
+      keySpan: group.keySpan,
+      entries: entries,
+      fields: fields.keys.toList(growable: false),
+      interfaceName: interfaceName,
+    );
+  }
+
+  /// Builds one element, or one field of one, refusing what a collection
+  /// cannot hold.
+  MessageModel? _collectionMessage(
+    TranslationLeaf leaf, {
+    required TranslationGroup group,
+    required String describe,
+    required String path,
+  }) {
+    if (RichKey.isRich(leaf.key)) {
+      diagnostics.add(
+        Diagnostic.error(
+          code: 'invalid_collection_entry',
+          message: '$describe is rich, and it has to be a string.',
+          span: leaf.keySpan,
+          translationKey: leaf.path,
+          details:
+              'A rich message renders a list of spans, so a collection of '
+              'them would be a list of lists with a builder per element.\n'
+              'Keep it outside the collection and read it by name.',
+        ),
+      );
+      return null;
+    }
+    final message = _message(
+      leaf,
+      DartIdentifiers.lowerCamel(leaf.key),
+      isRich: false,
+      path: path,
+    );
+    if (message == null) return null;
+    if (message.arguments.isNotEmpty) {
+      diagnostics.add(
+        Diagnostic.error(
+          code: 'invalid_collection_entry',
+          message:
+              '$describe takes ${message.arguments.length} '
+              '${message.arguments.length == 1 ? 'argument' : 'arguments'} '
+              '(${message.arguments.map((argument) => argument.name).join(', ')}), '
+              'and an element takes none.',
+          span: leaf.keySpan,
+          translationKey: leaf.path,
+          details:
+              'Every element of a collection would have to accept every '
+              "element's arguments, which is a parameter list no caller can "
+              'read — and the accessor could no longer be a `const` '
+              'collection.\n'
+              'Interpolate with a link, or keep the parameterised message '
+              'outside the collection and read it by name.',
+        ),
+      );
+      return null;
+    }
+    return message;
   }
 
   /// [path] replaces the leaf's own, for a collection element: the `(map)`

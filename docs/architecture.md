@@ -1605,10 +1605,50 @@ makes for the same reason: a message that needs values is read by name.
 
 A rich element is refused for a nearer reason: it renders a list of spans, so a
 list of them is a list of lists with a builder per element. And an element that
-is itself a list or an object would need a generated type per element and an
-index that is a type — the onboarding shape where each step has a title and a
-body. That is a bigger feature, and refusing it says so rather than generating
-half of it.
+is itself a *list* is refused because the index would have to be a type.
+
+### A record is one type, and that is the thing worth checking
+
+An element may be an object. The element then becomes a group of leaves in the
+tree — the same trick again — and the model turns the group into a record:
+
+```dart
+abstract interface class $OnboardingPagesItem {
+  String get title;
+  String get body;
+}
+```
+
+**One interface and one class per locale, not one per element.** The values are
+known while generating, so the class carries them as `final` fields and the
+list is one `const` — `const [$ItemEn(title: 'a', body: 'b'), ...]`, which Dart
+canonicalizes, so reading the list allocates nothing. The alternative was a
+class per element, or one class with getters switching on an index; fields are
+cheaper to read than a branch and much easier to read on the page. Named
+constructor arguments, because a record of five fields built from five
+positional strings is a line nobody can check by eye.
+
+**The first element declares the fields.** A list has one element type and
+something has to decide it; an element missing a field, or carrying one the
+first does not, is an error naming both elements and listing the fields. That
+is the check the feature exists to make, and it is the one a package building a
+map at run time cannot make at all: there, a missing field fails at the screen
+that read it.
+
+A record is one level deep. A field that is itself an object would need a type
+of its own, and then so would its fields, and the diagnostic says that rather
+than generating the first level and guessing at the second.
+
+**Overrides reach a field.** With them on, each field of each element becomes a
+private member consulting the store — `onboarding.pages.1.body` — and the
+element is built from those. The same branch as a collection of text, one level
+deeper.
+
+One thing had to be unlearned while writing it: the first version reported both
+"this field takes an argument" and "this element has no such field", because
+the second check ran over the fields the first had just rejected. On the
+declaring element it even said *"Element 0 has no title, which Element 0
+has"*. One error per mistake is asserted now, for all three field refusals.
 
 ### `runtime_overrides` decides the shape, again
 

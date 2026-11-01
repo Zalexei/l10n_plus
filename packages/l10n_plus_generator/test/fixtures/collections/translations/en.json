@@ -8,11 +8,31 @@
       "Create an account",
       "Add a card",
       "You are done"
+    ],
+    "pages": [
+      {
+        "title": "Create an account",
+        "body": "It takes a minute"
+      },
+      {
+        "title": "Add a card",
+        "body": "We never store it"
+      }
     ]
   },
   "countries(map)": {
     "fr": "France",
     "de": "Germany",
     "jp": "Japan"
+  },
+  "plans(map)": {
+    "free": {
+      "name": "Free",
+      "note": "One project"
+    },
+    "pro": {
+      "name": "Pro",
+      "note": "Everything"
+    }
   }
 }

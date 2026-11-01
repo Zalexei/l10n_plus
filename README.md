@@ -604,14 +604,75 @@ The override key never carries `(map)`: the suffix tells the generator what to
 build, and a bundle names `countries.fr`. `check-overrides` knows every element
 and refuses one that does not exist.
 
+### An element can be a record
+
+The onboarding shape, where each step has a title *and* a body:
+
+```json
+{
+  "onboarding": {
+    "pages": [
+      {"title": "Create an account", "body": "It takes a minute"},
+      {"title": "Add a card", "body": "We never store it"}
+    ]
+  }
+}
+```
+
+```dart
+abstract interface class $OnboardingPagesItem {
+  String get title;
+  String get body;
+}
+List<$OnboardingPagesItem> get pages;
+```
+
+```dart
+for (final page in t.onboarding.pages) Column(
+  children: [Text(page.title), Text(page.body)],
+)
+```
+
+One interface and one class per locale — not one per element. The values are
+known while generating, so the class carries them as fields and the whole list
+is one `const`:
+
+```dart
+List<$OnboardingPagesItem> get pages => const [
+  $OnboardingPagesItemEn(title: 'Create an account', body: 'It takes a minute'),
+  $OnboardingPagesItemEn(title: 'Add a card', body: 'We never store it'),
+];
+```
+
+**And the build checks that every element is the same record.** The first
+element declares the fields; an element missing one is an error naming both:
+
+```
+error[invalid_collection_entry]: Element 1 of "pages" has no "body", which
+  Element 0 of "pages" has.
+  Every element is one type, and the first element declares it: "title", "body".
+  Add the field to every element, or drop it from this one.
+```
+
+That is the check the feature is for. A package that builds a map at run time
+can only fail at the field that was missing, on the screen that read it.
+
+A record is **one level deep**: a field is a string, and a field that is itself
+an object would need a type of its own and then so would its fields. Fields
+take no arguments, for the reason elements do not — interpolate with a link
+instead. And `(map)` works the same way: `Map<String, $PlansItem>`.
+
+With `runtime_overrides` on, each field is overridable on its own:
+
+```dart
+AppLocale.en.installOverrides({'onboarding.pages.1.body': 'Stored nowhere'});
+```
+
 ### What this does not do
 
-A list of objects — the onboarding shape where each step has a title *and* a
-body — is refused rather than generated. It would need a class per element and
-an index that is a type, which is a bigger feature than this one. Write a group
-of groups and read its members by name.
-
-And for a **lookup** by a string the server chose, the answer is not a map but
+A list whose elements are *lists* is refused: the index would have to be a
+type. And for a **lookup** by a string the server chose, the answer is not a map
+but
 [`dynamic_keys`](#when-the-server-picks-the-message): a map's `[]` returns
 `String?` and a typo is silent, where a key enum's is total and a typo is a
 compile error. A map is for the times you need the whole thing — to iterate it,

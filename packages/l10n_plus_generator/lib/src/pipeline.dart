@@ -277,7 +277,7 @@ final class L10nPlusGenerator {
       // is what a translator is being asked for and so what the figure has
       // to count.
       for (final collection in namespace.collections) {
-        messages.addAll(collection.entries);
+        messages.addAll(collection.messages);
       }
       namespace.children.forEach(collect);
     }

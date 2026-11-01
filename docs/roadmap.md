@@ -632,6 +632,55 @@ Diagnostics went from 72 codes to **81**: `rich_tag_mismatch`,
   why they were not attempted alongside rich text, and the first of them is the
   item below worth more than everything in this milestone.
 
+## Milestone 37 — an element that is a record (done)
+
+The gap Milestone 36 left open and wrote down: a list whose elements are
+objects, which is the onboarding shape where every step has a title and a body.
+
+* **One interface and one class per locale**, not one per element. The values
+  are known while generating, so the class carries them as `final` fields and
+  the list is one `const` that Dart canonicalizes — reading it allocates
+  nothing, as everything else here does. Named constructor arguments, because
+  a record of five fields built from five positional strings is a line nobody
+  can check by eye.
+* **The first element declares the fields, and the rest have to agree.** A list
+  has one element type; an element missing a field, or carrying one the first
+  element has not, is an error naming both and listing the fields. That is the
+  check this feature is for, and the one a package that builds a map at run
+  time cannot make: there a missing field fails at the screen that read it.
+* **The same trick as Milestone 36, one level deeper.** An object element
+  becomes a group of leaves in the tree, so the fields are messages — links
+  resolve inside one — and the cross locale check compares `pages.0.body` like
+  any other key. No new diagnostic code: `invalid_collection_entry` covers
+  every way a record can be wrong, and `identifier_collision` covers two
+  fields becoming one Dart name. The registry stays at **103**.
+* **Overrides reach one field.** With them on each field becomes a private
+  member consulting the store, and the element is built from those, so a
+  bundle names `onboarding.pages.1.body`. Executed rather than argued.
+* **A cascade I had to unlearn.** The first version reported both "this field
+  takes an argument" and "this element has no such field", because the second
+  check ran over fields the first had just rejected — and on the declaring
+  element it said *"Element 0 has no title, which Element 0 has"*. One error
+  per mistake is now asserted for all three field refusals.
+
+### What this one leaves open
+
+* **A list of lists is still refused**, and the reason has not changed: the
+  index would have to be a type. Nothing asks for it.
+* **A record is one level deep.** A field that is an object would need a type
+  of its own and then so would its fields; there is no reason it could not be
+  done, only that nothing has needed it and each level is another generated
+  type to name and claim.
+* **The field order is the first element's.** Later elements may write their
+  fields in any order — the model reads them by key — but the generated
+  constructor takes them in the first element's order, so moving a field in the
+  first element changes the generated signature while changing no behaviour.
+  It is a `const` constructor with named arguments, so nothing breaks; the
+  golden diff is just larger than the edit looks.
+* **Nothing checks a record against anything outside the project.** The fields
+  are a contract with the screen that reads them, and the compiler holds that
+  one. A record that is meant to match an API's shape is matched by nobody.
+
 ## Milestone 36 — a value that is a collection, not a message (done)
 
 The last row of the capability matrix `slang` held alone. An array becomes a
@@ -675,11 +724,10 @@ and both are `const`.
 
 ### What this one leaves open
 
-* **A list of objects is refused.** The onboarding shape where each step has a
-  title *and* a body would need a generated type per element and an index that
-  is a type. It is a bigger feature than this one and the diagnostic says so
-  rather than generating half of it; the workaround is a group of groups read
-  by name.
+* ~~**A list of objects is refused.**~~ **Closed in Milestone 37**, and it
+  needed one interface rather than a type per element — the prediction here
+  that it would need "a generated type per element" was wrong in the way that
+  made it look bigger than it was.
 * **A map's `[]` is still `String?`.** That is Dart's, not ours, and it is why
   the README points a *lookup* at `dynamic_keys` instead: a key enum's lookup
   is total and a typo is a compile error. A map is for the times you need the

@@ -58,6 +58,34 @@ void main() {
     });
   });
 
+  group('a list of records', () {
+    test('every element has every field, in both locales', () {
+      // The type says so and the build checked it; this is the same fact
+      // executed, because a field that was missing would be a null here.
+      for (final pages in [enT.onboarding.pages, ruT.onboarding.pages]) {
+        expect(pages, hasLength(2));
+        for (final page in pages) {
+          expect(page.title, isNotEmpty);
+          expect(page.body, isNotEmpty);
+        }
+      }
+    });
+
+    test('and renders in order, per locale', () {
+      expect(enT.onboarding.pages[0].title, 'Create an account');
+      expect(enT.onboarding.pages[1].body, 'We never store it');
+      expect(ruT.onboarding.pages[0].title, 'Создайте аккаунт');
+      expect(ruT.onboarding.pages[1].body, 'Мы её не храним');
+    });
+
+    test('a map of records is keyed by the map', () {
+      expect(enT.plans['free']!.name, 'Free');
+      expect(enT.plans['pro']!.note, 'Everything');
+      expect(ruT.plans['pro']!.name, 'Про');
+      expect(enT.plans.keys, ['free', 'pro']);
+    });
+  });
+
   group('with runtime overrides', () {
     test('a bundle replaces one element and leaves the rest', () {
       L10nOverrides.install(en, {'onboarding.steps.1': 'Add a payment method'});
@@ -74,6 +102,20 @@ void main() {
       L10nOverrides.install(en, {'countries.de': 'Deutschland'});
       expect(enT.countries['de'], 'Deutschland');
       expect(enT.countries['fr'], 'France');
+    });
+
+    test('one field of one record, and nothing else', () {
+      L10nOverrides.install(en, {'onboarding.pages.1.body': 'Stored nowhere'});
+      expect(enT.onboarding.pages[1].body, 'Stored nowhere');
+      expect(enT.onboarding.pages[1].title, 'Add a card');
+      expect(enT.onboarding.pages[0].body, 'It takes a minute');
+      expect(ruT.onboarding.pages[1].body, 'Мы её не храним');
+    });
+
+    test('and a field of a map record', () {
+      L10nOverrides.install(en, {'plans.pro.note': 'Literally everything'});
+      expect(enT.plans['pro']!.note, 'Literally everything');
+      expect(enT.plans['free']!.note, 'One project');
     });
 
     test('and the collection is rebuilt, not cached', () {

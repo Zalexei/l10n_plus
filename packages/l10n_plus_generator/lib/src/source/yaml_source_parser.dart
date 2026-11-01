@@ -238,6 +238,21 @@ final class YamlSourceParser implements TranslationSourceParser {
     final children = <TranslationNode>[];
     for (var index = 0; index < list.nodes.length; index++) {
       final value = list.nodes[index];
+      if (value is YamlMap) {
+        // A record: the element becomes a group of its fields.
+        children.add(
+          _group(
+            map: value,
+            key: '$index',
+            path: '$path.$index',
+            keySpan: keySpan,
+            file: file,
+            content: content,
+            diagnostics: diagnostics,
+          ),
+        );
+        continue;
+      }
       if (value is YamlScalar && value.value is String) {
         final valueSpan = _span(file, value.span);
         children.add(
@@ -259,15 +274,13 @@ final class YamlSourceParser implements TranslationSourceParser {
       diagnostics.add(
         Diagnostic.error(
           code: 'invalid_collection_entry',
-          message: 'Element $index of "$key" is not a string.',
+          message: 'Element $index of "$key" is not a message or a record.',
           span: _span(file, value.span),
           translationKey: '$path.$index',
           details:
-              'Found ${_describe(value)}. A list holds messages, and a '
-              'message is a string — a list of lists or of maps would '
-              'generate a type per element.\n'
-              'Nest a map under this key instead and read its members by '
-              'name.',
+              'Found ${_describe(value)}. An element is a string, or a map '
+              'whose values are strings — a list of lists would need an '
+              'index that is a type.',
         ),
       );
     }
