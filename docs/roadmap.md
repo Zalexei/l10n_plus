@@ -619,11 +619,10 @@ Diagnostics went from 72 codes to **81**: `rich_tag_mismatch`,
 
 ### What the review found that this does not fix
 
-* **Interpolated values are not bidi-isolated.** A Latin brand name inside an
-  Arabic sentence can still reorder the text around it. The fix is `FSI`/`PDI`
-  around every interpolated value, which means invisible characters in every
-  generated string and every golden file — a codegen decision with a cost,
-  deliberately separate from knowing which way a locale reads.
+* ~~**Interpolated values are not bidi-isolated.**~~ **Done in Milestone 31.**
+  The prediction that it would mean invisible characters in every golden was
+  wrong in one respect: the option is off by default, so no existing golden
+  carries them.
 * **No PO/XLIFF and no vendor API.** ARB and CSV travel; Crowdin and Lokalise
   still mean a person in between.
 * **The runtime tier is untouched**: no over-the-air overrides, no lazy
@@ -631,6 +630,72 @@ Diagnostics went from 72 codes to **81**: `rich_tag_mismatch`,
   all rewrite the emitter and the model, which is why they were not attempted
   alongside rich text, and the first of them is the item below worth more than
   everything in this milestone.
+
+## Milestone 31 — a value cannot be reordered against its sentence (done)
+
+The last thing the competitive review found that nothing here fixed, and the
+one item on that list whose defect is invisible to every test a project is
+likely to have.
+
+* **Measured first, written second.** Eight cases were laid out with a
+  `TextPainter`, with and without U+2068/U+2069, and the character positions
+  read back. Five changed. For a Latin value in a Hebrew line: `Ada.` is laid
+  out with the stop on the far side of the name, `3 Ada` comes out as `Ada 3`,
+  and `-5%` as `5%-`. Every string comparison passes in each case, which is why
+  this is found by a screenshot and not by a suite.
+* **Three cases did not change**, and they are in the test too: a parenthesised
+  Latin filename in a Hebrew sentence and a parenthesised Hebrew name in an
+  English one are both already correct. A feature's limits are worth as much as
+  its effect.
+* **`bidi_isolation: true`** emits the two isolates around every placeholder
+  that sits in text, in every locale — an embedded Hebrew name in an English
+  sentence is the same problem from the other side. Two characters in a string
+  literal, written as `\u{2068}` escapes, so nothing is computed at run time and
+  nothing in the generated file is invisible to a reviewer.
+* **Three deliberate exceptions.** A message that is nothing but a placeholder
+  is left alone — no text in that string to be reordered against, and the
+  `String` passthrough stays an allocation free getter. The same placeholder
+  alone in one span of a rich message *is* isolated, because the rest of the
+  sentence is in its siblings. A nested choice's rendering is never isolated:
+  it is this locale's own words, and the values inside it were isolated where
+  they were interpolated.
+* **Overrides compose with it.** The isolates go around the values handed to
+  `fill`, not around the override's text, so a bundle gets them without knowing
+  they exist. No key, branch or token name changes, so the Milestone 30
+  fingerprint is unchanged and a stamped bundle stays valid — asserted, not
+  assumed.
+* **Off by default, and said once.** The isolates are invisible, so a test
+  comparing a rendered message against a literal must carry them. Measured, not
+  guessed: turning the option on in the Arabic evaluation application changes
+  285 lines of generated code and breaks 9 of its 20 tests, all of them string
+  comparisons. That trade belongs to the project, not to this library. A project with a right to left
+  locale that interpolates anything gets `bidi_isolation_off`, naming the
+  locale, the defect, the option and `ignore_diagnostics`. One more code, so the
+  registry is at **94** — and the first suppressible code about something an
+  option does *not* do.
+* **The two tests are in two packages on purpose.** What the emitter writes is
+  asserted in the generator's `bidi_isolation_test.dart`; what the characters
+  *do* is asserted in the Flutter package's, with a real text painter. Two code
+  points in a string were never the claim. Probe 21 shows the warning and then
+  the wrapped literal.
+
+### What this one leaves open
+
+* **Nothing isolates the text an override supplies**, only the values put into
+  it. A bundle whose own words mix directions is the translator's business, and
+  there is no build step that could know.
+* **The option is all or nothing per project.** A team that wants isolation in
+  Hebrew and not in English has to take both.
+* **No runtime helper to strip the isolates**, so a test that compares a
+  rendered message against a literal writes them itself. A one-line
+  `String.replaceAll` in the project's test helpers is the whole workaround,
+  and it seemed better than an API.
+* **The evaluation corpus is left as it was.** `evaluation/marketplace` has an
+  Arabic locale and now reports `bidi_isolation_off`, which is the warning
+  landing on exactly the kind of application it was written for — a realistic
+  one, built before the option existed. Turning it on there is the 285 line, 9
+  test measurement above, and the corpus is meant to be a sample rather than a
+  showcase.
 
 ## Milestone 30 — a bundle says which build it is for (done)
 

@@ -189,7 +189,7 @@ exit=1
 l10n_plus.yaml:5:17
 warning[unknown_config_key]: Unknown configuration key "file_per_local".
   Did you mean "file_per_locale"?
-  Known keys: base_locale, class_name, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, locale_enum_name, output_directory, runtime_overrides.
+  Known keys: base_locale, bidi_isolation, class_name, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, locale_enum_name, output_directory, runtime_overrides.
   ╷
 5 │ file_per_local: true
   │                 ^^^^
@@ -208,7 +208,7 @@ exit=1
 l10n_plus.yaml:5:17
 warning[unknown_config_key]: Unknown configuration key "file_per_local".
   Did you mean "file_per_locale"?
-  Known keys: base_locale, class_name, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, locale_enum_name, output_directory, runtime_overrides.
+  Known keys: base_locale, bidi_isolation, class_name, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, locale_enum_name, output_directory, runtime_overrides.
   ╷
 5 │ file_per_local: true
   │                 ^^^^
@@ -310,3 +310,16 @@ error[override_fingerprint_mismatch]: This bundle was checked against another bu
 1 error(s), 0 warning(s).
 An override is text; the shape around it is the one the application compiled.
 exit=1
+
+######## 21. a right to left locale with nothing isolating its values ########
+warning[bidi_isolation_off]: Values are interpolated into he, which is written right to left, and nothing isolates them.
+  A value is whatever somebody typed, so its direction is not the sentence's, and the two get reordered against each other: a value ending in "." is laid out with the stop on the wrong side of it, a value beginning with digits is laid out back to front, and "-5%" becomes "5%-". Every string comparison still passes.
+  Turn it on in l10n_plus.yaml:
+    bidi_isolation: true
+  It writes U+2068 and U+2069 around each interpolated value, so a test comparing a rendered message against a literal has to carry them too. If that trade is not yours to make, say so:
+    ignore_diagnostics: [bidi_isolation_off]
+
+wrote lib/l10n/app_localizations.g.dart
+exit=0
+-- and with bidi_isolation: true, the value is wrapped:
+83:  String greeting({required String name}) => 'שלום \u{2068}$name\u{2069} בוקר';

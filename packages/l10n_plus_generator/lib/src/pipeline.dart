@@ -457,6 +457,9 @@ final class L10nPlusGenerator {
     if (config.flutter.enabled) {
       _checkFlutterDependency(pubspec, diagnostics);
     }
+    if (!config.bidiIsolation) {
+      _checkBidiIsolation(model, diagnostics);
+    }
 
     final files = <GeneratedFile>[
       ...core,
@@ -508,6 +511,66 @@ final class L10nPlusGenerator {
       ),
     );
   }
+
+  /// Warns when a right to left locale interpolates values that are not
+  /// isolated.
+  ///
+  /// The one diagnostic in the registry about something the *option* does not
+  /// do, which needs a reason. A value is whatever somebody typed, so its
+  /// direction is not the sentence's, and the bidi algorithm will reorder the
+  /// two against each other — measurably, which
+  /// `packages/l10n_plus_flutter/test/bidi_isolation_test.dart` does. The
+  /// result is text that is wrong on the screen and right in every string
+  /// comparison, which is the class of defect this library exists to move to
+  /// build time. It cannot be made the default, because it puts two invisible
+  /// characters into most generated strings; so it is said once instead.
+  ///
+  /// Silent for a project with no right to left locale, and for one whose
+  /// messages interpolate nothing: the hazard needs a value and a direction to
+  /// disagree about.
+  void _checkBidiIsolation(
+    LocalizationModel model,
+    DiagnosticCollector diagnostics,
+  ) {
+    final rightToLeft = [
+      for (final locale in model.locales)
+        if (locale.locale.isRightToLeft) locale.locale.toLanguageTag(),
+    ];
+    if (rightToLeft.isEmpty) return;
+    if (!_interpolatesAnything(model.root)) return;
+
+    diagnostics.add(
+      Diagnostic.warning(
+        code: 'bidi_isolation_off',
+        message:
+            'Values are interpolated into ${rightToLeft.join(', ')}, which '
+            'is written right to left, and nothing isolates them.',
+        details:
+            'A value is whatever somebody typed, so its direction is not the '
+            'sentence\'s, and the two get reordered against each other: a '
+            'value ending in "." is laid out with the stop on the wrong side '
+            'of it, a value beginning with digits is laid out back to front, '
+            'and "-5%" becomes "5%-". Every string comparison still passes.\n'
+            'Turn it on in l10n_plus.yaml:\n'
+            '  bidi_isolation: true\n'
+            'It writes U+2068 and U+2069 around each interpolated value, so a '
+            'test comparing a rendered message against a literal has to carry '
+            'them too. If that trade is not yours to make, say so:\n'
+            '  ignore_diagnostics: [bidi_isolation_off]',
+      ),
+    );
+  }
+
+  /// Whether any message of [namespace] interpolates a value at all.
+  ///
+  /// A select argument does not count: its value is a generated enum and never
+  /// reaches the string.
+  static bool _interpolatesAnything(NamespaceModel namespace) =>
+      namespace.messages.any(
+        (message) =>
+            message.arguments.any((argument) => argument.selectEnum == null),
+      ) ||
+      namespace.children.any(_interpolatesAnything);
 
   /// Warns when the Flutter glue is about to be generated but the project
   /// cannot compile it.

@@ -804,10 +804,67 @@ locale out of the build until the translations land, or add
 `fill_direction_mismatch` to `ignore_diagnostics` once a mixed-direction
 rollout is the decision rather than the accident.
 
-**What this does not do:** isolate interpolated values. A Latin brand name or a
-URL inside an Arabic sentence can still reorder the text around it; that needs
-`FSI`/`PDI` around the value at render time, which is a change to generated
-strings and is not in yet.
+### Isolating interpolated values
+
+A value is whatever somebody typed, so its direction is not the sentence's, and
+the bidi algorithm will reorder the two against each other. Laid out in a Hebrew
+line, a value ending in a full stop gets the stop on the wrong side of it, a
+value beginning with digits comes out back to front, and `-5%` renders as `5%-`.
+Every string comparison still passes, which is why nobody finds it until a
+screenshot arrives:
+
+```
+a Hebrew sentence with the value "-5%" in the middle of it
+  without the isolates   the minus is laid out after the percent:  5%-
+  with them              the value is laid out as it was written:  -5%
+```
+
+(Shown without the Hebrew words around it: a line of visual order is itself
+reordered by whatever renders this page.)
+
+Turn it on:
+
+```yaml
+bidi_isolation: true
+```
+
+Every placeholder that sits in text is then emitted between U+2068 FIRST STRONG
+ISOLATE and U+2069 POP DIRECTIONAL ISOLATE:
+
+```dart
+String greeting({required String name}) => 'Hi \u{2068}$name\u{2069}, welcome';
+```
+
+Every locale, not only the right-to-left ones: an embedded Hebrew name in an
+English sentence is the same problem seen from the other side.
+
+Two characters in a string literal, so nothing is computed at run time and
+nothing is measured twice: `FSI` takes the direction of the value's own first
+strong character, which is the one thing a generator cannot know.
+
+Off by default, and a project with a right-to-left locale is told once:
+
+```
+warning[bidi_isolation_off]: Values are interpolated into he, which is written
+right to left, and nothing isolates them.
+```
+
+It is off by default because the isolates are invisible, so a test comparing a
+rendered message against a literal has to carry them too. Add
+`bidi_isolation_off` to `ignore_diagnostics` if that trade is not yours to make.
+
+A message that is *nothing but* a placeholder is left alone — there is no text
+in that string to be reordered against, and the widget's own direction decides
+the line. In a rich message the same placeholder alone in one span *is* isolated,
+because the rest of the sentence is in the sibling spans. A nested plural's
+rendering is never isolated: it is this locale's own words, and whatever value
+sits inside it was isolated where it was interpolated.
+
+The claim here is about layout, not about strings, so it is tested as layout:
+`packages/l10n_plus_flutter/test/bidi_isolation_test.dart` lays each case out
+with a `TextPainter` and reads the character positions back. It also records the
+two cases the bidi algorithm already gets right, where the isolates change
+nothing.
 
 ## Turning warnings off
 

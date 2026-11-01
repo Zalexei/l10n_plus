@@ -43,6 +43,7 @@ final class L10nPlusConfig {
     this.filePerLocale = false,
     this.fillMissingFromBase = false,
     this.runtimeOverrides = false,
+    this.bidiIsolation = false,
     this.extraKeys = ExtraKeys.error,
     this.ignoreDiagnostics = const {},
     this.flutter = const FlutterConfig(),
@@ -116,6 +117,25 @@ final class L10nPlusConfig {
   /// text of one branch and nothing else. Validate a bundle with
   /// `check-overrides`, which reads the slots this emitted.
   final bool runtimeOverrides;
+
+  /// Whether an interpolated value is wrapped in Unicode bidi isolates.
+  ///
+  /// Off by default, because it puts two invisible characters into most
+  /// generated strings and a test comparing a rendered string to a literal
+  /// would start failing. On, every placeholder that sits in text is emitted
+  /// between U+2068 FIRST STRONG ISOLATE and U+2069 POP DIRECTIONAL ISOLATE,
+  /// so the value cannot be reordered against the words around it.
+  ///
+  /// What it prevents is not theoretical. In a Hebrew sentence, a value that
+  /// ends in a full stop renders with the stop on the wrong side of it, a
+  /// value that begins with digits renders back to front, and `-5%` renders
+  /// as `5%-`. Measured in `packages/l10n_plus_flutter/test/`, which lays the
+  /// strings out and reads the positions back.
+  ///
+  /// Two characters in a string literal, so nothing is computed at run time
+  /// and the direction of the value is still decided where it has to be — by
+  /// the text itself, as it is laid out.
+  final bool bidiIsolation;
 
   /// Whether each locale gets its own generated file.
   ///
@@ -204,6 +224,7 @@ final class L10nPlusConfig {
       'file_per_locale',
       'fill_missing_from_base',
       'runtime_overrides',
+      'bidi_isolation',
       'extra_keys',
       'ignore_diagnostics',
       'flutter',
@@ -290,6 +311,7 @@ final class L10nPlusConfig {
           _bool(document, 'fill_missing_from_base', diagnostics) ?? false,
       runtimeOverrides:
           _bool(document, 'runtime_overrides', diagnostics) ?? false,
+      bidiIsolation: _bool(document, 'bidi_isolation', diagnostics) ?? false,
       extraKeys: _extraKeys(document, diagnostics),
       ignoreDiagnostics: _ignoreDiagnostics(document, diagnostics),
       flutter: flutter,

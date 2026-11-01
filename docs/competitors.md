@@ -101,12 +101,12 @@ config lines rather than 1.
 | **Build fails on a missing translation** | **Y — diagnosed, with warn mode** | Y — as a Dart compile error | **N — `printStatus` only, no flag exists** | N |
 | Build fails on an extra key | **Y** | N | N | N |
 | Rename detection | **Y — unique in the field** | N | N | N |
-| Diagnostic codes + per-code suppression | **Y — 93 codes** | N | ~ all-or-nothing | N |
+| Diagnostic codes + per-code suppression | **Y — 94 codes** | N | ~ all-or-nothing | N |
 | Cross-locale placeholder / arity check | **Y** | ~ | ~ (and has open bugs) | N |
 | Unused-key analysis | Y (text scan) | Y (+ `clean`; false positives) | **N** | N |
 | Write missing keys back to source | ~ (`import`, from a hand-off file) | Y (`apply`) | N | N |
 | Extraction from source | N | ~ (`$wip apply`) | N | N |
-| CLI command count | 5 | ~12 | 1 | 2 |
+| CLI command count | 6 | ~12 | 1 | 2 |
 | Watch mode | Y | Y | **Y, inside `flutter run`** | n/a |
 | Lazy / deferred per-locale loading | **N** | Y (default on) | ~ opt-in, web | N |
 | Over-the-air / runtime overrides | **Y — branch text, checked and fingerprinted at build time** | Y | N | ~ 23-line loader, no cache |
@@ -121,10 +121,17 @@ config lines rather than 1.
 | Material / Cupertino widget strings | N — you add `flutter_localizations` | ~ | **Y — 115+ locales built in** | ~ |
 | TMS integration | Y — ARB and CSV export/import | ~ CSV, Weblate docs, MCP | **Y — ARB is the universal format** | ~ |
 | RTL helpers | **Y — direction per locale, warned when the fill crosses it** | N | Y (framework delegate) | ~ |
+| Bidi isolation of interpolated values | **Y — `\u{2068}`/`\u{2069}` in the literal, opt in, warned about** | N | N | N |
 | Published, community, Stack Overflow | **N** | Y | Y | Y |
 
-Counting the verdicts over the 46 comparable rows — with a script, over this
-table, so the number can be reproduced rather than taken on trust:
+Counting the verdicts over the 46 comparable rows — with
+[`evaluation/tally.py`](../evaluation/tally.py), which is committed this time
+and states its rule, so the number can be reproduced rather than taken on
+trust:
+
+```
+python3 evaluation/tally.py
+```
 
 | | `Y` | `~` | `N` |
 | --- | --- | --- | --- |
@@ -133,11 +140,19 @@ table, so the number can be reproduced rather than taken on trust:
 | `gen_l10n` | 12 | 10 | 24 |
 | `easy_localization` | 8 | 12 | 26 |
 
-An earlier revision of this document said `l10n_plus ≈ 24` against the same
-`slang ≈ 31`. Four of those axes were closed since (rich text, RTL, ARB/CSV
-interchange, region affinity), but the rest of the gap was a hand count that was
-simply wrong, and that is the more useful finding: a comparison nobody can
-re-run is not a measurement. The script is five lines over the table above.
+This table has now been counted wrong twice. An early revision said
+`l10n_plus ≈ 24` against `slang ≈ 31` by hand; four of those axes were closed
+since (rich text, RTL, ARB/CSV interchange, region affinity) but the rest of
+that gap was simply a miscount. Then the revision that replaced the hand count
+published **32 against 31 over 46 rows** — which was also wrong, by one row in
+every column: the table at that commit had 45 comparable rows, and the honest
+figure was **31 against 31, a tie**. The bidi isolation row added in Milestone
+31 is what makes it 32, so the number printed above happens to be the number
+that was claimed a commit too early.
+
+Which is the more useful finding, again, and why the script is in the
+repository now: a comparison nobody can re-run is not a measurement, and a
+script nobody keeps is nobody re-running it.
 
 **And one cell ahead is not a lead.** A `Y` is not a unit of value: "asset
 obfuscation" and "222 CLDR plural languages" are one cell each, and a table that
@@ -147,7 +162,7 @@ and it splits cleanly — `slang`'s remaining advantages are **runtime shape**
 (lazy per-locale loading, an ambient accessor, dynamic key access, linked
 translations, asset obfuscation), ours are **build-time truth** (plural
 correctness at 222/107 verified against two oracles, a build that fails on a gap
-with 93 diagnostic codes, rename detection, byte-identical output, a dev-only
+with 94 diagnostic codes, rename detection, byte-identical output, a dev-only
 generator). Those are two different bets about where localization errors should
 surface, not two scores.
 
@@ -250,18 +265,14 @@ and on its own, because it is the only one that touches the runtime:
    every string-keyed package.
 4. **No PO/XLIFF, and no vendor API.** ARB and CSV now travel; Crowdin,
    Lokalise and POEditor still mean a human in between.
-5. **Interpolated values are not bidi-isolated.** A Latin brand name inside an
-   Arabic sentence can still reorder the text around it. Needs `FSI`/`PDI` in
-   generated strings — invisible characters in every golden, so a decision with
-   a cost.
-6. **No extraction from source**, and `import` writes translations but never
+5. **No extraction from source**, and `import` writes translations but never
    creates a file or a locale.
-7. **Five CLI commands against `slang`'s ~12** (`edit`, `stats`, `migrate`,
+6. **Six CLI commands against `slang`'s ~12** (`edit`, `stats`, `migrate`,
    `clean`, `configure` have no equivalent here).
-8. **No ambient context-free accessor** (deferred deliberately, with the
+7. **No ambient context-free accessor** (deferred deliberately, with the
    footgun written down), **no asset obfuscation**, **no IDE plugin**, and no
    Material/Cupertino strings of our own.
-9. **Nothing published on pub.dev** — no community, no Stack Overflow answer,
+8. **Nothing published on pub.dev** — no community, no Stack Overflow answer,
    no name. Unchanged by any of the above, and still the largest gap of all.
 
 ## 7. The three things that would have made the claim true

@@ -49,6 +49,21 @@ final class DartEmitter {
   /// whose names are normalized to lower camel case.
   static const String _operands = r'$operands';
 
+  /// Unicode isolates an interpolated value is wrapped in, with
+  /// `bidi_isolation` on.
+  ///
+  /// Emitted as Dart escapes rather than as the characters themselves: a
+  /// generated file is read, reviewed and grepped, and two invisible code
+  /// points in a string literal are two things a reader cannot see.
+  ///
+  /// U+2068 FIRST STRONG ISOLATE takes the direction of the value's own first
+  /// strong character, which is the one thing the generator cannot know — a
+  /// name is whatever the person typed. U+2069 ends it. Between them the value
+  /// is an opaque neutral to the words around it, so neither can reorder the
+  /// other.
+  static const String _firstStrongIsolate = r'\u{2068}';
+  static const String _popDirectionalIsolate = r'\u{2069}';
+
   /// Name of the local holding what the override store returned.
   ///
   /// Starts with `$` for the same reason [_operands] does.
@@ -967,25 +982,32 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
       // print `ProfileGreetingGender.male`. Left out, so the checker refuses
       // `{gender}` instead of the runtime rendering it.
       if (argument.selectEnum != null) continue;
-      values[argument.name] = _argumentValue(context, argument, body);
+      final value = _argumentValue(context, argument, body);
+      values[argument.name] = config.bidiIsolation
+          ? _isolatedLiteral(value)
+          : value;
     }
 
     final count = context.currentCount;
     if (count != null) {
       final name = context.numberSignName(count);
       final format = _pluralNumberFormat(context, count);
-      values['#'] = format == null
+      final value = format == null
           ? '$name.toString()'
           : _formatCall(
               format: format,
               locale: context.locale,
               parameter: name,
             );
+      values['#'] = config.bidiIsolation ? _isolatedLiteral(value) : value;
     }
 
     for (final node in body.nodes) {
       if (node is! PluralNode && node is! SelectNode) continue;
       final nested = context.nestedChoice(node);
+      // Not isolated: a nested choice renders this locale's own words, in
+      // this locale's direction, and whatever foreign value sits inside it
+      // was isolated where it was interpolated.
       if (nested != null) values['#${nested.index}'] = nested.call;
     }
     return values;
@@ -1051,20 +1073,52 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
     // A text run is an ordinary message body, so it renders through the same
     // expression builder as any string: a placeholder becomes an
     // interpolation and a declared format becomes a formatter call.
-    RichTextNode(:final body) => 'L10nTextSpan(${_expression(body, context)})',
+    RichTextNode(:final body) =>
+      'L10nTextSpan(${_expression(body, context, inSpan: true)})',
     RichTagNode(:final tag, :final children) =>
       "L10nTagSpan('${_escapeContent(tag)}', "
           '${_richList(children, context, constant: false)})',
   };
 
+  /// [interpolation] between the bidi isolates, when the option is on.
+  String _isolate(String interpolation) => config.bidiIsolation
+      ? '$_firstStrongIsolate$interpolation$_popDirectionalIsolate'
+      : interpolation;
+
+  /// [expression] interpolated into a string literal, braced when it must be.
+  ///
+  /// The simpler sibling of [_interpolate], which has to look at what follows
+  /// to decide. Nothing follows an isolated value but the escape that closes
+  /// it, and a backslash cannot extend an identifier.
+  static String _interpolation(String expression) =>
+      RegExp(r'^[a-zA-Z_][a-zA-Z0-9_]*$').hasMatch(expression)
+      ? '\$$expression'
+      : '\${$expression}';
+
+  /// [expression] as a string literal holding nothing but its isolated value.
+  String _isolatedLiteral(String expression) =>
+      "'${_isolate(_interpolation(expression))}'";
+
   /// Renders [body] as a single Dart expression.
-  String _expression(MessageBody body, _MessageContext context) {
+  ///
+  /// [inSpan] says the string is one span of a rich message rather than a
+  /// message of its own. It changes one thing: a placeholder that is the whole
+  /// of it is still isolated, because the text it could be reordered against
+  /// is in the sibling spans. In a plain message there is no such text — the
+  /// string *is* the message — and the value is returned as it stands, so the
+  /// `String` passthrough stays an allocation free getter.
+  String _expression(
+    MessageBody body,
+    _MessageContext context, {
+    bool inSpan = false,
+  }) {
     if (body.nodes.isEmpty) return "''";
 
+    final isolateAlone = inSpan && config.bidiIsolation;
     if (body.nodes.length == 1) {
       final node = body.nodes.single;
       if (node is LiteralNode) return _stringLiteral(node.value);
-      if (node is ArgumentNode) {
+      if (node is ArgumentNode && !isolateAlone) {
         final argument = context.argument(node.name);
         final format = context.formatOf(node);
         if (format != null && argument != null) {
@@ -1098,10 +1152,13 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
               locale: context.locale,
               parameter: argument.dartName,
             );
-            buffer.write('\${$call}');
+            buffer.write(_isolate('\${$call}'));
           } else {
+            final name = context.parameterName(node.name);
             buffer.write(
-              _interpolate(context.parameterName(node.name), body.nodes, index),
+              config.bidiIsolation
+                  ? _isolate(_interpolation(name))
+                  : _interpolate(name, body.nodes, index),
             );
           }
         case NumberSignNode():
@@ -1113,9 +1170,13 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
               locale: context.locale,
               parameter: value,
             );
-            buffer.write('\${$call}');
+            buffer.write(_isolate('\${$call}'));
           } else {
-            buffer.write(_interpolate(value, body.nodes, index));
+            buffer.write(
+              config.bidiIsolation
+                  ? _isolate(_interpolation(value))
+                  : _interpolate(value, body.nodes, index),
+            );
           }
         case PluralNode():
         case SelectNode():

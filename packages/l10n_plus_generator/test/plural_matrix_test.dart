@@ -26,6 +26,11 @@ base_locale: en
 fallback_locale: en
 class_name: AppLocalizations
 locale_enum_name: AppLocale
+# These fixtures exist to exercise plural tables, and some of the
+# languages they reach are written right to left. The warning about
+# `bidi_isolation` is about the application's text, which is not what
+# is under test here.
+ignore_diagnostics: [bidi_isolation_off]
 flutter:
   enabled: false
 ''';

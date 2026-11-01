@@ -180,4 +180,28 @@ EOF
   print -r -- "exit=$?"
   rm -f overrides_en.json; }
 
-reset
+probe 21 "a right to left locale with nothing isolating its values" && {
+  config <<'EOF'
+input_directory: translations
+output_directory: lib/l10n
+base_locale: he
+fallback_locale: he
+flutter:
+  enabled: false
+EOF
+  print -r -- '{"greeting": "שלום {name} בוקר"}' > translations/he.json
+  gen
+  print -r -- "-- and with bidi_isolation: true, the value is wrapped:"
+  config <<'EOF'
+input_directory: translations
+output_directory: lib/l10n
+base_locale: he
+fallback_locale: he
+bidi_isolation: true
+flutter:
+  enabled: false
+EOF
+  gen > /dev/null
+  grep -n 'u{2068}' lib/l10n/app_localizations.g.dart; }
+
+reset; base_config

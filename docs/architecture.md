@@ -1053,11 +1053,86 @@ orders of magnitude. The tally is taken while the structure is compared, and a
 renamed key counts as filled, because the key is still absent under its new name
 and codegen substitutes base text for it.
 
-**Not addressed: bidi isolation of interpolated values.** A Latin brand name or
-a URL inside an Arabic sentence can still reorder the text around it. The fix is
-`FSI`/`PDI` around every interpolated value, which means invisible characters in
-every generated string and in every golden file — a codegen decision with a
-cost, and a separate one from knowing which way a locale reads.
+Isolating the interpolated values is the other half of this, and it is a codegen
+decision rather than a locale one, so it has a subsection of its own below.
+
+### `bidi_isolation`: two characters, and the measurement that justifies them
+
+A value is whatever somebody typed, so its direction is not the sentence's. The
+bidi algorithm resolves the two together, and the result is text that is wrong
+on the screen and right in every string comparison — the class of defect this
+library exists to move to build time, except that this one cannot be moved
+there, because the value does not exist until run time. What *can* be decided at
+build time is where the boundaries of the value are, and that is the whole of
+the feature: U+2068 FIRST STRONG ISOLATE before the interpolation, U+2069 POP
+DIRECTIONAL ISOLATE after it, in the string literal.
+
+**Measured before it was written.** Eight cases were laid out with a
+`TextPainter`, with and without the isolates, and the character positions read
+back; five changed and three did not. The three that changed for a Latin value
+in a Hebrew line, each one the isolated version being the correct one:
+
+| value | without the isolates | with them |
+| --- | --- | --- |
+| `Ada.` | the stop is laid out on the far side of the name | `Ada.` |
+| `3 Ada` | laid out as `Ada 3` | `3 Ada` |
+| `-5%` | laid out as `5%-` | `-5%` |
+
+The two that did not change are in the test as well, because a feature's limits
+are worth as much as its effect: a parenthesised Latin filename inside a Hebrew
+sentence and a parenthesised Hebrew name inside an English one are both already
+correct, mirrored brackets included. The other two cases that changed are an
+ordering question rather than a repair — two values with a separator between
+them read in the sentence's order once they are isolated, and in the values' own
+order when they are not.
+
+That is why the test lives in `packages/l10n_plus_flutter/test/`, with a real
+text painter, rather than asserting that the generator wrote two code points.
+Two code points are not the claim.
+
+**What is isolated, and what is deliberately not.**
+
+* Every placeholder that sits in text, in every locale. Not only the right to
+  left ones: an embedded Hebrew name in an English sentence is the same problem
+  from the other side, and the generator does not know which values will be
+  foreign anyway.
+* The plural count as well. `#` is a value whose rendering can carry a sign or a
+  percent, which is one of the three measured cases.
+* A message that is *nothing but* a placeholder is left alone. There is no text
+  in that string for the value to be reordered against, the widget's own
+  direction decides the line, and leaving it alone keeps the `String`
+  passthrough an allocation free getter.
+* A placeholder alone in one span of a *rich* message is isolated, because a
+  rich message is one paragraph assembled from several strings and the rest of
+  the sentence is in the sibling spans. Same rule, applied to the real boundary
+  rather than to the string's.
+* A nested choice's rendering is never isolated: it is this locale's own words in
+  this locale's own direction, and whatever foreign value sits inside it was
+  isolated where it was interpolated.
+* On the override path the *values* are isolated, not the override's text. So a
+  bundle that reworded the sentence around a value gets the isolates without
+  knowing they exist — and a message that is a bare placeholder today is
+  isolated there, because an override may put words around it. Nothing about the
+  overridable surface changes, so turning the option on does not invalidate a
+  bundle anybody has stamped.
+
+**Emitted as `\u{2068}` escapes, not as the characters.** A generated file is
+read, reviewed and grepped, and two invisible code points in a literal are two
+things a reader cannot see. The braced form also keeps the generated file past
+`text_direction_code_point_in_literal`, the lint that exists because a direction
+control in source is how a patch is made to read as something it is not — the
+generated header already ignores lints, but a reviewer's eye does not.
+
+**Off by default, and said once.** The isolates are invisible, so a test
+comparing a rendered message against a literal has to carry them too. That cost
+was measured rather than guessed: turning the option on in the Arabic
+evaluation application changes 285 lines of its generated file and breaks 9 of
+its 20 tests, every one of them a string compared against a literal. It is a
+trade the project cannot make on anybody's behalf. So a project with a right to left
+locale that interpolates anything gets `bidi_isolation_off` once, naming the
+locale, what goes wrong, the option, and `ignore_diagnostics` — silent for a
+project with no such locale, for one whose messages interpolate nothing, and for
+a select, whose value is a generated enum and never reaches the string.
 
 ### Rich text: data in the core, the guarantee in the glue
 

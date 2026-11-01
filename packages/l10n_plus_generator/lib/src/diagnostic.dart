@@ -254,6 +254,7 @@ abstract final class DiagnosticCodes {
   /// `extra_key` until `extra_keys: warn`. Listing them here does not make the
   /// error form ignorable: [DiagnosticCollector] drops warnings only.
   static const Set<String> suppressible = {
+    'bidi_isolation_off',
     'currency_options_mismatch',
     'dropped_placeholder_format',
     'extra_key',
