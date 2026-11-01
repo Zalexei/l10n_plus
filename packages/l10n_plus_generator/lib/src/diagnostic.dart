@@ -206,6 +206,7 @@ abstract final class DiagnosticCodes {
     'invalid_collection_entry',
     'invalid_currency_code',
     'invalid_interchange',
+    'invalid_interface',
     'invalid_json',
     'invalid_key',
     'invalid_leaf_type',

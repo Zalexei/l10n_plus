@@ -1,0 +1,28 @@
+{
+  "onboarding": {
+    "whatsNew": {
+      "v2": {
+        "title": "New in 2.0",
+        "footer": "Shipped in {year}",
+        "rows": ["Add sync"]
+      },
+      "v3": {
+        "title": "New in 3.0",
+        "footer": "Shipped in {year}",
+        "rows": ["New game modes", "And a lot more"]
+      }
+    }
+  },
+  "plans": {
+    "free": {
+      "name": "Free",
+      "price": "0 a month",
+      "cta": "Start"
+    },
+    "pro": {
+      "name": "Pro",
+      "price": "9 a month",
+      "cta": "Upgrade"
+    }
+  }
+}

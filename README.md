@@ -678,6 +678,115 @@ but
 compile error. A map is for the times you need the whole thing — to iterate it,
 sort it, or hand it over.
 
+## Namespaces that share a type
+
+Several subtrees often have the same shape. A changelog has one entry per
+version, a pricing page one block per plan, an onboarding flow one screen per
+step — and the screen that renders them wants to be written once:
+
+```json
+{
+  "onboarding": {
+    "whatsNew": {
+      "v2": { "title": "New in 2.0", "rows": ["Add sync"] },
+      "v3": { "title": "New in 3.0", "rows": ["New game modes", "And more"] }
+    }
+  }
+}
+```
+
+```yaml
+interfaces:
+  ChangeData: onboarding.whatsNew.*
+```
+
+The `.*` means every namespace *under* `onboarding.whatsNew`; without it the
+path names that one namespace. A value can also be a list of paths, for
+subtrees that are not siblings:
+
+```yaml
+interfaces:
+  Plan:
+    - plans.free
+    - plans.pro
+```
+
+What comes out is one type, declared once for the project:
+
+```dart
+abstract interface class ChangeData {
+  /// The `title` of this namespace.
+  String get title;
+
+  /// The `rows` of this namespace.
+  List<String> get rows;
+}
+```
+
+The namespaces' own interfaces implement it — `abstract interface class
+$OnboardingWhatsNewV2 implements ChangeData` — so the accessor that hands one
+out carries the supertype, and the function you wanted is a function:
+
+```dart
+Widget changeCard(ChangeData change) => Column(
+  children: [
+    Text(change.title),
+    for (final row in change.rows) Text('• $row'),
+  ],
+);
+
+changeCard(context.l10n.onboarding.whatsNew.v3);
+```
+
+Nothing about it is a run-time lookup: the implementations are the same `const`
+classes as before, and the type is the project's rather than one per locale, so
+the same function takes `v3` in any language.
+
+### The members have to match, and that is the feature
+
+An element of `whatsNew` that forgets `rows` is a build error:
+
+```
+error[invalid_interface]: "onboarding.whatsNew.v3" does not have the members
+of "onboarding.whatsNew.v2", which "ChangeData" was read from.
+    "rows" is missing
+  Every namespace of one interface has the same members with the same
+  signatures. The alternative is a nullable member and a `null` on the screen
+  that read it, which is the mistake this library exists to find here instead.
+```
+
+That is the whole difference from inferring a supertype. `slang`, the one other
+package here with the feature, takes the union of what the subtrees have and
+makes the difference optional, so `v3.rows` compiles and answers `null`; here
+the member set is a fact the build checks. The same applies to signatures: a message taking `{name}` in one
+namespace and `{firstName}` in another is reported with both declarations
+printed, because they are two different methods wearing one name.
+
+The order of keys inside a namespace does not matter — the members are read by
+key — but the generated member order is the first namespace named, so moving a
+key in *that* one rewrites the declaration order and nothing else.
+
+### What this does not do
+
+A namespace in an interface holds **messages, lists and maps of text** and
+nothing else. Three things are refused, each with the reason printed:
+
+* **a nested namespace**, because its type is named after its own path, so two
+  namespaces would have members of two different types;
+* **a list of records**, for exactly the same reason — the element type is
+  named after the collection's path;
+* **a namespace addressed by `dynamic_keys`**, whose `operator []` takes an
+  enum named after the namespace it addresses.
+
+All three want one feature — an interface whose member is itself an interface —
+and none of them is quietly generated half way.
+
+The name lives in the configuration rather than in a key suffix, unlike
+`(rich)` and `(map)`. Those tell a translator what a value *is*; a Dart type
+name tells them nothing, and the translation file is their file. The cost of a
+second place is that it can go stale, so a path that matches no namespace is an
+error with the nearest one offered.
+
 ## When the server picks the message
 
 An error code arrives from an API and some message has to be shown for it. With

@@ -29,6 +29,7 @@ final class ModelBuilder {
     required this.baseSignatures,
     required this.diagnostics,
     this.dynamicKeys = const [],
+    this.interfaces = const {},
   });
 
   /// Generated root class name.
@@ -51,6 +52,9 @@ final class ModelBuilder {
 
   /// Namespace paths whose messages get a key enum, from `dynamic_keys`.
   final List<String> dynamicKeys;
+
+  /// Shared supertypes by name, from `interfaces`.
+  final Map<String, List<String>> interfaces;
 
   final Map<String, SelectEnumModel> _enums = {};
   final Map<String, _TopLevelName> _topLevelNames = {};
@@ -88,6 +92,12 @@ final class ModelBuilder {
     final keyEnums = _keyEnums(root);
     if (diagnostics.hasErrors) return null;
 
+    // After the key enums, because a namespace that is addressed by key
+    // declares a member whose type is its own and cannot share a supertype —
+    // which is a thing to say once the enums are known.
+    final sharedInterfaces = _interfaces(root, keyEnums);
+    if (diagnostics.hasErrors) return null;
+
     final enums = _enums.values.toList(growable: false)
       ..sort((a, b) => a.name.compareTo(b.name));
 
@@ -100,6 +110,7 @@ final class ModelBuilder {
       root: root,
       enums: enums,
       keyEnums: keyEnums,
+      interfaces: sharedInterfaces,
     );
   }
 
@@ -275,6 +286,268 @@ final class ModelBuilder {
     }
 
     return models..sort((a, b) => a.name.compareTo(b.name));
+  }
+
+  /// Builds one shared interface per entry of [interfaces].
+  ///
+  /// A view over the namespaces the walk produced, like a key enum: nothing is
+  /// renamed and no member is added, the pass only says that these namespaces
+  /// are the same shape — and refuses when they are not. The alternative, used
+  /// by every package that infers a supertype, is to widen the difference to a
+  /// nullable member; then a namespace missing a key answers `null` on the
+  /// screen that read it, in whichever locale nobody opened.
+  List<InterfaceModel> _interfaces(
+    NamespaceModel root,
+    List<KeyEnumModel> keyEnums,
+  ) {
+    if (interfaces.isEmpty) return const [];
+
+    final namespaces = <String, NamespaceModel>{};
+    void index(NamespaceModel namespace) {
+      namespaces[namespace.path] = namespace;
+      namespace.children.forEach(index);
+    }
+
+    index(root);
+    final addressedByKey = {
+      for (final keyEnum in keyEnums) keyEnum.namespacePath: keyEnum.name,
+    };
+
+    /// The span of [namespace]'s first message, the closest thing a namespace
+    /// has to a place in the file.
+    SourceSpan? spanOf(NamespaceModel namespace) =>
+        namespace.messages.isEmpty ? null : namespace.messages.first.keySpan;
+
+    /// Refuses [namespace] as part of [name], with the [reason] it cannot be.
+    void refuse({
+      required String name,
+      required NamespaceModel namespace,
+      required String reason,
+      required String fix,
+    }) {
+      diagnostics.add(
+        Diagnostic.error(
+          code: 'invalid_interface',
+          message:
+              '"${namespace.path}" cannot implement "$name", because $reason.',
+          span: spanOf(namespace),
+          translationKey: namespace.path,
+          details: fix,
+        ),
+      );
+    }
+
+    /// The members of [namespace], or `null` when it cannot be in [name].
+    List<InterfaceMemberModel>? membersOf(
+      NamespaceModel namespace,
+      String name,
+    ) {
+      if (namespace.children.isNotEmpty) {
+        refuse(
+          name: name,
+          namespace: namespace,
+          reason:
+              'it holds the namespace '
+              '"${namespace.children.first.path}"',
+          fix:
+              'A nested namespace generates a type named after its own path, '
+              'so the member types of two namespaces would differ by the '
+              'paths they came from. An interface whose member is itself an '
+              'interface is a feature this does not have yet; until then the '
+              'shared shape has to be one level of messages.',
+        );
+        return null;
+      }
+      final keyEnum = addressedByKey[namespace.path];
+      if (keyEnum != null) {
+        refuse(
+          name: name,
+          namespace: namespace,
+          reason: 'it is addressed by key through "$keyEnum"',
+          fix:
+              'A key enum is named after the namespace it addresses, so the '
+              '`operator []` of two namespaces takes two different types. '
+              'Name one or the other: a namespace reached from a string and a '
+              'namespace reached through a supertype are two ways of giving '
+              'up the member names, and one is enough.',
+        );
+        return null;
+      }
+
+      final members = <InterfaceMemberModel>[];
+      for (final message in namespace.messages) {
+        members.add(
+          InterfaceMemberModel(
+            dartName: message.dartName,
+            declaration: message.declaration(),
+          ),
+        );
+      }
+      for (final collection in namespace.collections) {
+        if (collection.isRecord) {
+          refuse(
+            name: name,
+            namespace: namespace,
+            reason: 'the elements of "${collection.dartName}" are records',
+            fix:
+                'The element type is named after the collection\'s path, so '
+                'two namespaces hold two different element types. The same '
+                'reason a nested namespace is refused, and the same feature '
+                'would close both.',
+          );
+          return null;
+        }
+        members.add(
+          InterfaceMemberModel(
+            dartName: collection.dartName,
+            declaration: '${collection.type} get ${collection.dartName}',
+          ),
+        );
+      }
+      return members;
+    }
+
+    final models = <InterfaceModel>[];
+    for (final name in interfaces.keys.toList()..sort()) {
+      final resolved = <NamespaceModel>[];
+      final seen = <String>{};
+      var failed = false;
+      for (final path in interfaces[name]!) {
+        final isContainer = path.endsWith('.*');
+        final key = isContainer ? path.substring(0, path.length - 2) : path;
+        final namespace = namespaces[key];
+        if (namespace == null) {
+          final groups = namespaces.keys.where((key) => key.isNotEmpty).toList()
+            ..sort();
+          final nearest = NearestKey.of(key, groups);
+          // No span: this came from the configuration file, which the model
+          // builder has never read.
+          diagnostics.add(
+            Diagnostic.error(
+              code: 'invalid_config',
+              message: '"$name" names "$path", which is not a namespace.',
+              details: [
+                if (nearest != null) 'Did you mean "$nearest"?',
+                if (groups.isNotEmpty)
+                  'Namespaces:\n${groups.map((key) => '  $key').join('\n')}',
+              ].join('\n'),
+            ),
+          );
+          failed = true;
+          continue;
+        }
+        final targets = isContainer ? namespace.children : [namespace];
+        if (targets.isEmpty) {
+          diagnostics.add(
+            Diagnostic.error(
+              code: 'invalid_config',
+              message:
+                  '"$name" names "$path", and "$key" has no namespace under '
+                  'it.',
+              span: spanOf(namespace),
+              translationKey: key,
+              details:
+                  'A path ending in ".*" means every group under the '
+                  'namespace. Drop the ".*" to give "$key" itself the '
+                  'interface.',
+            ),
+          );
+          failed = true;
+          continue;
+        }
+        for (final target in targets) {
+          if (seen.add(target.path)) resolved.add(target);
+        }
+      }
+      if (failed || resolved.isEmpty) continue;
+
+      final declaring = resolved.first;
+      final declaringMembers = membersOf(declaring, name);
+      if (declaringMembers == null) continue;
+      if (declaringMembers.isEmpty) {
+        diagnostics.add(
+          Diagnostic.error(
+            code: 'invalid_interface',
+            message: '"$name" would have no members.',
+            span: spanOf(declaring),
+            translationKey: declaring.path,
+            details:
+                'The members are read from "${declaring.path}", which holds '
+                'no message of its own.',
+          ),
+        );
+        continue;
+      }
+
+      final expected = {
+        for (final member in declaringMembers)
+          member.dartName: member.declaration,
+      };
+      var agreed = true;
+      for (final namespace in resolved.skip(1)) {
+        final members = membersOf(namespace, name);
+        if (members == null) {
+          agreed = false;
+          continue;
+        }
+        final actual = {
+          for (final member in members) member.dartName: member.declaration,
+        };
+        final problems = <String>[];
+        for (final entry in expected.entries) {
+          final theirs = actual[entry.key];
+          if (theirs == null) {
+            problems.add('  "${entry.key}" is missing');
+          } else if (theirs != entry.value) {
+            problems.add('  "${entry.key}" is `$theirs`, not `${entry.value}`');
+          }
+        }
+        for (final key in actual.keys) {
+          if (!expected.containsKey(key)) {
+            problems.add('  "$key" is not in "${declaring.path}"');
+          }
+        }
+        if (problems.isEmpty) continue;
+        diagnostics.add(
+          Diagnostic.error(
+            code: 'invalid_interface',
+            message:
+                '"${namespace.path}" does not have the members of '
+                '"${declaring.path}", which "$name" was read from.',
+            span: spanOf(namespace),
+            translationKey: namespace.path,
+            details:
+                '${problems.join('\n')}\n'
+                'Every namespace of one interface has the same members with '
+                'the same signatures. The alternative is a nullable member '
+                'and a `null` on the screen that read it, which is the '
+                'mistake this library exists to find here instead.',
+          ),
+        );
+        agreed = false;
+      }
+      if (!agreed) continue;
+
+      final free = _claimTopLevel(
+        name,
+        _TopLevelName(
+          'the interface "$name"',
+          span: spanOf(declaring),
+          translationKey: declaring.path,
+        ),
+      );
+      if (!free) continue;
+
+      models.add(
+        InterfaceModel(
+          name: name,
+          paths: resolved.map((namespace) => namespace.path).toList(),
+          members: declaringMembers,
+        ),
+      );
+    }
+
+    return models;
   }
 
   void _unaddressable({

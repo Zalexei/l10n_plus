@@ -632,6 +632,72 @@ Diagnostics went from 72 codes to **81**: `rich_tag_mismatch`,
   why they were not attempted alongside rich text, and the first of them is the
   item below worth more than everything in this milestone.
 
+## Milestone 38 — namespaces that share a type (done)
+
+The one row `slang` held that was not about collections: a supertype over
+several translation subtrees, so a changelog screen or a pricing table is
+written once and handed any of them.
+
+* **The generating was nearly free; the checking is the feature.** Every
+  namespace was already an `abstract interface class` with one `implements` per
+  locale, so what this milestone adds is a supertype across paths and the
+  insistence that the paths agree. An element of the set missing a member is an
+  error naming both namespaces, the member, and both declarations when a
+  signature differs.
+* **No inferred union, deliberately.** The usual implementation takes the union
+  of the subtrees' members and makes the difference nullable — `String? get
+  content => null` — so a namespace that never had the key answers `null` on
+  the screen that read it. That also costs a cell in the "non-nullable
+  accessor" row, which is how you can tell it is a different feature with the
+  same name.
+* **A test decided where the `implements` goes.** On each locale's class it
+  compiles and does nothing: the accessor is typed as the namespace's
+  interface, so the supertype is invisible to callers. The generated text
+  looked right and the runtime test would not compile. One clause on the
+  interface replaced one per locale.
+* **In the configuration, not a key suffix.** `(rich)` and `(map)` tell a
+  translator what a value *is*; a Dart type name tells them nothing. The line
+  this draws — a modifier describes the data, the configuration describes the
+  generated surface — is now written down. The drift a second place allows is
+  paid for with a diagnostic: a path matching no namespace is an error with the
+  nearest offered.
+* **Three refusals, one missing feature.** A nested namespace, a list of
+  records, and a namespace addressed by `dynamic_keys` are each refused with
+  the reason printed, and all three are the same reason: the member's type is
+  named after the path it came from. No new diagnostic code family —
+  `invalid_interface` covers every way an interface can be wrong, and the
+  registry goes 103 → **104**.
+
+### What this one leaves open
+
+* **An interface whose member is an interface.** The next step, and the one
+  that closes all three refusals above at once. It needs a way to name the
+  nested type, which the configuration can already express — `interfaces` is a
+  map of name to path — so the work is in the model: resolve the nested paths
+  first, then compare members by the type each resolved to rather than by the
+  path it came from.
+* **No explicit attribute list.** The members are read from the first namespace
+  named. A project cannot declare them in the configuration instead, which is
+  what would allow a genuinely optional member — `String? content`, written by
+  hand and therefore honest, as opposed to inferred. The moment the
+  configuration describes attributes it is a schema language, which is a
+  bigger feature than this one.
+* **No equality on the generated types.** No generated type declares an
+  `operator ==` — the emitter never writes one. For a namespace that is
+  unnecessary, because the implementations are `const` classes with no fields
+  and Dart canonicalizes them, so two reads of `plans.free` are the same
+  object. But for a **record** from Milestone 37 the fields are values, and two
+  records with equal fields are not equal. That is a gap this milestone found rather than made, and it is
+  worth closing on records first.
+* **Nothing checks that an interface is used.** An `interfaces` entry whose
+  type nothing in the application mentions generates a type nobody reads. The
+  `unused` scan looks at translation keys, and the keys here are used — by the
+  namespace accessors. A type with no readers is a different question and
+  nothing asks it.
+* **The member order is the first namespace's.** The same shape of limitation
+  records have: reordering keys in the namespace the members were read from
+  rewrites the generated declaration order while changing no behaviour.
+
 ## Milestone 37 — an element that is a record (done)
 
 The gap Milestone 36 left open and wrote down: a list whose elements are

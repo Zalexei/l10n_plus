@@ -189,7 +189,7 @@ exit=1
 l10n_plus.yaml:5:17
 warning[unknown_config_key]: Unknown configuration key "file_per_local".
   Did you mean "file_per_locale"?
-  Known keys: base_locale, bidi_isolation, class_name, deferred_locales, dynamic_keys, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, locale_enum_name, output_directory, runtime_overrides.
+  Known keys: base_locale, bidi_isolation, class_name, deferred_locales, dynamic_keys, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, interfaces, locale_enum_name, output_directory, runtime_overrides.
   ╷
 5 │ file_per_local: true
   │                 ^^^^
@@ -208,7 +208,7 @@ exit=1
 l10n_plus.yaml:5:17
 warning[unknown_config_key]: Unknown configuration key "file_per_local".
   Did you mean "file_per_locale"?
-  Known keys: base_locale, bidi_isolation, class_name, deferred_locales, dynamic_keys, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, locale_enum_name, output_directory, runtime_overrides.
+  Known keys: base_locale, bidi_isolation, class_name, deferred_locales, dynamic_keys, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, interfaces, locale_enum_name, output_directory, runtime_overrides.
   ╷
 5 │ file_per_local: true
   │                 ^^^^
@@ -520,6 +520,36 @@ error[invalid_collection_entry]: "title" of Element 0 of "pages" takes 1 argumen
   ╷
 1 │ {"brand": "Acme", "onboarding": {"pages": [{"title": "Welcome to {app}"}]}}
   │                                             ^^^^^^^
+  ╵
+
+1 error(s), 0 warning(s).
+exit=1
+
+######## 29. namespaces that share an interface and then stop matching ########
+evaluation/probes/workspace/translations/en.json:1:90
+onboarding.whatsNew.v3
+error[invalid_interface]: "onboarding.whatsNew.v3" does not have the members of "onboarding.whatsNew.v2", which "ChangeData" was read from.
+    "rows" is missing
+  Every namespace of one interface has the same members with the same signatures. The alternative is a nullable member and a `null` on the screen that read it, which is the mistake this library exists to find here instead.
+  ╷
+1 │ {"onboarding": {"whatsNew": {"v2": {"title": "New in 2.0", "rows": ["Add sync"]}, "v3": {"title": "New in 3.0"}}}}
+  │                                                                                          ^^^^^^^
+  ╵
+
+1 error(s), 0 warning(s).
+exit=1
+-- with the member restored, one type both namespaces implement:
+87:abstract interface class $OnboardingWhatsNewV2 implements ChangeData {
+96:abstract interface class $OnboardingWhatsNewV3 implements ChangeData {
+105:abstract interface class ChangeData {
+-- and a namespace holding a namespace says why it cannot be in one:
+evaluation/probes/workspace/translations/en.json:1:37
+onboarding.whatsNew.v2
+error[invalid_interface]: "onboarding.whatsNew.v2" cannot implement "ChangeData", because it holds the namespace "onboarding.whatsNew.v2.meta".
+  A nested namespace generates a type named after its own path, so the member types of two namespaces would differ by the paths they came from. An interface whose member is itself an interface is a feature this does not have yet; until then the shared shape has to be one level of messages.
+  ╷
+1 │ {"onboarding": {"whatsNew": {"v2": {"title": "New in 2.0", "meta": {"date": "May"}}, "v3": {"title": "New in 3.0", "meta": {"date": "June"}}}}}
+  │                                     ^^^^^^^
   ╵
 
 1 error(s), 0 warning(s).

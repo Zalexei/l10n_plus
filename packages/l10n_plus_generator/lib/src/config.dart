@@ -44,6 +44,7 @@ final class L10nPlusConfig {
     this.filePerLocale = false,
     this.deferredLocales = false,
     this.dynamicKeys = const [],
+    this.interfaces = const {},
     this.fillMissingFromBase = false,
     this.runtimeOverrides = false,
     this.bidiIsolation = false,
@@ -176,6 +177,22 @@ final class L10nPlusConfig {
   /// stop the compiler dropping the messages an application never reads.
   final List<String> dynamicKeys;
 
+  /// Namespaces that share a generated supertype, by the type's name.
+  ///
+  /// A value is one path or a list of them; a path ending in `.*` names every
+  /// child of that namespace rather than the namespace itself. The members
+  /// have to match exactly, which is the whole point: the alternative is a
+  /// supertype whose divergent members are nullable, and a `null` at the
+  /// screen that read one is the class of mistake this library exists to move
+  /// to build time.
+  ///
+  /// In the configuration rather than a key suffix because it changes nothing
+  /// about the data. `(rich)` and `(map)` tell a translator what a value *is*;
+  /// a Dart type name tells them nothing, and the translation file is their
+  /// file. The cost is a second place that can go stale, which is why a path
+  /// matching no namespace is an error with the nearest one offered.
+  final Map<String, List<String>> interfaces;
+
   /// What to do with a key a locale has and the base locale does not.
   ///
   /// An error by default: the base locale is the API contract, and a key
@@ -254,6 +271,7 @@ final class L10nPlusConfig {
       'file_pattern',
       'deferred_locales',
       'dynamic_keys',
+      'interfaces',
       'file_per_locale',
       'fill_missing_from_base',
       'runtime_overrides',
@@ -367,6 +385,7 @@ final class L10nPlusConfig {
       filePerLocale: filePerLocale,
       deferredLocales: deferredLocales,
       dynamicKeys: _dynamicKeys(document, diagnostics),
+      interfaces: _interfaces(document, diagnostics),
       fillMissingFromBase:
           _bool(document, 'fill_missing_from_base', diagnostics) ?? false,
       runtimeOverrides:
@@ -431,6 +450,122 @@ final class L10nPlusConfig {
       paths.add(value);
     }
     return paths;
+  }
+
+  /// A name that can be a generated type: upper camel case, nothing else.
+  ///
+  /// Every Dart reserved word is lower case, so requiring a capital first
+  /// letter is also what keeps `class` or `for` out.
+  static final RegExp _typeName = RegExp(r'^[A-Z][A-Za-z0-9_]*$');
+
+  /// A path, with an optional `.*` naming the children instead of the node.
+  static final RegExp _interfacePath = RegExp(
+    r'^[^.*\s][^.*\s]*(\.[^.*\s]+)*(\.\*)?$',
+  );
+
+  /// Reads `interfaces`, dropping entries that cannot name a type or a path.
+  ///
+  /// Whether a path *exists* is not decided here, as with `dynamic_keys`:
+  /// this file has never seen a translation.
+  static Map<String, List<String>> _interfaces(
+    YamlMap map,
+    DiagnosticCollector diagnostics,
+  ) {
+    final node = map['interfaces'];
+    if (node == null) return const {};
+    final span = map.nodes['interfaces']?.span ?? map.span;
+    if (node is! YamlMap) {
+      diagnostics.add(
+        Diagnostic.warning(
+          code: 'invalid_config',
+          message: '"interfaces" must be a map of type name to path.',
+          span: span,
+          details:
+              'For example:\n'
+              '  interfaces:\n'
+              '    ChangeData: onboarding.whatsNew.*',
+        ),
+      );
+      return const {};
+    }
+
+    final interfaces = <String, List<String>>{};
+    for (final entry in node.nodes.entries) {
+      final name = entry.key.value;
+      final nameSpan = (entry.key as YamlNode).span;
+      if (name is! String || !_typeName.hasMatch(name)) {
+        diagnostics.add(
+          Diagnostic.warning(
+            code: 'invalid_config',
+            message: '"interfaces" names "$name", which cannot be a Dart type.',
+            span: nameSpan,
+            details:
+                'The key is the name of the generated supertype, so it is '
+                'upper camel case: ChangeData, OnboardingPage.',
+          ),
+        );
+        continue;
+      }
+
+      final value = entry.value;
+      final List<YamlNode> entries;
+      if (value is YamlList) {
+        entries = value.nodes.toList();
+      } else if (value.value is String) {
+        entries = [value];
+      } else {
+        diagnostics.add(
+          Diagnostic.warning(
+            code: 'invalid_config',
+            message:
+                '"$name" must be a namespace path or a list of them, not '
+                '"${value.value}".',
+            span: value.span,
+            details:
+                'For example:\n'
+                '  $name: onboarding.whatsNew.*\n'
+                'or:\n'
+                '  $name:\n'
+                '    - onboarding.firstPage\n'
+                '    - help.page',
+          ),
+        );
+        continue;
+      }
+
+      final paths = <String>[];
+      for (final path in entries) {
+        final text = path.value;
+        if (text is! String || !_interfacePath.hasMatch(text)) {
+          diagnostics.add(
+            Diagnostic.warning(
+              code: 'invalid_config',
+              message: '"$name" names "$text", which is not a namespace path.',
+              span: path.span,
+              details:
+                  'A path is dotted keys, optionally ending in ".*" to name '
+                  'every child of a namespace rather than the namespace '
+                  'itself.',
+            ),
+          );
+          continue;
+        }
+        if (paths.contains(text)) {
+          diagnostics.add(
+            Diagnostic.warning(
+              code: 'invalid_config',
+              message: '"$name" names "$text" twice.',
+              span: path.span,
+            ),
+          );
+          continue;
+        }
+        paths.add(text);
+      }
+      if (paths.isEmpty) continue;
+      interfaces[name] = paths;
+    }
+    return interfaces;
   }
 
   /// Reads `ignore_diagnostics`, dropping entries that cannot mean anything.

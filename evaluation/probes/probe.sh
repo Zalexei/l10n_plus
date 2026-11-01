@@ -341,4 +341,28 @@ probe 28 "a list of records whose elements are not the same record" && {
     > translations/en.json
   gen; }
 
+probe 29 "namespaces that share an interface and then stop matching" && {
+  print '{"onboarding": {"whatsNew": {"v2": {"title": "New in 2.0", "rows": ["Add sync"]}, "v3": {"title": "New in 3.0"}}}}' \
+    > translations/en.json
+  config <<'EOF'
+input_directory: translations
+output_directory: lib/l10n
+base_locale: en
+fallback_locale: en
+interfaces:
+  ChangeData: onboarding.whatsNew.*
+flutter:
+  enabled: false
+EOF
+  gen
+  print -r -- "-- with the member restored, one type both namespaces implement:"
+  print '{"onboarding": {"whatsNew": {"v2": {"title": "New in 2.0", "rows": ["Add sync"]}, "v3": {"title": "New in 3.0", "rows": ["Modes", "And more"]}}}}' \
+    > translations/en.json
+  gen > /dev/null
+  grep -n 'abstract interface class ChangeData\|implements ChangeData' lib/l10n/app_localizations.g.dart
+  print -r -- "-- and a namespace holding a namespace says why it cannot be in one:"
+  print '{"onboarding": {"whatsNew": {"v2": {"title": "New in 2.0", "meta": {"date": "May"}}, "v3": {"title": "New in 3.0", "meta": {"date": "June"}}}}}' \
+    > translations/en.json
+  gen; }
+
 reset; base_config

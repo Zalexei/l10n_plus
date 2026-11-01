@@ -89,6 +89,21 @@ final class DartEmitter {
     for (final keyEnum in model.keyEnums) keyEnum.namespacePath: keyEnum,
   };
 
+  /// Shared interface names by the path of each namespace that implements
+  /// one, in `interfaces` order.
+  ///
+  /// A namespace may be in two of them: Dart implements as many interfaces as
+  /// are named, and two projects' reasons for a supertype are not one reason.
+  late final Map<String, List<String>> _sharedInterfaces = () {
+    final byPath = <String, List<String>>{};
+    for (final interface in model.interfaces) {
+      for (final path in interface.paths) {
+        (byPath[path] ??= <String>[]).add(interface.name);
+      }
+    }
+    return byPath;
+  }();
+
   /// Whether the locales are being emitted as deferred libraries.
   ///
   /// Read by the header and the locale enum, which are the two places the
@@ -230,6 +245,7 @@ final class DartEmitter {
       _writeKeyEnum(shared, keyEnum);
     }
     _writeInterfaces(shared, model.root);
+    _writeSharedInterfaces(shared);
 
     return {sharedFileName: shared.toString(), ...parts};
   }
@@ -346,6 +362,7 @@ final class DartEmitter {
       _writeKeyEnum(shared, keyEnum);
     }
     _writeInterfaces(shared, model.root);
+    _writeSharedInterfaces(shared);
 
     _deferred = false;
     return {sharedFileName: shared.toString(), ...files};
@@ -375,6 +392,7 @@ final class DartEmitter {
       _writeKeyEnum(body, keyEnum);
     }
     _writeInterfaces(body, model.root);
+    _writeSharedInterfaces(body);
     body.write(implementations);
 
     final buffer = StringBuffer();
@@ -952,7 +970,14 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
     } else {
       buffer
         ..writeln('/// Translations under `${namespace.path}`.')
-        ..writeln('abstract interface class ${namespace.interfaceName} {');
+        // On the interface rather than on each locale's class: the accessor
+        // that hands this namespace out is typed as the interface, so a
+        // supertype the classes alone implemented would be invisible to every
+        // caller.
+        ..writeln(
+          'abstract interface class ${namespace.interfaceName}'
+          '${_implementsShared(namespace.path)} {',
+        );
       _writeInterfaceMembers(buffer, namespace);
       buffer
         ..writeln('}')
@@ -987,6 +1012,38 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
     buffer
       ..writeln('}')
       ..writeln();
+  }
+
+  /// The `implements` clause of [path]'s interface, or the empty string.
+  String _implementsShared(String path) {
+    final shared = _sharedInterfaces[path];
+    return shared == null ? '' : ' implements ${shared.join(', ')}';
+  }
+
+  /// Emits the interfaces `interfaces` asked for.
+  ///
+  /// After the namespaces' own interfaces, and shaped exactly like them: the
+  /// member text comes from the same [MessageModel.declaration], so a
+  /// namespace satisfies its supertype by having been generated at all.
+  void _writeSharedInterfaces(StringBuffer buffer) {
+    for (final interface in model.interfaces) {
+      final paths = interface.paths.map((path) => '`$path`').toList();
+      buffer
+        ..writeln(
+          '/// The members shared by '
+          '${paths.length == 1 ? paths.single : '${paths.take(paths.length - 1).join(', ')} and ${paths.last}'}.',
+        )
+        ..writeln('abstract interface class ${interface.name} {');
+      for (final member in interface.members) {
+        buffer
+          ..writeln('  /// The `${member.dartName}` of this namespace.')
+          ..writeln('  ${member.declaration};')
+          ..writeln();
+      }
+      buffer
+        ..writeln('}')
+        ..writeln();
+    }
   }
 
   /// Emits one locale's element class for a record collection.
@@ -1615,19 +1672,8 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
     return '${argument.dartName}.toString()';
   }
 
-  String _signature(MessageModel message, {String? name}) {
-    final memberName = name ?? message.dartName;
-    // A rich message returns the span list itself: data, no Flutter types,
-    // and `const` when nothing has to be interpolated into it. The typed
-    // `TextSpan` wrapper lives in the Flutter glue, which is the only
-    // generated file allowed to know what a `TextSpan` is.
-    final type = message.isRich ? 'List<L10nSpan>' : 'String';
-    if (message.isGetter) return '$type get $memberName';
-    final parameters = message.arguments
-        .map((argument) => 'required ${argument.type} ${argument.dartName}')
-        .join(', ');
-    return '$type $memberName({$parameters})';
-  }
+  String _signature(MessageModel message, {String? name}) =>
+      message.declaration(name: name);
 
   /// Renders rich [nodes] as a `List<L10nSpan>` literal.
   ///

@@ -215,6 +215,26 @@ final class MessageModel {
   /// unreachable when the interface already declares that name, so the two
   /// would not be an overload but a silently dead method.
   String get richWrapperName => '${dartName}Rich';
+
+  /// The Dart declaration of this member, without the trailing `;`.
+  ///
+  /// One place, because two things read it: the emitter writes it into every
+  /// interface, and the interface pass compares it between namespaces that
+  /// claim the same supertype. Deriving the text twice would make two members
+  /// that differ only in how they were spelled look different.
+  String declaration({String? name}) {
+    final memberName = name ?? dartName;
+    // A rich message returns the span list itself: data, no Flutter types,
+    // and `const` when nothing has to be interpolated into it. The typed
+    // `TextSpan` wrapper lives in the Flutter glue, which is the only
+    // generated file allowed to know what a `TextSpan` is.
+    final type = isRich ? 'List<L10nSpan>' : 'String';
+    if (isGetter) return '$type get $memberName';
+    final parameters = arguments
+        .map((argument) => 'required ${argument.type} ${argument.dartName}')
+        .join(', ');
+    return '$type $memberName({$parameters})';
+  }
 }
 
 /// One element of a collection: a message, or a record of them.
@@ -355,6 +375,45 @@ final class LocaleModel {
 
 /// Everything the emitters need, with no ICU or source concepts left except
 /// the message bodies themselves.
+/// One member of a shared interface.
+final class InterfaceMemberModel {
+  /// Creates a member.
+  const InterfaceMemberModel({
+    required this.dartName,
+    required this.declaration,
+  });
+
+  /// The Dart member name, which is also the translation key it came from.
+  final String dartName;
+
+  /// The declaration, without the trailing `;`, e.g. `String get title`.
+  final String declaration;
+}
+
+/// A supertype several namespaces implement, named by `interfaces`.
+///
+/// What makes this a build time feature rather than a convenience: the
+/// members are required to match exactly. A package that infers the union and
+/// makes the difference nullable hands the application a `null` instead of a
+/// diagnostic, in the locale and on the screen nobody tested.
+final class InterfaceModel {
+  /// Creates an interface model.
+  const InterfaceModel({
+    required this.name,
+    required this.paths,
+    required this.members,
+  });
+
+  /// The type's name, exactly as the configuration wrote it.
+  final String name;
+
+  /// Paths of the namespaces that implement it, in resolution order.
+  final List<String> paths;
+
+  /// Members in the first namespace's order.
+  final List<InterfaceMemberModel> members;
+}
+
 final class LocalizationModel {
   /// Creates a localization model.
   LocalizationModel({
@@ -366,6 +425,7 @@ final class LocalizationModel {
     required this.root,
     required this.enums,
     this.keyEnums = const [],
+    this.interfaces = const [],
   });
 
   /// Name of the generated root class, e.g. `AppLocalizations`.
@@ -395,4 +455,10 @@ final class LocalizationModel {
   /// project that does not address messages by string generating exactly what
   /// it generated before.
   final List<KeyEnumModel> keyEnums;
+
+  /// Generated shared interfaces, sorted by name.
+  ///
+  /// Empty unless `interfaces` named one, which is what keeps every other
+  /// project's output exactly what it was.
+  final List<InterfaceModel> interfaces;
 }

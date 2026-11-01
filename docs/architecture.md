@@ -1650,6 +1650,62 @@ the second check ran over the fields the first had just rejected. On the
 declaring element it even said *"Element 0 has no title, which Element 0
 has"*. One error per mistake is asserted now, for all three field refusals.
 
+### A shared interface is a claim the build can check
+
+`interfaces` names a supertype for several namespaces. Almost all of the code
+is the checking, because the generating turned out to be nearly free: every
+namespace was **already** emitted as an `abstract interface class` with one
+`implements` per locale. What was missing was a supertype across paths and a
+reason to believe the paths agree.
+
+So the pass is a view over the namespaces the walk produced, like a key enum.
+It resolves each configured path — `a.b.*` to that namespace's children, `a.b`
+to the namespace itself — reads the members of the first one named, and
+requires every other to have exactly them.
+
+**Where the `implements` goes was not obvious, and a test decided it.** Putting
+it on each locale's class compiles, generates, and does nothing: the accessor
+that hands a namespace out is typed as the namespace's *interface*, so a
+supertype only the implementations carried is invisible to every caller. The
+first version did exactly that, the unit tests passed on the generated text,
+and `interfaces_runtime_test.dart` — which calls a function taking the shared
+type — would not compile. One clause on the interface replaced one clause per
+locale.
+
+**Members are compared as text, from one place.** `MessageModel.declaration`
+builds `String get title` or `String footer({required String year})`, and both
+the emitter and this pass call it. Comparing the rendered declaration rather
+than a tuple of fields means two members that differ in any way a caller can
+see are different, and two that differ in nothing are not — and the golden
+asserts each member line appears once per namespace plus once in the shared
+type, so a drift between the two call sites shows up as an off-by-one.
+
+**What the union would have cost.** `slang` is the only one of the four
+compared packages with this feature, and it infers the union of the subtrees'
+members and makes what they disagree about optional — `Interface.extend` in
+`slang/lib/src/builder/model/interface.dart`, whose own comment reads "If an
+attribute only exists one interface, then make it optional", and a mixin member
+emitted as `String? get content => null`. A namespace that never had `content`
+answers `null`. That trades a build error for a blank on a screen, and it would
+also cost the matrix's *non-nullable accessor* cell, which is a property this
+library claims. There is no option to behave the other way, because the option
+is a different project.
+
+**Three refusals, one missing feature.** A nested namespace, a list of records
+and a namespace addressed by `dynamic_keys` are all refused, and all three for
+one reason: the member's type is named after the path it came from, so two
+namespaces hold two different types. An interface whose member is itself an
+interface closes all three at once. Until it exists the refusals print the
+reason rather than generating something that nearly works.
+
+The name lives in the configuration, which is the line this project now draws:
+a key suffix describes the *data* — `(rich)` and `(map)` tell a translator what
+a value is — and a Dart type name describes the generated surface, so it
+belongs where the other generated names are configured. The cost is a second
+place that can drift, paid for with a diagnostic: a path matching no namespace
+is an error with the nearest one offered, by the same `NearestKey` the
+configuration reader already used.
+
 ### `runtime_overrides` decides the shape, again
 
 The third feature to make this decision, after links and key lookups, and for

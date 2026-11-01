@@ -1,0 +1,24 @@
+input_directory: translations
+output_directory: lib/generated
+base_locale: en
+fallback_locale: en
+class_name: AppLocalizations
+locale_enum_name: AppLocale
+
+# Both forms the configuration takes: a container, where every child of the
+# namespace gets the type, and an explicit list of namespaces that are not
+# siblings. The members are read from the first one named and every other has
+# to have exactly them.
+interfaces:
+  ChangeData: onboarding.whatsNew.*
+  Plan:
+    - plans.free
+    - plans.pro
+
+# Off, so the goldens show the `const` shape: an interface is a claim about
+# the member *declarations*, and `interfaces_test.dart` asserts that turning
+# overrides on changes the bodies and not the declarations.
+runtime_overrides: false
+
+flutter:
+  enabled: false
