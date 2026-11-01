@@ -1,0 +1,18 @@
+{
+  "auth": {
+    "title": "Log in",
+    "greeting": "Hello again, {name}"
+  },
+  "onboarding": {
+    "steps": [
+      "Create an account",
+      "Add a card",
+      "You are done"
+    ]
+  },
+  "countries(map)": {
+    "fr": "France",
+    "de": "Germany",
+    "jp": "Japan"
+  }
+}

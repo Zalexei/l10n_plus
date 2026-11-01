@@ -80,6 +80,7 @@ final class JsonSourceParser implements TranslationSourceParser {
     required String path,
     required FileSpan keySpan,
     required DiagnosticCollector diagnostics,
+    CollectionKind collection = CollectionKind.namespace,
   }) {
     final children = <TranslationNode>[];
     final seen = <String, FileSpan>{};
@@ -124,6 +125,12 @@ final class JsonSourceParser implements TranslationSourceParser {
               path: childPath,
               keySpan: member.keySpan,
               diagnostics: diagnostics,
+              // A group is a map because its key says so, never because of
+              // what it holds — the argument `(rich)` makes, for the reason
+              // `MapKey` gives.
+              collection: MapKey.isMap(member.key)
+                  ? CollectionKind.map
+                  : CollectionKind.namespace,
             ),
           );
         case JsonString():
@@ -137,7 +144,16 @@ final class JsonSourceParser implements TranslationSourceParser {
               contentOffset: value.contentOffset,
             ),
           );
-        case JsonArray():
+        case final JsonArray array:
+          children.add(
+            _list(
+              array: array,
+              key: member.key,
+              path: childPath,
+              keySpan: member.keySpan,
+              diagnostics: diagnostics,
+            ),
+          );
         case JsonNumber():
         case JsonBoolean():
         case JsonNull():
@@ -148,14 +164,16 @@ final class JsonSourceParser implements TranslationSourceParser {
               span: value.span,
               translationKey: childPath,
               details:
-                  'Found ${_describe(value)}. Wrap the value in quotes, or '
-                  'use an object to nest more keys under "${member.key}".',
+                  'Found ${_describe(value)}. Wrap the value in quotes, use '
+                  'an object to nest more keys under "${member.key}", or an '
+                  'array for a list of strings.',
             ),
           );
       }
     }
 
     return TranslationGroup(
+      collection: collection,
       key: key,
       path: path,
       keySpan: keySpan,
@@ -165,6 +183,59 @@ final class JsonSourceParser implements TranslationSourceParser {
 
   static String _join(String path, String key) =>
       path.isEmpty ? key : '$path.$key';
+
+  /// Reads an array as a list of messages, keyed by index.
+  ///
+  /// The elements become ordinary leaves — `steps.0`, `steps.1` — so every
+  /// stage after this one reads a group of messages and needs to know nothing
+  /// about lists. It is also what makes a length difference between locales
+  /// the missing key the cross locale check already reports.
+  TranslationGroup _list({
+    required JsonArray array,
+    required String key,
+    required String path,
+    required FileSpan keySpan,
+    required DiagnosticCollector diagnostics,
+  }) {
+    final children = <TranslationNode>[];
+    for (var index = 0; index < array.items.length; index++) {
+      final value = array.items[index];
+      if (value is! JsonString) {
+        diagnostics.add(
+          Diagnostic.error(
+            code: 'invalid_collection_entry',
+            message: 'Element $index of "$key" is not a string.',
+            span: value.span,
+            translationKey: '$path.$index',
+            details:
+                'Found ${_describe(value)}. A list holds messages, and a '
+                'message is a string — a list of lists or of objects would '
+                'generate a type per element.\n'
+                'Nest a group under this key instead and read its members by '
+                'name.',
+          ),
+        );
+        continue;
+      }
+      children.add(
+        TranslationLeaf(
+          key: '$index',
+          path: '$path.$index',
+          keySpan: keySpan,
+          raw: value.value,
+          valueSpan: value.span,
+          contentOffset: value.contentOffset,
+        ),
+      );
+    }
+    return TranslationGroup(
+      collection: CollectionKind.list,
+      key: key,
+      path: path,
+      keySpan: keySpan,
+      children: children,
+    );
+  }
 
   static String _describe(JsonValue value) => switch (value) {
     JsonArray() => 'an array',

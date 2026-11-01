@@ -4,6 +4,7 @@ import 'package:source_span/source_span.dart';
 
 import '../ast/message_ast.dart';
 import '../ast/rich_ast.dart';
+import '../ast/translation_tree.dart';
 
 /// One value of a generated select enum.
 final class EnumValueModel {
@@ -216,6 +217,47 @@ final class MessageModel {
   String get richWrapperName => '${dartName}Rich';
 }
 
+/// A group of messages generated as one `List` or `Map` accessor.
+///
+/// The entries are ordinary [MessageModel]s — parsed, validated and rendered
+/// by the same code every other message goes through — and every one of them
+/// takes no arguments. That is checked rather than assumed, and it is what
+/// makes the accessor a `const` collection: a list whose elements needed
+/// values would allocate on every read, and its signature would be the union
+/// of what each element happens to use, which is a parameter list no caller
+/// could read.
+final class CollectionModel {
+  /// Creates a collection model.
+  const CollectionModel({
+    required this.kind,
+    required this.path,
+    required this.dartName,
+    required this.keySpan,
+    required this.entries,
+  });
+
+  /// Whether this is a list or a map. Never [CollectionKind.namespace].
+  final CollectionKind kind;
+
+  /// Dotted translation key, including the `(map)` suffix when it has one.
+  final String path;
+
+  /// Dart member name, e.g. `steps`.
+  final String dartName;
+
+  /// Where the key is in the base locale file.
+  final SourceSpan keySpan;
+
+  /// The elements, in the base locale's order.
+  ///
+  /// For a list, keyed by index; for a map, by the key the source wrote.
+  final List<MessageModel> entries;
+
+  /// The Dart type the accessor returns.
+  String get type =>
+      kind == CollectionKind.list ? 'List<String>' : 'Map<String, String>';
+}
+
 /// A nested namespace, generated as its own class.
 final class NamespaceModel {
   /// Creates a namespace model.
@@ -225,6 +267,7 @@ final class NamespaceModel {
     required this.interfaceName,
     required this.children,
     required this.messages,
+    this.collections = const [],
   });
 
   /// Dotted key path, empty for the root.
@@ -241,6 +284,13 @@ final class NamespaceModel {
 
   /// Messages in document order.
   final List<MessageModel> messages;
+
+  /// Lists and maps declared directly under this namespace, in document
+  /// order.
+  ///
+  /// Empty in a project with none, which is what keeps every other project's
+  /// output exactly what it was.
+  final List<CollectionModel> collections;
 
   /// Whether this is the document root.
   bool get isRoot => path.isEmpty;

@@ -36,12 +36,14 @@ void main() {
   });
 
   test('reports invalid leaf types', () {
+    // An array is no longer one of them: Milestone 36 made it a list of
+    // messages, and an empty one is an empty list.
     final result = parse('{"count": 3, "flag": true, "list": []}');
     expect(
       result.diagnostics.map((d) => d.code),
       everyElement('invalid_leaf_type'),
     );
-    expect(result.diagnostics, hasLength(3));
+    expect(result.diagnostics, hasLength(2));
     expect(result.diagnostics.first.details, contains('a number'));
   });
 

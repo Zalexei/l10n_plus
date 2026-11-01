@@ -124,9 +124,18 @@ wallet:
       expect(diagnostic.details, contains('an integer'));
     });
 
-    test('a list is not a translation', () {
-      final diagnostic = _onlyDiagnostic(_run('a:\n  - one\n  - two\n'));
-      expect(diagnostic.code, 'invalid_leaf_type');
+    test('a sequence is a list of messages, not an invalid leaf', () {
+      // It used to be `invalid_leaf_type`. Milestone 36 gave a sequence a
+      // meaning, so what comes out is one accessor over two elements.
+      expect(
+        _generated('a:\n  - one\n  - two\n'),
+        contains("List<String> get a => const ['one', 'two'];"),
+      );
+    });
+
+    test('an element that is not a string still is', () {
+      final diagnostic = _onlyDiagnostic(_run('a:\n  - one\n  - [x]\n'));
+      expect(diagnostic.code, 'invalid_collection_entry');
       expect(diagnostic.details, contains('a list'));
     });
 

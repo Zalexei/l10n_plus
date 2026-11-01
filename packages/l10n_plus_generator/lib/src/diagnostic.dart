@@ -203,6 +203,7 @@ abstract final class DiagnosticCodes {
     'icu_unsupported_type',
     'identifier_collision',
     'invalid_argument_name',
+    'invalid_collection_entry',
     'invalid_currency_code',
     'invalid_interchange',
     'invalid_json',

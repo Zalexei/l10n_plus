@@ -1561,6 +1561,69 @@ library against 73,118 deferred. Hence the option is off by default and the
 README tells a project to measure its own app, which is the only honest advice
 available when the sign of the answer depends on the corpus.
 
+### A list is a group of leaves with a flag, not a third kind of node
+
+The translation tree has two node kinds, a group and a leaf, and both are
+`sealed` — adding a third would make every exhaustive switch over
+`TranslationNode` incomplete, which is a cost this repository has paid once
+already for `LinkNode` and had a reason to.
+
+There was no reason here. A list is a group whose children happen to be keyed
+by index, and a map is a group whose children happen to be its keys; what
+differs is only how the *accessor* is shaped. So `CollectionKind` is a field on
+`TranslationGroup`, and the elements are ordinary `TranslationLeaf`es.
+
+Everything follows from that and none of it is new code:
+
+* the ICU parser parses each element, so placeholders, formats, links and
+  quoting work inside one;
+* signature inference reads them, which is how "this element takes an
+  argument" is something the model can refuse;
+* the **cross locale check compares the element keys**, so a list that is three
+  long in English and two in Russian is `missing_key` for `steps.2`, at the
+  right line, said in the words it already had. The same for a map key one
+  locale forgot;
+* the rename detection notices a locale that wrote `countries` where the base
+  wrote `countries(map)` — reported as an error, because mapness is part of the
+  key and not something a locale may declare differently;
+* `check-overrides` sees each element, so a bundle naming `steps.9` is refused
+  with the nearest key offered.
+
+Two things did have to be taught: coverage counts the elements, because a list
+of three bullet points is three messages a translator is being asked for, and
+the `unused` scan looks for the **collection's** name rather than its elements',
+because one unused list is one finding and one edit.
+
+### Why an element may not take arguments
+
+The accessor would stop being a `const` collection, and its signature would be
+the union of what each element happens to use — `steps({required String name,
+required num count})` where element 0 uses neither. A caller cannot read that,
+and neither can the person adding the fourth element. So the rule is that a
+collection holds plain text, with the same shape of refusal `dynamic_keys`
+makes for the same reason: a message that needs values is read by name.
+
+A rich element is refused for a nearer reason: it renders a list of spans, so a
+list of them is a list of lists with a builder per element. And an element that
+is itself a list or an object would need a generated type per element and an
+index that is a type — the onboarding shape where each step has a title and a
+body. That is a bigger feature, and refusing it says so rather than generating
+half of it.
+
+### `runtime_overrides` decides the shape, again
+
+The third feature to make this decision, after links and key lookups, and for
+the same reason each time. With overrides off the elements are written into a
+`const` collection: reading one allocates nothing. With them on each element
+becomes a private member that consults the store, and the collection is built
+from those — so a bundle can replace one item of a list, which inlined literals
+could not.
+
+The override key is the one place the `(map)` suffix is stripped. It is a
+directive to the generator, not part of the message's identity, so a bundle
+names `countries.fr`. The member name has it stripped for the same reason; the
+*key* keeps it, because the key is what the cross locale check compares.
+
 ### `dynamic_keys`: where the string stops being a string
 
 The feature this library had no business having. Reaching a message by a string

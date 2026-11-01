@@ -311,4 +311,20 @@ EOF
   gen > /dev/null
   grep -n "^enum ErrorsKey\|^enum WarningsKey\|('payment.declined')\|String operator" lib/l10n/app_localizations.g.dart; }
 
+probe 27 "a list and a map whose elements cannot be either" && {
+  print '{"steps": ["Create an account", "Add a card {last4}"], "c(map)": {"a(rich)": "See <b>this</b>"}}' \
+    > translations/en.json
+  gen
+  print -r -- "-- with both fixed, each becomes one const accessor:"
+  print '{"steps": ["Create an account", "Add a card"], "countries(map)": {"fr": "France", "de": "Germany"}}' \
+    > translations/en.json
+  print '{"steps": ["Создайте аккаунт", "Добавьте карту"], "countries(map)": {"fr": "Франция", "de": "Германия"}}' \
+    > translations/ru.json
+  gen > /dev/null
+  grep -n 'get steps =>\|get countries =>' lib/l10n/app_localizations.g.dart
+  print -r -- "-- and a list one locale is short of is the missing key it already was:"
+  print '{"steps": ["Создайте аккаунт"], "countries(map)": {"fr": "Франция", "de": "Германия"}}' \
+    > translations/ru.json
+  gen; }
+
 reset; base_config

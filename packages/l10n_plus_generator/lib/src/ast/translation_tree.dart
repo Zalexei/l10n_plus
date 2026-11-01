@@ -1,6 +1,7 @@
 import 'package:l10n_plus/l10n_plus.dart';
 import 'package:source_span/source_span.dart';
 
+import '../rich/rich_key.dart';
 import 'message_ast.dart';
 import 'message_metadata.dart';
 
@@ -25,6 +26,61 @@ sealed class TranslationNode {
   final FileSpan keySpan;
 }
 
+/// What a group of leaves stands for.
+///
+/// A group is a namespace unless the source said otherwise, and the two ways
+/// it can say so are deliberately the shapes a translator already writes: an
+/// array, and `slang`'s `(map)` suffix on the key.
+///
+/// Both are still groups of ordinary leaves, which is the whole reason this is
+/// a flag rather than a third kind of node. Each element is parsed as a
+/// message, so placeholders, formats, plurals and links work inside one
+/// without a line of new code; signature inference reads them; and the cross
+/// locale check compares the element keys, so a list that is three long in
+/// English and two in Russian is the missing key it already knows how to
+/// report.
+enum CollectionKind {
+  /// A nested namespace, which is what a group is by default.
+  namespace,
+
+  /// A `List<String>`: the source value was an array, and the element keys
+  /// are its indices.
+  list,
+
+  /// A `Map<String, String>`: the key carried the `(map)` suffix.
+  map;
+
+  /// Whether this is a collection rather than a namespace.
+  bool get isCollection => this != CollectionKind.namespace;
+}
+
+/// The key suffix that makes a group a `Map<String, String>`.
+///
+/// The same argument [RichKey] makes, for the same reason: a group is a map
+/// because its *key* says so and never because of what it contains. A project
+/// with `{"errors": {"offline": "..."}}` has been generating a namespace from
+/// that for as long as it has existed, and a library that started turning
+/// every flat group into a map would silently change its API.
+///
+/// Written in every locale's file, like `(rich)`, so the existing cross locale
+/// key check is what says a Russian bundle spelling it `countries` while
+/// English spells it `countries(map)` has a missing key and an extra one.
+///
+/// The spelling is `slang`'s, deliberately: a team arriving from the main
+/// competitor should be able to paste its translation files in. A list needs
+/// no suffix because an array is already unambiguous.
+abstract final class MapKey {
+  /// The suffix, including the parentheses.
+  static const String suffix = '(map)';
+
+  /// Whether [key] marks a map.
+  static bool isMap(String key) => key.endsWith(suffix);
+
+  /// [key] without the suffix, which is what becomes the Dart identifier.
+  static String baseName(String key) =>
+      isMap(key) ? key.substring(0, key.length - suffix.length) : key;
+}
+
 /// An inner node: it becomes a nested namespace class in generated code.
 final class TranslationGroup extends TranslationNode {
   /// Creates a group.
@@ -33,10 +89,14 @@ final class TranslationGroup extends TranslationNode {
     required super.path,
     required super.keySpan,
     required this.children,
+    this.collection = CollectionKind.namespace,
   });
 
   /// Children in document order.
   final List<TranslationNode> children;
+
+  /// Whether this group is a namespace, a list or a map.
+  final CollectionKind collection;
 
   /// Child with [key], or `null`.
   TranslationNode? child(String key) {

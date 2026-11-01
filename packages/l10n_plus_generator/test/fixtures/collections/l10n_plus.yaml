@@ -1,0 +1,16 @@
+input_directory: translations
+output_directory: lib/generated
+base_locale: en
+fallback_locale: en
+class_name: AppLocalizations
+locale_enum_name: AppLocale
+
+# Overrides are on, which is the half of this feature that has a decision in
+# it: each element becomes a private member that consults the store, so a
+# bundle can replace one item of a list. With overrides off the same
+# translations compile to a `const` collection, which `collections_test.dart`
+# asserts on the same shapes.
+runtime_overrides: true
+
+flutter:
+  enabled: false

@@ -92,7 +92,7 @@ config lines rather than 1.
 | Non-nullable accessor | Y | Y | ~ nullable by default | n/a |
 | Number / date / currency | Y — 11 styles + skeletons | Y | Y — 41 `DateFormat` variants | ~ re-exports `intl` |
 | Rich text / `TextSpan` / links | **Y — `(rich)` keys, a builder required per tag** | Y | N | N |
-| Lists, maps, dynamic key access | ~ **keys yes, as a generated enum; no lists or maps** | Y | N | Y (keys are strings) |
+| Lists, maps, dynamic key access | ~ **lists, `(map)` groups and key enums; no list of objects** | Y | N | Y (keys are strings) |
 | Linked translations `@:` | **Y — resolved at build time, parameters typed through** | Y | N | Y — at run time |
 | A link cycle is a build error | **Y** — the ring named in order | N — guarded only while gathering parameters | n/a | N — `// TODO` in its own source |
 | Interfaces / polymorphic subtrees | **N** | Y | N | N |
@@ -102,7 +102,7 @@ config lines rather than 1.
 | **Build fails on a missing translation** | **Y — diagnosed, with warn mode** | Y — as a Dart compile error | **N — `printStatus` only, no flag exists** | N |
 | Build fails on an extra key | **Y** | N | N | N |
 | Rename detection | **Y — unique in the field** | N | N | N |
-| Diagnostic codes + per-code suppression | **Y — 102 codes** | N | ~ all-or-nothing | N |
+| Diagnostic codes + per-code suppression | **Y — 103 codes** | N | ~ all-or-nothing | N |
 | Cross-locale placeholder / arity check | **Y** | ~ | ~ (and has open bugs) | N |
 | Unused-key analysis | Y (text scan) | Y (+ `clean`; false positives) | **N** | N |
 | Write missing keys back to source | ~ (`import`, from a hand-off file) | Y (`apply`) | N | N |
@@ -159,12 +159,15 @@ script nobody keeps is nobody re-running it.
 we added.** Milestone 33 flipped "linked translations" and "several plurals in
 one sentence" from `N` to `Y`, and introduced "a link cycle is a build error",
 which no package but this one passes. Milestone 34 flipped "lazy / deferred
-per-locale loading", and Milestone 35 moved "lists, maps, dynamic key access"
-from `N` only as far as `~` — we took the key access and not the lists, so the
-`Y` count did not move at all, which is the honest outcome of half a
-capability. Adding a row on the axis you have just won is the easiest way to
-inflate your own total, so: without the cycle row it is **35 against 31 over
-46 rows**, and with it **36 against 31 over 47**. The row stays because whether
+per-locale loading". Milestones 35 and 36 between them moved "lists, maps,
+dynamic key access" from `N` only as far as `~` — key access, lists and maps
+are all there now, and a list whose elements are objects is not, so the `Y`
+count did not move at all. Two milestones for a tilde is the honest outcome of
+a row that holds three capabilities.
+
+Adding a row on the axis you have just won is the easiest way to inflate your
+own total, so: without the cycle row it is **35 against 31 over 46 rows**, and
+with it **36 against 31 over 47**. The row stays because whether
 a ring of links breaks the build or ships is a question a user has, and because
 the two `N`s in it were read in the two packages' sources rather than assumed —
 but the honest figure is the one without it.
@@ -184,7 +187,7 @@ and it splits cleanly — `slang`'s remaining advantages are **runtime shape**
 (lazy per-locale loading, an ambient accessor, dynamic key access, asset
 obfuscation), ours are **build-time truth** (plural
 correctness at 222/107 verified against two oracles, a build that fails on a gap
-with 102 diagnostic codes, rename detection, byte-identical output, a dev-only
+with 103 diagnostic codes, rename detection, byte-identical output, a dev-only
 generator). Those are two different bets about where localization errors should
 surface, not two scores.
 
@@ -278,9 +281,10 @@ and on its own, because it is the only one that touches the runtime:
 
 ## 6. Where we are still behind, in priority order
 
-1. **No maps or lists.** Dynamic key *access* arrived in Milestone 35, as a
-   generated enum per declared namespace; a translation file that holds an
-   actual list or map still cannot be expressed, and `slang` can.
+1. **No list of objects.** Lists and maps arrived in Milestone 36; a list whose
+   elements are themselves objects — the onboarding shape with a title and a
+   body per step — is refused with the reason written down, and `slang`
+   generates it.
 2. **No PO/XLIFF, and no vendor API.** ARB and CSV now travel; Crowdin,
    Lokalise and POEditor still mean a human in between.
 3. **No extraction from source**, and `import` writes translations but never

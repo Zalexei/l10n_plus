@@ -1,5 +1,6 @@
 import '../ast/message_ast.dart';
 import '../ast/rich_ast.dart';
+import '../ast/translation_tree.dart';
 import '../config.dart';
 import '../model/dart_identifiers.dart';
 import '../model/localization_model.dart';
@@ -1024,6 +1025,12 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
         ..writeln('  ${_signature(message)};')
         ..writeln();
     }
+    for (final collection in namespace.collections) {
+      buffer
+        ..writeln('  /// ${_collectionDoc(collection)}')
+        ..writeln('  ${collection.type} get ${collection.dartName};')
+        ..writeln();
+    }
     final keyEnum = _keyEnums[namespace.path];
     if (keyEnum != null) {
       buffer
@@ -1111,9 +1118,11 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
 
     // Only where something reads it: a namespace of nothing but children
     // performs no lookup, and an unused constant in generated code is noise
-    // the reader has to rule out.
+    // the reader has to rule out. A namespace whose only messages are inside
+    // a list still performs one.
     if (config.runtimeOverrides &&
-        namespace.messages.any((message) => !message.isRich)) {
+        (namespace.messages.any((message) => !message.isRich) ||
+            namespace.collections.isNotEmpty)) {
       buffer
         ..writeln('  /// The locale every override lookup here is keyed by.')
         ..writeln(
@@ -1195,6 +1204,7 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
       }
     }
 
+    _writeCollections(buffer, namespace, locale, helpers);
     _writeKeyLookup(buffer, namespace);
 
     for (final helper in helpers) {
@@ -1209,6 +1219,96 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
 
     for (final child in namespace.children) {
       _writeImplementation(buffer, child, locale);
+    }
+  }
+
+  /// One line saying what a collection holds.
+  ///
+  /// The count rather than the contents: a list of forty bullet points in a
+  /// doc comment is noise, and the keys of a map are the part a caller has to
+  /// know.
+  String _collectionDoc(CollectionModel collection) {
+    final tag = model.baseLocale.locale.toLanguageTag();
+    final count = collection.entries.length;
+    final plural = count == 1 ? 'message' : 'messages';
+    if (collection.kind == CollectionKind.list) {
+      return '`$tag`: $count $plural, in order.';
+    }
+    final keys = collection.entries
+        .map((entry) => entry.path.split('.').last)
+        .join(', ');
+    return '`$tag`: $count $plural, keyed ${keys.isEmpty ? 'by nothing' : keys}.';
+  }
+
+  /// Emits every list and map of [namespace] for one locale.
+  ///
+  /// Two shapes, and `runtime_overrides` decides which — the same decision a
+  /// link makes, for the same reason. With overrides off the elements are
+  /// written into a `const` collection, so reading one allocates nothing and
+  /// the accessor is a getter over a canonicalized literal. With them on each
+  /// element becomes a private member that consults the store, and the
+  /// collection is built from those: a bundle can then replace one element of
+  /// a list, which inlined literals could not.
+  void _writeCollections(
+    StringBuffer buffer,
+    NamespaceModel namespace,
+    LocaleModel locale,
+    List<String> helpers,
+  ) {
+    for (final collection in namespace.collections) {
+      final parts = <String>[];
+      for (var index = 0; index < collection.entries.length; index++) {
+        final entry = collection.entries[index];
+        final translated = entry.bodies[locale.tag];
+        final body = translated ?? entry.bodies[model.baseLocale.tag];
+        if (body == null) continue; // Reported by the validator.
+        final source = translated == null ? model.baseLocale : locale;
+        final context = _MessageContext(entry, source);
+        final key = entry.path.split('.').last;
+
+        final String value;
+        if (config.runtimeOverrides) {
+          final name =
+              '_${collection.dartName}\$'
+              '${collection.kind == CollectionKind.list ? index : DartIdentifiers.lowerCamel(key)}';
+          buffer.writeln('  /// Element `$key`, so an override can reach it.');
+          _writeMember(buffer, entry, body, context, name: name);
+          buffer.writeln();
+          helpers.addAll(context.helpers);
+          (_overrideMessages[locale.tag] ??= []).add(
+            OverrideMessage(
+              key: entry.path,
+              keySpan: entry.keySpan,
+              isRich: false,
+              slots: List.of(context.slots),
+              pluralCategories: Map.of(context.pluralCategories),
+              choices: Map.of(context.choiceSelectors),
+            ),
+          );
+          value = name;
+        } else {
+          value = _expression(body, context);
+          helpers.addAll(context.helpers);
+        }
+        parts.add(
+          collection.kind == CollectionKind.list
+              ? value
+              : '${_stringLiteral(key)}: $value',
+        );
+      }
+
+      final open = collection.kind == CollectionKind.list ? '[' : '{';
+      final close = collection.kind == CollectionKind.list ? ']' : '}';
+      // `const` only where every element is a literal, which is exactly where
+      // the elements were not turned into members that consult a store.
+      final prefix = config.runtimeOverrides ? '' : 'const ';
+      buffer
+        ..writeln('  @override')
+        ..writeln(
+          '  ${collection.type} get ${collection.dartName} => '
+          '$prefix$open${parts.join(', ')}$close;',
+        )
+        ..writeln();
     }
   }
 

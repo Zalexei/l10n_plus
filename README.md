@@ -536,6 +536,87 @@ included: an override is the words of one branch, and a link is resolved before
 there are words. What the link **lends** is still overridable — `summary` never
 writes `{n}` and a bundle can place the count anyway.
 
+## Lists and maps
+
+Three onboarding screens are three messages whose *order* is content. Write
+them as an array:
+
+```json
+{
+  "onboarding": {
+    "steps": ["Create an account", "Add a card", "You are done"]
+  },
+  "countries(map)": {"fr": "France", "de": "Germany", "jp": "Japan"}
+}
+```
+
+```dart
+List<String> get steps;                    // t.onboarding.steps
+Map<String, String> get countries;         // t.countries
+```
+
+```dart
+List<String> get steps =>
+    const ['Create an account', 'Add a card', 'You are done'];
+```
+
+**`const`, so reading one allocates nothing** — the property every other
+accessor here has. And the count lives in the translation file: adding a fourth
+onboarding step is a translation change, not a Dart change, which is the whole
+reason to have lists at all.
+
+A list needs no marker because an array is unambiguous. A map does, and the
+suffix is `slang`'s: a group is a map **because its key says so**, never
+because of what it holds — otherwise every flat group in every existing
+project would silently change its API. The suffix is part of the key, so it is
+written in every locale's file, and a Russian bundle spelling `countries` while
+English spells `countries(map)` is caught by the rename detection.
+
+Elements are ordinary messages. A link resolves inside one; so does a format.
+What they may not do is take arguments:
+
+```
+error[invalid_collection_entry]: Element 0 of "steps" takes 1 argument (name),
+  and an element takes none.
+  Every element of a collection would have to accept every element's arguments,
+  which is a parameter list no caller can read — and the accessor could no
+  longer be a `const` collection.
+  Keep the parameterised message outside the collection and read it by name.
+```
+
+The others refused: an element that is itself a list or an object (it would
+need a generated type per element), a rich element (it renders spans, not a
+string), and `(map)` on a message rather than a group.
+
+**A length difference between locales is the missing key it always was.** The
+elements are keyed by index — `steps.0`, `steps.1` — so a list that is three
+long in English and two in Russian reports `steps.2 is missing in ru`, at the
+right line, with no new machinery. The same for a map key one locale forgot.
+
+With `runtime_overrides` on, each element becomes a member that consults the
+store, so a bundle can replace one item of a list:
+
+```dart
+AppLocale.en.installOverrides({'onboarding.steps.1': 'Add a payment method'});
+```
+
+The override key never carries `(map)`: the suffix tells the generator what to
+build, and a bundle names `countries.fr`. `check-overrides` knows every element
+and refuses one that does not exist.
+
+### What this does not do
+
+A list of objects — the onboarding shape where each step has a title *and* a
+body — is refused rather than generated. It would need a class per element and
+an index that is a type, which is a bigger feature than this one. Write a group
+of groups and read its members by name.
+
+And for a **lookup** by a string the server chose, the answer is not a map but
+[`dynamic_keys`](#when-the-server-picks-the-message): a map's `[]` returns
+`String?` and a typo is silent, where a key enum's is total and a typo is a
+compile error. A map is for the times you need the whole thing — to iterate it,
+sort it, or hand it over.
+
 ## When the server picks the message
 
 An error code arrives from an API and some message has to be shown for it. With

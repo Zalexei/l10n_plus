@@ -273,6 +273,12 @@ final class L10nPlusGenerator {
     final messages = <MessageModel>[];
     void collect(NamespaceModel namespace) {
       messages.addAll(namespace.messages);
+      // A list of three bullet points is three messages to translate, which
+      // is what a translator is being asked for and so what the figure has
+      // to count.
+      for (final collection in namespace.collections) {
+        messages.addAll(collection.entries);
+      }
       namespace.children.forEach(collect);
     }
 
@@ -303,6 +309,14 @@ final class L10nPlusGenerator {
         // rather than through the span accessor, and both names mean the
         // message is in use.
         leafAliases: message.isRich ? [message.richWrapperName] : const [],
+      ),
+    // The collection, not its elements: a list is reached by its own name,
+    // so a list nothing reads is one finding and not one per item.
+    for (final collection in namespace.collections)
+      TranslationKey(
+        path: collection.path,
+        dartPath: [...prefix, collection.dartName],
+        keySpan: collection.keySpan,
       ),
     for (final child in namespace.children)
       ..._keysOf(child, [...prefix, child.dartName]),

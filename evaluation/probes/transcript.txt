@@ -451,3 +451,45 @@ exit=1
 159:  String operator [](WarningsKey key);
 192:  String operator [](ErrorsKey key) => switch (key) {
 216:  String operator [](WarningsKey key) => switch (key) {
+
+######## 27. a list and a map whose elements cannot be either ########
+evaluation/probes/workspace/translations/en.json:1:2
+steps.1
+error[invalid_collection_entry]: Element 1 of "steps" takes 1 argument (last4), and an element takes none.
+  Every element of a collection would have to accept every element's arguments, which is a parameter list no caller can read — and the accessor could no longer be a `const` collection.
+  Keep the parameterised message outside the collection and read it by name.
+  ╷
+1 │ {"steps": ["Create an account", "Add a card {last4}"], "c(map)": {"a(rich)": "See <b>this</b>"}}
+  │  ^^^^^^^
+  ╵
+
+evaluation/probes/workspace/translations/en.json:1:67
+c(map).a(rich)
+error[invalid_collection_entry]: Element "a" of "c" is rich, and an element has to be a string.
+  A rich message renders a list of spans, so a collection of them would be a list of lists with a builder per element.
+  Keep it outside the collection and read it by name.
+  ╷
+1 │ {"steps": ["Create an account", "Add a card {last4}"], "c(map)": {"a(rich)": "See <b>this</b>"}}
+  │                                                                   ^^^^^^^^^
+  ╵
+
+2 error(s), 0 warning(s).
+exit=1
+-- with both fixed, each becomes one const accessor:
+90:  List<String> get steps => const ['Create an account', 'Add a card'];
+93:  Map<String, String> get countries => const {'fr': 'France', 'de': 'Germany'};
+108:  List<String> get steps => const ['Создайте аккаунт', 'Добавьте карту'];
+111:  Map<String, String> get countries => const {
+-- and a list one locale is short of is the missing key it already was:
+evaluation/probes/workspace/translations/ru.json:1:2
+steps.1
+error[missing_key]: Key "steps.1" is missing in ru.
+  Base locale en defines it at en.json:1.
+  Add it, or set "fill_missing_from_base: true" to let untranslated keys fall back.
+  ╷
+1 │ {"steps": ["Создайте аккаунт"], "countries(map)": {"fr": "Франция", "de": "Германия"}}
+  │  ^^^^^^^
+  ╵
+
+1 error(s), 0 warning(s).
+exit=1

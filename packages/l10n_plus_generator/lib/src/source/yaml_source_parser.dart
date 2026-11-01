@@ -108,6 +108,7 @@ final class YamlSourceParser implements TranslationSourceParser {
     required SourceFile file,
     required String content,
     required DiagnosticCollector diagnostics,
+    CollectionKind collection = CollectionKind.namespace,
   }) {
     final children = <TranslationNode>[];
 
@@ -157,6 +158,26 @@ final class YamlSourceParser implements TranslationSourceParser {
             file: file,
             content: content,
             diagnostics: diagnostics,
+            // A group is a map because its key says so, never because of what
+            // it holds — the argument `MapKey` makes.
+            collection: MapKey.isMap(name)
+                ? CollectionKind.map
+                : CollectionKind.namespace,
+          ),
+        );
+        continue;
+      }
+
+      if (value is YamlList) {
+        children.add(
+          _list(
+            list: value,
+            key: name,
+            path: childPath,
+            keySpan: childKeySpan,
+            file: file,
+            content: content,
+            diagnostics: diagnostics,
           ),
         );
         continue;
@@ -193,6 +214,65 @@ final class YamlSourceParser implements TranslationSourceParser {
     }
 
     return TranslationGroup(
+      collection: collection,
+      key: key,
+      path: path,
+      keySpan: keySpan,
+      children: children,
+    );
+  }
+
+  /// Reads a sequence as a list of messages, keyed by index.
+  ///
+  /// The JSON parser's `_list` with YAML's spans: the elements become
+  /// ordinary leaves, so nothing after this stage knows a list was involved.
+  TranslationGroup _list({
+    required YamlList list,
+    required String key,
+    required String path,
+    required FileSpan keySpan,
+    required SourceFile file,
+    required String content,
+    required DiagnosticCollector diagnostics,
+  }) {
+    final children = <TranslationNode>[];
+    for (var index = 0; index < list.nodes.length; index++) {
+      final value = list.nodes[index];
+      if (value is YamlScalar && value.value is String) {
+        final valueSpan = _span(file, value.span);
+        children.add(
+          TranslationLeaf(
+            key: '$index',
+            path: '$path.$index',
+            keySpan: keySpan,
+            raw: value.value as String,
+            valueSpan: valueSpan,
+            contentOffset: _contentOffset(
+              content: content,
+              span: valueSpan,
+              value: value.value as String,
+            ),
+          ),
+        );
+        continue;
+      }
+      diagnostics.add(
+        Diagnostic.error(
+          code: 'invalid_collection_entry',
+          message: 'Element $index of "$key" is not a string.',
+          span: _span(file, value.span),
+          translationKey: '$path.$index',
+          details:
+              'Found ${_describe(value)}. A list holds messages, and a '
+              'message is a string — a list of lists or of maps would '
+              'generate a type per element.\n'
+              'Nest a map under this key instead and read its members by '
+              'name.',
+        ),
+      );
+    }
+    return TranslationGroup(
+      collection: CollectionKind.list,
       key: key,
       path: path,
       keySpan: keySpan,
@@ -239,8 +319,8 @@ final class YamlSourceParser implements TranslationSourceParser {
           '"false", "null" and "~", and anything numeric, as values rather '
           'than text — quote it to keep it a translation.';
     }
-    return 'Found ${_describe(value)}. Quote the value, or use a map to nest '
-        'more keys under it.';
+    return 'Found ${_describe(value)}. Quote the value, use a map to nest '
+        'more keys under it, or a sequence for a list of strings.';
   }
 
   static String _describe(YamlNode node) {

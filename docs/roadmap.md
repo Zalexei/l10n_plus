@@ -632,6 +632,69 @@ Diagnostics went from 72 codes to **81**: `rich_tag_mismatch`,
   why they were not attempted alongside rich text, and the first of them is the
   item below worth more than everything in this milestone.
 
+## Milestone 36 — a value that is a collection, not a message (done)
+
+The last row of the capability matrix `slang` held alone. An array becomes a
+`List<String>`, a key with the `(map)` suffix becomes a `Map<String, String>`,
+and both are `const`.
+
+* **A flag on the group, not a third node kind.** The translation tree is
+  `sealed` with two kinds, and `LinkNode` had already shown what adding one
+  costs. There was no reason to here: a list is a group whose children are
+  keyed by index, and only the accessor differs. So `CollectionKind` is a field
+  and the elements are ordinary leaves.
+* **Which paid for itself immediately.** The elements are parsed as messages,
+  so placeholders, formats and links work inside one. Signature inference
+  reads them, which is how an element that takes an argument can be refused.
+  And the cross locale check compares the element keys, so **a list that is
+  three long in English and two in Russian is `missing_key` for `steps.2`**, at
+  the right line, in words the project already had. The rename detection even
+  catches a locale that wrote `countries` where the base wrote
+  `countries(map)`.
+* **One new code**, `invalid_collection_entry`, registry at **103**, for the
+  three things an element cannot be: a message that takes arguments, a rich
+  message, and a collection of its own.
+* **No arguments, and the reason is the accessor.** A list whose elements took
+  values could not be `const`, and its signature would be the union of what
+  each element happens to use — a parameter list no caller can read. The same
+  shape of refusal `dynamic_keys` makes, for the same reason.
+* **`runtime_overrides` decides the shape, for the third time.** Off, the
+  elements are written into a `const` collection and reading one allocates
+  nothing. On, each becomes a private member that consults the store, so a
+  bundle can replace one item of a list. Executed, not argued. The override key
+  is where the `(map)` suffix is stripped — it is a directive to the generator,
+  not part of the message's identity — so a bundle names `countries.fr`, and
+  `check-overrides` refuses `steps.9` with the nearest key offered.
+* **Two things had to be taught.** Coverage counts the elements, because a list
+  of three bullet points is three messages a translator is being asked for; and
+  the `unused` scan looks for the collection's name rather than its elements',
+  because one unused list is one finding and one edit.
+* **Both source formats, and honestly not the third.** JSON arrays and YAML
+  sequences; ARB has no arrays, so an ARB bundle cannot express either, which
+  is the format's limit rather than a gap here.
+
+### What this one leaves open
+
+* **A list of objects is refused.** The onboarding shape where each step has a
+  title *and* a body would need a generated type per element and an index that
+  is a type. It is a bigger feature than this one and the diagnostic says so
+  rather than generating half of it; the workaround is a group of groups read
+  by name.
+* **A map's `[]` is still `String?`.** That is Dart's, not ours, and it is why
+  the README points a *lookup* at `dynamic_keys` instead: a key enum's lookup
+  is total and a typo is a compile error. A map is for the times you need the
+  whole thing. Two features that look like one and are not, and nothing in the
+  build tells a project it has reached for the wrong one.
+* **Nothing checks that a list is used in order.** `steps[1]` in Dart compiles
+  whatever the list holds, and a locale that reordered its elements renders
+  them reordered. The index is the key, so the cross locale check sees matching
+  keys and says nothing. A list is the one shape where order is content and
+  nothing here verifies it.
+* **An empty list is allowed.** `const []` is valid Dart and a translator
+  emptying a list is a legitimate edit, so there is no diagnostic — but a
+  screen that assumed three items gets none, and only the cross locale check
+  would notice if another locale still had them.
+
 ## Milestone 35 — a string from outside, turned into a key (done)
 
 The last of `slang`'s four runtime-tier advantages, and the one this document

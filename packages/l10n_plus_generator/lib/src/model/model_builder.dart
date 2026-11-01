@@ -383,6 +383,7 @@ final class ModelBuilder {
 
     final children = <NamespaceModel>[];
     final messages = <MessageModel>[];
+    final collections = <CollectionModel>[];
     final usedNames = <String, String>{
       if (group.path.isEmpty)
         for (final entry in _rootMembers.entries) entry.key: entry.value,
@@ -416,9 +417,25 @@ final class ModelBuilder {
     }
 
     for (final child in group.children) {
-      // The `(rich)` suffix is part of the key and not part of the API, so it
-      // is stripped here — the one place where keys become identifiers.
+      // The `(rich)` and `(map)` suffixes are part of the key and not part of
+      // the API, so they are stripped here — the one place where keys become
+      // identifiers.
       final isRich = RichKey.isRich(child.key);
+      if (MapKey.isMap(child.key) && child is! TranslationGroup) {
+        diagnostics.add(
+          Diagnostic.error(
+            code: 'invalid_key',
+            message: 'Message "${child.path}" cannot be marked "(map)".',
+            span: child.keySpan,
+            translationKey: child.path,
+            details:
+                'The suffix marks a group of messages as one '
+                '`Map<String, String>`. A message is one string; put the '
+                'suffix on the group that holds them.',
+          ),
+        );
+        continue;
+      }
       if (isRich && child is TranslationGroup) {
         diagnostics.add(
           Diagnostic.error(
@@ -433,7 +450,9 @@ final class ModelBuilder {
         );
         continue;
       }
-      final dartName = DartIdentifiers.lowerCamel(RichKey.baseName(child.key));
+      final dartName = DartIdentifiers.lowerCamel(
+        MapKey.baseName(RichKey.baseName(child.key)),
+      );
       if (dartName.isEmpty) {
         diagnostics.add(
           Diagnostic.error(
@@ -453,6 +472,10 @@ final class ModelBuilder {
       if (isRich) claim('${dartName}Rich', child);
 
       switch (child) {
+        case final TranslationGroup childGroup
+            when childGroup.collection.isCollection:
+          final collection = _collection(childGroup);
+          if (collection != null) collections.add(collection);
         case final TranslationGroup childGroup:
           children.add(_namespace(childGroup));
         case final TranslationLeaf leaf:
@@ -467,13 +490,130 @@ final class ModelBuilder {
       interfaceName: interfaceName,
       children: children,
       messages: messages,
+      collections: collections,
     );
   }
 
+  /// Builds the model of one list or map.
+  ///
+  /// The elements are built by [_message] like any other message, which is
+  /// what gives them placeholders, formats, plurals and links for free. Two
+  /// things are checked here because they are the two a collection cannot
+  /// carry: an element that is itself a group, and an element that needs
+  /// arguments.
+  CollectionModel? _collection(TranslationGroup group) {
+    final dartName = DartIdentifiers.lowerCamel(MapKey.baseName(group.key));
+    if (dartName.isEmpty) {
+      diagnostics.add(
+        Diagnostic.error(
+          code: 'invalid_key',
+          message: 'Key "${group.key}" cannot be turned into a Dart name.',
+          span: group.keySpan,
+          translationKey: group.path,
+          details: 'Use letters, digits, "_" or "-" in translation keys.',
+        ),
+      );
+      return null;
+    }
+
+    final name = MapKey.baseName(group.key);
+    // A list element is named by its position and a map element by its key,
+    // which is how the source wrote them and how a reader will look for them.
+    String element(String key) => group.collection == CollectionKind.list
+        ? 'Element $key of "$name"'
+        : 'Element "$key" of "$name"';
+
+    final entries = <MessageModel>[];
+    for (final child in group.children) {
+      switch (child) {
+        case final TranslationGroup nested:
+          diagnostics.add(
+            Diagnostic.error(
+              code: 'invalid_collection_entry',
+              message:
+                  '${element(nested.key)} is a group, and an element has to '
+                  'be a message.',
+              span: nested.keySpan,
+              translationKey: nested.path,
+              details:
+                  'A list or a map holds strings. An element that is itself a '
+                  'collection would need a generated type of its own, and '
+                  'reading it back would need the index to be a type too.\n'
+                  'Make this a plain group — drop the array or the "(map)" '
+                  'suffix — and read its members by name.',
+            ),
+          );
+        case final TranslationLeaf leaf:
+          if (RichKey.isRich(leaf.key)) {
+            diagnostics.add(
+              Diagnostic.error(
+                code: 'invalid_collection_entry',
+                message:
+                    '${element(RichKey.baseName(leaf.key))} is rich, and an '
+                    'element has to be a string.',
+                span: leaf.keySpan,
+                translationKey: leaf.path,
+                details:
+                    'A rich message renders a list of spans, so a collection '
+                    'of them would be a list of lists with a builder per '
+                    'element.\n'
+                    'Keep it outside the collection and read it by name.',
+              ),
+            );
+            continue;
+          }
+          final message = _message(
+            leaf,
+            DartIdentifiers.lowerCamel(leaf.key),
+            isRich: false,
+            path: '${MapKey.baseName(group.path)}.${leaf.key}',
+          );
+          if (message == null) continue;
+          if (message.arguments.isNotEmpty) {
+            diagnostics.add(
+              Diagnostic.error(
+                code: 'invalid_collection_entry',
+                message:
+                    '${element(leaf.key)} takes '
+                    '${message.arguments.length} '
+                    '${message.arguments.length == 1 ? 'argument' : 'arguments'} '
+                    '(${message.arguments.map((argument) => argument.name).join(', ')}), '
+                    'and an element takes none.',
+                span: leaf.keySpan,
+                translationKey: leaf.path,
+                details:
+                    'Every element of a collection would have to accept every '
+                    "element's arguments, which is a parameter list no caller "
+                    'can read — and the accessor could no longer be a `const` '
+                    'collection.\n'
+                    'Keep the parameterised message outside the collection '
+                    'and read it by name.',
+              ),
+            );
+            continue;
+          }
+          entries.add(message);
+      }
+    }
+
+    return CollectionModel(
+      kind: group.collection,
+      path: group.path,
+      dartName: dartName,
+      keySpan: group.keySpan,
+      entries: entries,
+    );
+  }
+
+  /// [path] replaces the leaf's own, for a collection element: the `(map)`
+  /// suffix is a generation directive and not part of the message's identity,
+  /// so an override bundle names `countries.fr` rather than
+  /// `countries(map).fr`.
   MessageModel? _message(
     TranslationLeaf leaf,
     String dartName, {
     required bool isRich,
+    String? path,
   }) {
     final signature = baseSignatures[leaf.path];
     if (signature == null) return null;
@@ -668,7 +808,7 @@ final class ModelBuilder {
     if (isRich && richBodies == null) return null;
 
     return MessageModel(
-      path: leaf.path,
+      path: path ?? leaf.path,
       dartName: dartName,
       keySpan: leaf.keySpan,
       arguments: arguments,
