@@ -71,6 +71,7 @@ GenerationResult runGenerator(
     ignoredCount: result.ignoredCount,
     coverage: result.coverage,
     overrides: result.overrides,
+    linkedKeys: result.linkedKeys,
   );
 }
 

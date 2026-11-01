@@ -626,10 +626,97 @@ Diagnostics went from 72 codes to **81**: `rich_tag_mismatch`,
 * **No PO/XLIFF and no vendor API.** ARB and CSV travel; Crowdin and Lokalise
   still mean a person in between.
 * **The runtime tier is untouched**: no over-the-air overrides, no lazy
-  per-locale loading, no linked translations, no dynamic key access. Those four
-  all rewrite the emitter and the model, which is why they were not attempted
-  alongside rich text, and the first of them is the item below worth more than
-  everything in this milestone.
+  per-locale loading, ~~no linked translations~~ (**done in Milestone 33**), no
+  dynamic key access. Those four all rewrite the emitter and the model, which is
+  why they were not attempted alongside rich text, and the first of them is the
+  item below worth more than everything in this milestone.
+
+## Milestone 33 — one message inside another (done)
+
+`@:other.key`, the second of `slang`'s four runtime-tier advantages to be
+taken — and the last of them this library's thesis has any business taking:
+dynamic key access is the thesis's opposite, and lazy loading is a question
+about build output rather than a feature. It brings with it the one capability
+ICU cannot express: two plurals in one sentence, each selecting on its own
+count.
+
+* **Resolved while generating, in two forms.** A link to a parameterless
+  literal target is written in place — transitively — and the result is byte
+  for byte the file you get from writing the words out, asserted with the doc
+  comments stripped. Anything else is a call on a `const` receiver,
+  `const $BrandEn().name`, which Dart canonicalizes: one method call, no
+  allocation, no root pointer anywhere in the output.
+* **A prediction disproved.** `architecture.md` had said, ever since the object
+  graph was designed, that the `const` graph cost us linked translations, and
+  that the feature would need a root reference when it arrived. It needed nothing: a `const` constructor
+  with no fields is free to name from anywhere. Believing otherwise is why the
+  feature waited, and the note now says so.
+* **The target's parameters become yours**, merged through the existing
+  `argument_kind_conflict` machinery rather than a second copy of it — so
+  `{n, date}` here against a plural `n` there is an error, reported against the
+  link, naming the message the other kind came from. Transitive, so a chain
+  lends through.
+* **Five new link codes and one for overrides**, registry at **101**:
+  `unknown_link_target` with the nearest key offered, `link_cycle` with the ring
+  written out in the order it is followed, `link_to_rich`,
+  `rich_unsupported_link`, `invalid_link` (which is also what a `slang`-style
+  relative `@:.sibling` gets, with the rule stated), and
+  `override_contains_link`.
+* **The cycle is the differentiator, and it was read in the sources.** `slang`
+  throws a bare string for a missing target and guards rings only in the pass
+  that gathers parameters, so two messages linking to each other emit code that
+  calls itself; `easy_localization` resolves links at run time, one level deep,
+  and its own source carries `// TODO: add recursion detection and a resolve
+  stack.` Ours is an iterative DFS — a stack overflow in the checker looking for
+  unbounded depth would be a joke at its own expense — and a ring copied into
+  twelve files is one finding.
+* **Validated per locale, before cross-locale validation**, because a
+  translator can write a link too. A locale that writes the words out instead
+  of linking produces the same signature and passes; a locale that drops the
+  lent parameter is the ordinary `missing_placeholder`. The base locale is
+  resolved first, so the one diagnostic points at the file the project is
+  maintained in.
+* **`runtime_overrides` decides the form**, and that decision is the only place
+  the two features conflict: with overrides on a link is a call, so one bundle
+  entry renames the product in every message that mentions it. Executed, not
+  argued — `links_runtime_test.dart` installs `{'brand.name': 'Acme One'}` and
+  reads three messages back, one of them Russian to show nothing else moved. The lent parameter is still a token a bundle can
+  place; the linked text is not, because an override is the words of one branch.
+* **A message reached only by a link is used**, so `unused` does not offer to
+  delete it. The one direction that scan must never err in.
+* **Six exhaustive switches broke, and the compiler named all six.**
+  `LinkNode` is the first addition to `MessageNode` since the AST was written,
+  and `rich_ast.dart` had predicted the cost exactly.
+* **`nearest_key.dart`**: the edit-distance routine had grown two copies, and
+  this would have been the third. One implementation now, behaviour unchanged.
+
+### What this one leaves open
+
+* **No relative links.** `slang`'s `@:.sibling` is refused with the rule stated
+  rather than supported: every other place in this project names a key in full,
+  and an anchor concept the model does not have would be one more thing for a
+  key rename to get wrong.
+* **No modifiers.** `easy_localization` has `@.upper:key`; a link brings the
+  target's text as it stands. Case transformation is locale-sensitive in ways a
+  build step should not guess at, and `toUpperCase()` on a Turkish `i` is the
+  standard example.
+* **The call form's cost was not separately benchmarked.** The inlined form
+  needs no measurement — it is the same code a hand-written message compiles
+  to — and the call form is visibly one method call on a canonicalized `const`,
+  but neither is a number. Adding a benchmark case means adding a linked message
+  to the example app, which is a change to a showcase for the sake of a figure
+  nobody has disputed.
+* **Nothing isolates what a link brings.** With `bidi_isolation` on, a link's
+  text is not isolated, for the reason a nested choice's rendering is not: it is
+  this locale's own words. But a link to a message that is nothing but a
+  placeholder brings an interpolated value with it, and that value reaches the
+  sentence unisolated — the bare-placeholder exception, seen from one more
+  angle.
+* **A link in a rich message is refused rather than supported.** Splicing a
+  string into a span run would work; splicing one whose words a translator might
+  later want to wrap in a tag would not, and the difference is invisible from
+  the emitter. Refusing the half that happens to be expressible seemed better
+  than shipping it.
 
 ## Milestone 32 — a release of bundles is one thing (done)
 

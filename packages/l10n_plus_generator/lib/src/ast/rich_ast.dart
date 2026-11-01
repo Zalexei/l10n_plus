@@ -17,9 +17,12 @@ import 'message_ast.dart';
 ///   ordinary [MessageBody] in which `<link>` is literal text. A tag carries
 ///   no arguments and no branches, so there is nothing those stages would
 ///   decide differently, and none of them needed a new case;
-/// * [MessageNode] stays closed over the five node kinds it had. Adding a
-///   sixth would make every exhaustive switch over it incomplete, including
-///   switches in files this layer has no business editing.
+/// * [MessageNode] stays closed over the node kinds it had. Adding one makes
+///   every exhaustive switch over it incomplete, including switches in files
+///   this layer has no business editing — which is exactly what happened when
+///   `LinkNode` arrived in Milestone 33: six switches across four files, every
+///   one named by the compiler. A cost worth paying for a construct that
+///   carries data, and not worth paying for a tag, which carries none.
 sealed class RichNode {
   const RichNode();
 }

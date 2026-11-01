@@ -123,9 +123,13 @@ abstract final class UnusedKeyScanner {
   );
 
   /// Every message of [keys] that no name in [sources] can reach.
+  /// [linked] are keys some message links to with `@:`, which are used by
+  /// definition — the generated code for the message that links to them names
+  /// them, or has their text written into it.
   static UnusedKeyReport scan({
     required Iterable<TranslationKey> keys,
     required Iterable<DartSource> sources,
+    Set<String> linked = const {},
   }) {
     final used = referencedNames(sources);
     final scanned = sources.length;
@@ -135,6 +139,7 @@ abstract final class UnusedKeyScanner {
     // by the same edit, so they are one finding, not thirty.
     final blocked = <String, List<TranslationKey>>{};
     for (final key in keys) {
+      if (linked.contains(key.path)) continue;
       final at = _firstUnreachable(key, used);
       if (at == -1) continue;
       final segments = key.path.split('.');

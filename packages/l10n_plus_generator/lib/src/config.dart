@@ -4,6 +4,7 @@ import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
 
 import 'diagnostic.dart';
+import 'nearest_key.dart';
 import 'source/file_pattern.dart';
 import 'model/dart_identifiers.dart';
 
@@ -231,7 +232,7 @@ final class L10nPlusConfig {
     };
     for (final key in document.keys) {
       if (knownKeys.contains(key)) continue;
-      final nearest = _nearestKey('$key', knownKeys);
+      final nearest = NearestKey.of('$key', knownKeys);
       diagnostics.add(
         Diagnostic.warning(
           code: 'unknown_config_key',
@@ -440,46 +441,6 @@ final class L10nPlusConfig {
         ),
       ),
     );
-  }
-
-  /// The known key [written] is most likely a typo of, or `null`.
-  ///
-  /// Only a genuinely near miss counts: a third of the length, at most three
-  /// edits. `file_per_local` gets an answer, `translations` does not, and a
-  /// wrong guess is worse than the list of every key that follows it.
-  static String? _nearestKey(String written, Set<String> known) {
-    String? best;
-    var bestDistance = 1 << 30;
-    for (final candidate in known) {
-      final distance = _editDistance(written, candidate);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        best = candidate;
-      }
-    }
-    final budget = (written.length / 3).floor().clamp(1, 3);
-    return bestDistance <= budget ? best : null;
-  }
-
-  /// Levenshtein distance, two rows at a time.
-  static int _editDistance(String a, String b) {
-    var previous = List<int>.generate(b.length + 1, (i) => i);
-    var current = List<int>.filled(b.length + 1, 0);
-    for (var i = 1; i <= a.length; i++) {
-      current[0] = i;
-      for (var j = 1; j <= b.length; j++) {
-        final substitution = previous[j - 1] + (a[i - 1] == b[j - 1] ? 0 : 1);
-        final deletion = previous[j] + 1;
-        final insertion = current[j - 1] + 1;
-        current[j] = substitution < deletion
-            ? (substitution < insertion ? substitution : insertion)
-            : (deletion < insertion ? deletion : insertion);
-      }
-      final swap = previous;
-      previous = current;
-      current = swap;
-    }
-    return previous[b.length];
   }
 
   static L10nLocale? _locale(

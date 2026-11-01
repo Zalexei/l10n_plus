@@ -419,6 +419,123 @@ A count that no formatter renders is unaffected: it reads its own value, and a
 plural of pure words — `one{Delete the file} other{Delete the files}` — never
 consults a formatter at all.
 
+## Linking one message into another
+
+`@:other.key` puts another message's text here:
+
+```json
+{
+  "brand": {"name": "Acme Cloud", "short": "Acme"},
+  "welcome": "Welcome to @:brand.name",
+  "tagline": "@:{brand.short} — @:brand.name, simplified"
+}
+```
+
+```dart
+String get welcome => 'Welcome to Acme Cloud';
+String get tagline => 'Acme — Acme Cloud, simplified';
+```
+
+**Resolved while generating, not at run time.** The product name is written in
+place, the message stays a getter, and the generated code is byte for byte what
+you would have written by hand — asserted by a test that compares the two.
+Nothing is looked up, nothing is allocated, and a chain of links is followed all
+the way down. The braces in `@:{brand.short}` are there for a key the sentence
+runs into; a trailing full stop ends the sentence rather than the key, so
+`@:brand.` links to `brand`.
+
+**A target's parameters become yours.** This is what makes the feature typed
+rather than textual:
+
+```json
+{
+  "greeting": "Hello, {name}",
+  "items": "{n, plural, one{# item} other{# items}}",
+  "invitation": "@:greeting — you have @:items"
+}
+```
+
+```dart
+String invitation({required String name, required num n});
+```
+
+`invitation` writes no placeholder and no plural of its own. It takes both
+because the messages it links to do, and the branch is still chosen by the CLDR
+conditions compiled into `items` for that locale. Which gives you the one thing
+ICU cannot express at all:
+
+```json
+{"summary": "@:items in @:folders"}
+```
+
+```dart
+t.summary(n: 4, d: 1)   // "4 items in 1 folder"
+```
+
+**Two plurals in one sentence**, each selecting on its own count. A single ICU
+message selects on exactly one argument, so this needs two messages and a way to
+put one inside the other.
+
+### What the build refuses
+
+Six new diagnostics, because a link is the one construct in a message whose
+correctness is a property of the *project* rather than of the string — plus the
+kind conflict that already existed, now reachable through a link:
+
+```
+error[unknown_link_target]: No message is keyed "brnd".
+  Did you mean "brand"?
+
+error[link_cycle]: These links form a cycle: a -> b -> c -> a.
+  Break it: write the shared words out in one of these messages, and let the
+  others link to that one.
+
+error[argument_kind_conflict]: Argument "n" is used both as a date and as a plural.
+  The plural comes from "n", which this message links to, so both land on one
+  parameter here and there is no Dart type that could be both.
+```
+
+The other four: a link to a rich message (its spans are structure, not text), a
+link *inside* a rich message, a malformed path — which is also what a relative
+`@:.sibling` gets, since paths are absolute here — and a link in a runtime
+override bundle, which nothing at run time could follow.
+
+A cycle is the one worth dwelling on. In the two packages that have this
+feature, a ring of links is not a build error: `slang` guards it only in the
+pass that gathers parameters, so two messages linking to each other emit code
+that calls itself, and `easy_localization` resolves links at run time with
+`// TODO: add recursion detection and a resolve stack.` in its own source.
+
+A message reached only by a link is not reported by [unused keys](#unused-keys):
+it is used.
+
+### With runtime overrides on, a link becomes a call
+
+The two features pull in opposite directions, and the configuration already says
+which world you are in. With `runtime_overrides: true` a link compiles to a call
+on a `const` receiver instead of being written in place:
+
+```dart
+return 'Welcome to ${const $BrandEn().name}';
+```
+
+So one bundle entry renames the product everywhere it is mentioned:
+
+```dart
+AppLocale.en.installOverrides({'brand.name': 'Acme One'});
+t.welcome   // "Welcome to Acme One"
+t.tagline   // "Acme — Acme One, simplified"
+```
+
+The receiver is `const`, so this is one method call and no allocation — the
+generated classes have no fields and no pointer to a root, which is what makes
+naming one from anywhere free.
+
+Overriding the message that *links* replaces the whole of it, linked parts
+included: an override is the words of one branch, and a link is resolved before
+there are words. What the link **lends** is still overridable — `summary` never
+writes `{n}` and a bundle can place the count anyway.
+
 ## Rich text
 
 A link or a bold word inside a sentence is not two translations with a widget

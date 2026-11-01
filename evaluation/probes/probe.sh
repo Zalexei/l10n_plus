@@ -232,4 +232,26 @@ EOF
   dart run l10n_plus_generator check-overrides --from=overrides --stamp 2>&1
   rm -rf overrides; }
 
+probe 23 "a ring of linked messages, and a link to a key nothing defines" && {
+  print '{"brand": "Acme", "a": "see @:b", "b": "and @:a", "c": "from @:brnd"}' \
+    > translations/en.json
+  gen
+  print -r -- "-- and with the ring broken, the links resolve to nothing at run time:"
+  print '{"brand": "Acme", "a": "see @:brand", "b": "and @:a", "c": "from @:brand"}' \
+    > translations/en.json
+  gen > /dev/null
+  grep -n "get a =>\|get b =>\|get c =>" lib/l10n/app_localizations.g.dart; }
+
+probe 24 "a link that lends its parameters, and one locale forgetting them" && {
+  print '{"greet": "Hello {name}", "items": "{n, plural, one{# item} other{# items}}", "hello": "@:greet, you have @:items"}' \
+    > translations/en.json
+  print '{"greet": "Привет, {name}", "items": "{n, plural, one{# товар} few{# товара} many{# товаров} other{# товара}}", "hello": "Привет! Товаров нет"}' \
+    > translations/ru.json
+  gen
+  print -r -- "-- and with Russian taking both, the signature is one line in each locale:"
+  print '{"greet": "Привет, {name}", "items": "{n, plural, one{# товар} few{# товара} many{# товаров} other{# товара}}", "hello": "@:greet, у вас @:items"}' \
+    > translations/ru.json
+  gen > /dev/null
+  grep -n "String hello" lib/l10n/app_localizations.g.dart; }
+
 reset; base_config

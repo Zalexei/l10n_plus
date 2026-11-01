@@ -53,6 +53,7 @@ abstract final class CrossLocaleValidator {
     required List<LocaleMessages> others,
     required Map<String, MessageSignature> baseSignatures,
     required DiagnosticCollector diagnostics,
+    Map<String, Map<String, List<ArgumentSpec>>> linkArguments = const {},
     bool fillMissingFromBase = false,
     ExtraKeys extraKeys = ExtraKeys.error,
   }) {
@@ -96,6 +97,8 @@ abstract final class CrossLocaleValidator {
           other: locale,
           message: message,
           diagnostics: diagnostics,
+          linkArguments:
+              linkArguments[locale.locale.toFileTag()]?[entry.key] ?? const [],
         );
         _checkPluralCategories(locale, message, diagnostics);
       }
@@ -467,12 +470,16 @@ abstract final class CrossLocaleValidator {
     required LocaleMessages other,
     required ParsedMessage message,
     required DiagnosticCollector diagnostics,
+    List<ArgumentSpec> linkArguments = const [],
   }) {
     final collector = DiagnosticCollector();
     final signature = MessageSignature.infer(
       message.body,
       translationKey: key,
       diagnostics: collector,
+      // What this locale's own links contribute. Without them a locale that
+      // links to a plural would look like a locale that forgot its count.
+      extra: linkArguments,
     );
     diagnostics.addAll(collector.diagnostics);
 
@@ -692,6 +699,7 @@ abstract final class CrossLocaleValidator {
           case SelectNode():
             node.cases.values.forEach(walk);
           case LiteralNode():
+          case LinkNode():
           case ArgumentNode():
           case NumberSignNode():
             break;

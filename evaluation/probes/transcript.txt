@@ -344,3 +344,65 @@ overrides/en.json  en  1 of 2 message(s), 1 text(s)  c2ac7409fef2b131  stamped
 overrides/ru.json  ru  1 of 2 message(s), 1 text(s)  81e17b3d5637b514  stamped
 2 bundle(s) in "overrides", 2 of 3 locale(s). No errors.
 No bundle for: de. Those locales keep the text they compiled.
+
+######## 23. a ring of linked messages, and a link to a key nothing defines ########
+evaluation/probes/workspace/translations/en.json:1:62
+c
+error[unknown_link_target]: No message is keyed "brnd".
+  Did you mean "brand"?
+  A link names a whole dotted key, the way the rest of this project names one. A group is not a message, so "auth.login" cannot be linked to when the message is "auth.login.title".
+  ╷
+1 │ {"brand": "Acme", "a": "see @:b", "b": "and @:a", "c": "from @:brnd"}
+  │                                                              ^^^^^^
+  ╵
+
+evaluation/probes/workspace/translations/en.json:1:29
+a
+error[link_cycle]: These links form a cycle: a -> b -> a.
+  A link is resolved while generating, so a ring of them has no text to resolve to: every message in it is waiting for the next one. Nothing here can render, and nothing at run time would notice — a cycle of calls is a cycle of calls.
+  Break it: write the shared words out in one of these messages, and let the others link to that one.
+  ╷
+1 │ {"brand": "Acme", "a": "see @:b", "b": "and @:a", "c": "from @:brnd"}
+  │                             ^^^
+  ╵
+
+2 error(s), 0 warning(s).
+exit=1
+-- and with the ring broken, the links resolve to nothing at run time:
+95:  String get a => 'see Acme';
+98:  String get b => 'and see Acme';
+101:  String get c => 'from Acme';
+
+######## 24. a link that lends its parameters, and one locale forgetting them ########
+evaluation/probes/workspace/translations/ru.json:1:123
+hello
+error[missing_placeholder]: Argument "name" is missing.
+  Base locale en:
+    argument: name
+    type: placeholder
+  ru locale:
+    argument is missing
+  ╷
+1 │ {"greet": "Привет, {name}", "items": "{n, plural, one{# товар} few{# товара} many{# товаров} other{# товара}}", "hello": "Привет! Товаров нет"}
+  │                                                                                                                           ^^^^^^^^^^^^^^^^^^^
+  ╵
+
+evaluation/probes/workspace/translations/ru.json:1:123
+hello
+error[missing_placeholder]: Argument "n" is missing.
+  Base locale en:
+    argument: n
+    type: plural
+  ru locale:
+    argument is missing
+  ╷
+1 │ {"greet": "Привет, {name}", "items": "{n, plural, one{# товар} few{# товара} many{# товаров} other{# товара}}", "hello": "Привет! Товаров нет"}
+  │                                                                                                                           ^^^^^^^^^^^^^^^^^^^
+  ╵
+
+2 error(s), 0 warning(s).
+exit=1
+-- and with Russian taking both, the signature is one line in each locale:
+78:  String hello({required String name, required num n});
+105:  String hello({required String name, required num n}) =>
+146:  String hello({required String name, required num n}) =>

@@ -421,9 +421,96 @@ $AuthLogin get login => const $AuthLoginEn();
 Every namespace object is canonicalized at compile time, so `context.l10n.auth.login.title`
 allocates nothing and holds no back-reference to its root. A `late final` field
 per namespace would allocate once per locale; `const` allocates zero times. The
-cost is that messages cannot reference other messages (linked translations); when
-that feature arrives it will need a root reference, and that is a deliberate
-future trade rather than an upfront one.
+The prediction written here used to be that this costs linked translations, and
+that the feature would need a root reference when it arrived. Milestone 33
+disproved it: a link names the target's implementation class directly —
+`const $BrandEn().name` — and a `const` constructor with no fields is free to
+name from anywhere. The `const` graph was never the obstacle; believing it was
+is why the feature waited.
+
+### A link is resolved while generating, and the `const` graph survives it
+
+`@:other.key` is the one construct in a message that reads another message, and
+the whole performance argument of this library is that reading a translation is
+reading a `const`. So a link never becomes a lookup. It becomes one of two
+things, decided per link:
+
+* **the target's text, written in place**, when the target takes no parameters
+  and resolves to literals — the product name, the word a dozen messages share.
+  Transitive, so a chain costs nothing either, and the result is byte for byte
+  the file you would get from writing the words out. `link_test.dart` asserts
+  exactly that, with the doc comment stripped: the doc comment deliberately
+  still shows `@:brand.name`, because it documents the message as the
+  translation file writes it.
+* **a call on a `const` receiver**, when the target takes parameters, or when
+  `runtime_overrides` is on. `const $BrandEn().name` — the target's own
+  implementation class, named directly. Dart canonicalizes the instance, so
+  this is one method call and no allocation.
+
+The second form is why the prediction in
+[Object graph: `const`, not lazy fields](#object-graph-const-not-lazy-fields)
+was wrong. That note said a link would need a root reference and so would cost
+the `const` graph. It does not: the generated classes have no fields, so naming
+one from anywhere is free, and no `_root` pointer exists anywhere in the output.
+`slang`, which does carry one, resolves every link through it at run time.
+
+**`runtime_overrides` decides which form.** With overrides on, inlined text
+could not change when the target is overridden, and a brand rename that reached
+one message out of twelve would be worse than no feature at all — so the link
+becomes a call and one bundle entry moves everything that links to it. With
+overrides off there is nothing to override and the text goes in place. The two
+features genuinely pull in opposite directions here; the configuration already
+says which world the project is in, so nothing new had to be invented to ask.
+
+**What a link lends is typed; what it brings is not overridable.** The target's
+parameters become the linking message's parameters, merged through the same
+`argument_kind_conflict` machinery two references in one string go through — so
+`{n, date}` here and a plural called `n` there is an error, reported against the
+link, with the details naming the message the other kind came from. The lent
+parameter is a normal token in the override path, which is how a message that
+never wrote `{n}` can still have a bundle place the count. The linked *text* is
+not addressable: an override replaces one branch's words, and a link is resolved
+before there are words.
+
+### Links are validated against the project, not the string
+
+`LinkResolver` answers four questions no single-message pass can:
+
+1. **does the target exist** — `unknown_link_target`, with the nearest key
+   offered from the same edit-distance budget the configuration and the override
+   checker use. That routine is now one implementation in `nearest_key.dart`
+   rather than the two copies it had grown into;
+2. **is it a rich message** — `link_to_rich`. Spans are structure, and there is
+   no string to splice;
+3. **does the path lead back here** — `link_cycle`, with the ring written out in
+   the order it is followed. Iterative DFS with colours, because the thing being
+   looked for is unbounded depth and a stack overflow in the checker would be a
+   joke at its own expense. A ring found from two directions is one finding, and
+   so is a ring copied into twelve translation files;
+4. **what do the targets contribute** — merged in dependency order, targets
+   before the messages that link to them, so a chain is already settled by the
+   time anything reads it and the transitive case needs no second pass.
+
+It runs **per locale**, before cross-locale validation, because a translator can
+write a link too and a link nothing defines is as wrong in Russian as in
+English. The base locale goes first, so the one diagnostic about a mistake
+copied into every file points at the file the project is maintained in. A locale
+that writes the words out instead of linking produces the same signature and
+passes; a locale that drops the lent parameter is the ordinary
+`missing_placeholder`, which is the check already there.
+
+For comparison, in the field: `slang` throws a bare string for a missing target
+and guards cycles only in the pass that gathers parameters, so a ring emits code
+that calls itself; `easy_localization` resolves links at run time, one level
+deep, with `// TODO: add recursion detection and a resolve stack.` in its own
+source.
+
+**The sixth node kind.** `LinkNode` is the first addition to `MessageNode`
+since the AST was written, and `rich_ast.dart` had warned that a sixth kind
+would break every exhaustive switch over it. It did — six of them, across four
+files — and the compiler named every one. That is the good kind of breakage: the
+alternative to a sealed type here would have been a silent default branch in the
+emitter.
 
 ### Nested plural/select inside text
 

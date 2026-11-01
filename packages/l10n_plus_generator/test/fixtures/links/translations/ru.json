@@ -1,0 +1,15 @@
+{
+  "brand": {
+    "name": "Акме Клауд",
+    "short": "Акме"
+  },
+  "welcome": "Добро пожаловать в @:brand.name",
+  "tagline": "@:{brand.short}'@':  @:brand.name, упрощённо",
+  "greeting": "Здравствуйте, {name}",
+  "invitation": "@:greeting — ваш пробный период @:brand.name начался",
+  "items": "{n, plural, one{# товар} few{# товара} many{# товаров} other{# товара}}",
+  "cart": "В корзине @:brand.short: @:items",
+  "folders": "{d, plural, one{# папка} few{# папки} many{# папок} other{# папки}}",
+  "summary": "@:items в @:folders",
+  "receipt": "{n, plural, one{Одно списание @:brand.short} few{# списания @:brand.short} many{# списаний @:brand.short} other{# списания @:brand.short}}"
+}

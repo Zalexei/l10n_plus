@@ -85,7 +85,7 @@ config lines rather than 1.
 | CLDR cardinal plurals | **Y — 222 languages** | ~ **14 hand-written**, rest silently wrong | Y — 119 via `package:intl` | **N — CLDR off by default** |
 | Ordinals | **Y — 107 languages** | ~ 14 | **N** | N |
 | Plural rules independently verified | **Y — vs `intl` and an ICU dump** | N | (is the oracle) | N |
-| Several plurals in one sentence | N | **Y** (linked translations) | N | N |
+| Several plurals in one sentence | **Y** — via links, each on its own count | Y (linked translations) | N | N |
 | Select / gender | Y — generated enum | Y — generated enum | ~ `String`, case-sensitive, silent fallthrough | ~ free string |
 | Typed placeholders | Y | Y | Y | **N** |
 | Named arguments | Y always | Y always | ~ opt-in | n/a |
@@ -93,7 +93,8 @@ config lines rather than 1.
 | Number / date / currency | Y — 11 styles + skeletons | Y | Y — 41 `DateFormat` variants | ~ re-exports `intl` |
 | Rich text / `TextSpan` / links | **Y — `(rich)` keys, a builder required per tag** | Y | N | N |
 | Lists, maps, dynamic key access | **N** | Y | N | Y (keys are strings) |
-| Linked translations `@:` | **N** | Y | N | Y |
+| Linked translations `@:` | **Y — resolved at build time, parameters typed through** | Y | N | Y — at run time |
+| A link cycle is a build error | **Y** — the ring named in order | N — guarded only while gathering parameters | n/a | N — `// TODO` in its own source |
 | Interfaces / polymorphic subtrees | **N** | Y | N | N |
 | Fallback chain configurable | Y | Y | ~ always the template locale | Y |
 | Region affinity (`en_NZ` → ?) | ~ generic first, then script, then tag | Y (`en-GB` → `en` always) | Y | ~ |
@@ -101,7 +102,7 @@ config lines rather than 1.
 | **Build fails on a missing translation** | **Y — diagnosed, with warn mode** | Y — as a Dart compile error | **N — `printStatus` only, no flag exists** | N |
 | Build fails on an extra key | **Y** | N | N | N |
 | Rename detection | **Y — unique in the field** | N | N | N |
-| Diagnostic codes + per-code suppression | **Y — 95 codes** | N | ~ all-or-nothing | N |
+| Diagnostic codes + per-code suppression | **Y — 101 codes** | N | ~ all-or-nothing | N |
 | Cross-locale placeholder / arity check | **Y** | ~ | ~ (and has open bugs) | N |
 | Unused-key analysis | Y (text scan) | Y (+ `clean`; false positives) | **N** | N |
 | Write missing keys back to source | ~ (`import`, from a hand-off file) | Y (`apply`) | N | N |
@@ -135,10 +136,10 @@ python3 evaluation/tally.py
 
 | | `Y` | `~` | `N` |
 | --- | --- | --- | --- |
-| `l10n_plus` | **32** | 4 | 10 |
-| `slang` | **31** | 6 | 9 |
-| `gen_l10n` | 12 | 10 | 24 |
-| `easy_localization` | 8 | 12 | 26 |
+| `l10n_plus` | **35** | 4 | 8 |
+| `slang` | **31** | 6 | 10 |
+| `gen_l10n` | 12 | 10 | 25 |
+| `easy_localization` | 8 | 12 | 27 |
 
 This table has now been counted wrong twice. An early revision said
 `l10n_plus ≈ 24` against `slang ≈ 31` by hand; four of those axes were closed
@@ -154,15 +155,25 @@ Which is the more useful finding, again, and why the script is in the
 repository now: a comparison nobody can re-run is not a measurement, and a
 script nobody keeps is nobody re-running it.
 
-**And one cell ahead is not a lead.** A `Y` is not a unit of value: "asset
+**Three of this revision's cells are one milestone's, and one of them is a row
+we added.** Milestone 33 flipped "linked translations" and "several plurals in
+one sentence" from `N` to `Y`, and introduced "a link cycle is a build error",
+which no package but this one passes. Adding a row on the axis you have just
+won is the easiest way to inflate your own total, so: without that row it is
+**34 against 31 over 46 rows**, and with it **35 against 31 over 47**. The row
+stays because whether a ring of links breaks the build or ships is a question a
+user has, and because the two `N`s in it were read in the two packages' sources
+rather than assumed — but the honest figure is the one without it.
+
+**And four cells ahead is not a lead either.** A `Y` is not a unit of value: "asset
 obfuscation" and "222 CLDR plural languages" are one cell each, and a table that
 can be moved by picking different rows is a sketch of the field rather than a
 verdict on it. What the two columns disagree about matters more than the total,
 and it splits cleanly — `slang`'s remaining advantages are **runtime shape**
-(lazy per-locale loading, an ambient accessor, dynamic key access, linked
-translations, asset obfuscation), ours are **build-time truth** (plural
+(lazy per-locale loading, an ambient accessor, dynamic key access, asset
+obfuscation), ours are **build-time truth** (plural
 correctness at 222/107 verified against two oracles, a build that fails on a gap
-with 95 diagnostic codes, rename detection, byte-identical output, a dev-only
+with 101 diagnostic codes, rename detection, byte-identical output, a dev-only
 generator). Those are two different bets about where localization errors should
 surface, not two scores.
 
@@ -256,24 +267,34 @@ and on its own, because it is the only one that touches the runtime:
 
 ## 6. Where we are still behind, in priority order
 
-1. **No linked translations**, therefore no two plurals in one sentence —
-   something ICU itself cannot do and `slang` can.
-2. **No lazy loading.** `slang` defers per-locale imports by default; at
+1. **No lazy loading.** `slang` defers per-locale imports by default; at
    810 messages × many locales this is a web bundle-size argument we lose.
-3. **No maps, lists or dynamic key access**, so server-driven copy
+2. **No maps, lists or dynamic key access**, so server-driven copy
    (`tr('error.$code')`) is structurally impossible — a genuine advantage of
    every string-keyed package.
-4. **No PO/XLIFF, and no vendor API.** ARB and CSV now travel; Crowdin,
+3. **No PO/XLIFF, and no vendor API.** ARB and CSV now travel; Crowdin,
    Lokalise and POEditor still mean a human in between.
-5. **No extraction from source**, and `import` writes translations but never
+4. **No extraction from source**, and `import` writes translations but never
    creates a file or a locale.
-6. **Six CLI commands against `slang`'s ~12** (`edit`, `stats`, `migrate`,
+5. **Six CLI commands against `slang`'s ~12** (`edit`, `stats`, `migrate`,
    `clean`, `configure` have no equivalent here).
+6. **No relative links or link modifiers.** `slang` has `@:.sibling`;
+   `easy_localization` has `@.upper:key`. Both were refused with the reason
+   written down rather than left unimplemented, which is a smaller gap than it
+   was, but it is still theirs.
 7. **No ambient context-free accessor** (deferred deliberately, with the
    footgun written down), **no asset obfuscation**, **no IDE plugin**, and no
    Material/Cupertino strings of our own.
 8. **Nothing published on pub.dev** — no community, no Stack Overflow answer,
    no name. Unchanged by any of the above, and still the largest gap of all.
+
+~~**No linked translations**, therefore no two plurals in one sentence.~~
+**Closed in Milestone 33.** It was the first item on this list for every
+revision of this document until then, and the reason it stayed there was a
+belief about our own architecture rather than a difficulty: `architecture.md`
+had said a link would need a root reference and so would cost the `const`
+graph. It needed nothing — a `const` constructor with no fields is free to name
+from anywhere.
 
 ## 7. The three things that would have made the claim true
 

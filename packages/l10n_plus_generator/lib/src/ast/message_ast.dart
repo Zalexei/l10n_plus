@@ -233,6 +233,25 @@ final class NumberSignNode extends MessageNode {
   final String argument;
 }
 
+/// A `@:other.key` reference to the text of another message.
+///
+/// Resolved by the generator, never at run time: by the time the emitter sees
+/// one it knows the target's text in this locale and the target's parameters,
+/// so a link becomes either the target's literal text written in place or a
+/// call to the target's accessor. Nothing about a link survives into the
+/// generated code as a link.
+final class LinkNode extends MessageNode {
+  /// Creates a reference to [path].
+  LinkNode(super.span, this.path);
+
+  /// Dotted key of the message whose text goes here.
+  ///
+  /// Absolute, and checked against the project: a path nothing defines is an
+  /// error with the nearest key offered, and a path that leads back here is a
+  /// cycle named in full.
+  final String path;
+}
+
 /// Whether a choice selects on cardinal or ordinal plural rules.
 enum PluralType {
   /// `{n, plural, ...}`: one item, two items.

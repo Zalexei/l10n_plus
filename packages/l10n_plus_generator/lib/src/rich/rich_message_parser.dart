@@ -90,6 +90,26 @@ final class _RichParser {
           // Ordinary content: it joins the run of plain nodes being
           // collected, and the emitter interpolates it as it always has.
           _stack.last.pending.add(node);
+        case LinkNode():
+          // Why not: a link is resolved into the target's text, and a rich
+          // message is not made of text — it is made of spans, with the tags
+          // deciding where one span ends. Splicing a string into a run would
+          // work; splicing one whose own words a translator might one day
+          // want to wrap in a tag would not, and the difference is invisible
+          // from here. Rather than support the half of it that happens to be
+          // expressible, this says so.
+          _error(
+            code: 'rich_unsupported_link',
+            message: 'A rich message cannot contain a link.',
+            span: node.span,
+            details:
+                'Write the words here, or keep the shared text in a plain '
+                'message and compose the two in Dart — a rich message '
+                'already hands you its spans.\n'
+                "To write the two characters literally, quote the at sign: "
+                "'@':.",
+          );
+          return false;
         case PluralNode():
         case SelectNode():
           // Why a rich message may not be a plural or a select: the wrapper

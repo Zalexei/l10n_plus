@@ -2,6 +2,7 @@ import 'package:l10n_plus/l10n_plus.dart';
 
 import '../ast/message_ast.dart';
 import '../diagnostic.dart';
+import '../nearest_key.dart';
 import '../plural/cldr_plural_rules.dart';
 import '../rich/rich_key.dart';
 import 'override_bundle.dart';
@@ -192,7 +193,7 @@ abstract final class OverrideChecker {
         schema.messages[message.key] ??
         schema.messages['${message.key}${RichKey.suffix}'];
     if (target == null) {
-      final nearest = _nearestKey(message.key, schema.messages.keys);
+      final nearest = NearestKey.of(message.key, schema.messages.keys);
       diagnostics.add(
         Diagnostic.error(
           code: 'unknown_override_key',
@@ -294,12 +295,39 @@ abstract final class OverrideChecker {
   /// thought the text was a message.
   static final RegExp _icu = RegExp(r'\{\s*[A-Za-z_][A-Za-z0-9_.]*\s*,');
 
+  /// A `@:other.key` link, which an override cannot contain.
+  ///
+  /// The same shape the message parser reads, minus the braced form's
+  /// closing brace: what matters here is only that the two characters are
+  /// followed by something that looks like a key.
+  static final RegExp _link = RegExp(r'@:\{?[A-Za-z_][A-Za-z0-9_.]*');
+
   static void _checkText({
     required OverrideBundleText text,
     required OverrideSlot slot,
     required String key,
     required DiagnosticCollector diagnostics,
   }) {
+    final link = _link.firstMatch(text.value);
+    if (link != null) {
+      diagnostics.add(
+        Diagnostic.error(
+          code: 'override_contains_link',
+          message: 'An override carries text, not a link.',
+          span: text.spanAt(link.start, link.end - link.start),
+          translationKey: key,
+          details:
+              'A link is resolved while generating: by the time this bundle '
+              'is installed the message it names has already been written '
+              'into the compiled text, and nothing at run time could follow '
+              'it. These characters would print as they stand.\n'
+              'Write the words out here. An override replaces the whole of '
+              'one branch, linked parts included.',
+        ),
+      );
+      return;
+    }
+
     final icu = _icu.firstMatch(text.value);
     if (icu != null) {
       diagnostics.add(
@@ -426,41 +454,5 @@ abstract final class OverrideChecker {
     }
     buffer.write(_branchHelp(message));
     return buffer.toString();
-  }
-
-  /// The key [written] is most likely a typo of, or `null`.
-  ///
-  /// The same budget the configuration uses for its own keys: a third of the
-  /// length and at most three edits, so a near miss gets an answer and an
-  /// unrelated key gets the list instead of a wrong guess.
-  static String? _nearestKey(String written, Iterable<String> known) {
-    String? best;
-    var bestDistance = 1 << 30;
-    for (final candidate in known) {
-      final distance = _editDistance(written, candidate);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        best = candidate;
-      }
-    }
-    final budget = (written.length / 3).floor().clamp(1, 3);
-    return bestDistance <= budget ? best : null;
-  }
-
-  static int _editDistance(String a, String b) {
-    var previous = List<int>.generate(b.length + 1, (index) => index);
-    for (var i = 1; i <= a.length; i++) {
-      final current = List<int>.filled(b.length + 1, 0)..[0] = i;
-      for (var j = 1; j <= b.length; j++) {
-        final cost = a[i - 1] == b[j - 1] ? 0 : 1;
-        final deletion = previous[j] + 1;
-        final insertion = current[j - 1] + 1;
-        final substitution = previous[j - 1] + cost;
-        current[j] = deletion < insertion ? deletion : insertion;
-        if (substitution < current[j]) current[j] = substitution;
-      }
-      previous = current;
-    }
-    return previous[b.length];
   }
 }

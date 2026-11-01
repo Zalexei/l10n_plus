@@ -138,6 +138,20 @@ final class IcuMessageParser {
         literalStart = _offset;
         continue;
       }
+      if (char == '@') {
+        final start = _offset;
+        final link = _parseLink();
+        if (_offset == start) {
+          // Not a link: an ordinary at sign, in an address or a handle.
+          literal.write(char);
+          _offset++;
+          continue;
+        }
+        flushLiteral(start);
+        if (link != null) nodes.add(link);
+        literalStart = _offset;
+        continue;
+      }
       if (char == '#' && pluralArgument != null) {
         flushLiteral(_offset);
         nodes.add(NumberSignNode(_span(_offset, _offset + 1), pluralArgument));
@@ -168,7 +182,7 @@ final class IcuMessageParser {
       _offset += 2;
       return true;
     }
-    if (next != '{' && next != '}' && next != '#') return false;
+    if (next != '{' && next != '}' && next != '#' && next != '@') return false;
 
     _offset++; // opening apostrophe
     while (!_isDone) {
@@ -185,6 +199,95 @@ final class IcuMessageParser {
       _offset++;
     }
     return true; // Unterminated quote: treat the rest as literal.
+  }
+
+  /// Whether [char] can begin a link path.
+  ///
+  /// A dot can, although a path may not start with one: `@:.sibling` is
+  /// `slang`'s relative link, and reading it as a malformed path says so
+  /// rather than leaving it on the screen as text.
+  static bool _isLinkStart(String char) => RegExp(r'[A-Za-z_.]').hasMatch(char);
+
+  static bool _isLinkPathChar(String char) =>
+      RegExp(r'[A-Za-z0-9_.]').hasMatch(char);
+
+  /// Reads `@:other.key` or `@:{other.key}` at the current offset.
+  ///
+  /// Leaves the offset untouched and returns `null` when this is not a link at
+  /// all, which is how an email address and a handle stay literal text: `@` is
+  /// only special when a `:` and the start of a key follow it. An apostrophe
+  /// quotes it — `'@':` — the same apostrophe that already quotes `{`, `}`
+  /// and `#`.
+  ///
+  /// Returns `null` with the offset moved when the link is malformed: the
+  /// diagnostic has been reported and there is nothing to emit.
+  LinkNode? _parseLink() {
+    final start = _offset;
+    if (start + 2 >= _source.length) return null;
+    if (_source[start + 1] != ':') return null;
+    final first = _source[start + 2];
+    final braced = first == '{';
+    if (!braced && !_isLinkStart(first)) return null;
+
+    _offset = braced ? start + 3 : start + 2;
+    final pathStart = _offset;
+    while (!_isDone && _isLinkPathChar(_current)) {
+      _offset++;
+    }
+    var path = _source.substring(pathStart, _offset);
+    if (!braced) {
+      // A sentence ends: `Welcome to @:brand.` links to `brand` and then
+      // writes a full stop. Dots are path characters because a key is dotted,
+      // so the trailing ones are handed back to the text — the braced form is
+      // there for the case this cannot guess, a key followed by a letter.
+      while (path.endsWith('.')) {
+        path = path.substring(0, path.length - 1);
+        _offset--;
+      }
+    }
+    if (braced) {
+      if (_isDone || _current != '}') {
+        _error(
+          code: 'invalid_link',
+          message: 'Expected "}" to close "@:{".',
+          start: start,
+          end: _offset,
+          details:
+              'Write @:{other.key} with the closing brace, or @:other.key '
+              'without the braces at all. The braces exist for a key that is '
+              'followed by a letter or a dot in the sentence.',
+        );
+        return null;
+      }
+      _offset++;
+    }
+
+    if (path.startsWith('.')) {
+      _error(
+        code: 'invalid_link',
+        message: 'A link path is absolute, and "$path" starts with a dot.',
+        start: start,
+        end: _offset,
+        details:
+            'Relative links are not supported: write the whole dotted key, '
+            'the way every other place in this project names one — '
+            '@:auth.login.title.',
+      );
+      return null;
+    }
+    if (path.isEmpty || path.endsWith('.') || path.contains('..')) {
+      _error(
+        code: 'invalid_link',
+        message: 'Expected a dotted key after "@:".',
+        start: start,
+        end: _offset,
+        details:
+            'A link names another message: @:auth.login.title. To write the '
+            "two characters literally, quote the at sign: '@':.",
+      );
+      return null;
+    }
+    return LinkNode(_span(start, _offset), path);
   }
 
   MessageNode? _parseArgument({required int depth}) {

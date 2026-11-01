@@ -1,0 +1,16 @@
+input_directory: translations
+output_directory: lib/generated
+base_locale: en
+fallback_locale: en
+class_name: AppLocalizations
+locale_enum_name: AppLocale
+
+# Links and runtime overrides at once, which is the combination with a
+# decision in it: with overrides on a link compiles to a call, so overriding
+# the target changes every message that links to it. With overrides off the
+# same links are written in place and cost nothing, which is what the `json`
+# golden shows for the same shapes.
+runtime_overrides: true
+
+flutter:
+  enabled: false

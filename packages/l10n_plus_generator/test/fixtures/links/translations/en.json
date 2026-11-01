@@ -1,0 +1,15 @@
+{
+  "brand": {
+    "name": "Acme Cloud",
+    "short": "Acme"
+  },
+  "welcome": "Welcome to @:brand.name",
+  "tagline": "@:{brand.short}'@':  @:brand.name, simplified",
+  "greeting": "Hello, {name}",
+  "invitation": "@:greeting — your trial of @:brand.name has started",
+  "items": "{n, plural, one{# item} other{# items}}",
+  "cart": "Your @:brand.short cart holds @:items",
+  "folders": "{d, plural, one{# folder} other{# folders}}",
+  "summary": "@:items in @:folders",
+  "receipt": "{n, plural, one{One @:brand.short charge} other{# @:brand.short charges}}"
+}

@@ -12,11 +12,13 @@ import 'codegen/flutter_emitter.dart';
 import 'config.dart';
 import 'diagnostic.dart';
 import 'icu/icu_parser.dart';
+import 'links/link_resolver.dart';
 import 'model/argument.dart';
 import 'model/dart_identifiers.dart';
 import 'model/localization_model.dart';
 import 'model/model_builder.dart';
 import 'overrides/override_schema.dart';
+import 'rich/rich_key.dart';
 import 'source/arb_source_parser.dart';
 import 'source/json_source_parser.dart';
 import 'source/document_merger.dart';
@@ -103,6 +105,7 @@ final class GenerationResult {
     this.ignoredCount = 0,
     this.coverage = const [],
     this.overrides = const OverrideCatalog([]),
+    this.linkedKeys = const {},
   });
 
   /// Everything reported along the way, in stage order.
@@ -132,6 +135,13 @@ final class GenerationResult {
   /// second time, so the shape a bundle is validated against is the shape the
   /// application actually asks the store for.
   final OverrideCatalog overrides;
+
+  /// Every key some message links to, in any locale.
+  ///
+  /// The `unused` scan reads it: a message reached by `@:brand.name` and never
+  /// named in Dart is used, and reporting it would be the one direction that
+  /// scan must not err in — a suggestion to delete a key the build depends on.
+  final Set<String> linkedKeys;
 
   /// How many warnings `ignore_diagnostics` dropped.
   ///
@@ -303,7 +313,11 @@ final class L10nPlusGenerator {
   /// The output directory is skipped: what the generator wrote is not a use.
   /// So are `.dart_tool` and `build`, which hold copies of it.
   UnusedKeyReport findUnusedKeys(GenerationResult result) =>
-      UnusedKeyScanner.scan(keys: result.keys, sources: _readDartSources());
+      UnusedKeyScanner.scan(
+        keys: result.keys,
+        sources: _readDartSources(),
+        linked: result.linkedKeys,
+      );
 
   List<DartSource> _readDartSources() {
     final root = Directory(projectRoot);
@@ -368,19 +382,83 @@ final class L10nPlusGenerator {
     final base = locales.firstWhere(
       (locale) => locale.locale == config.baseLocale,
     );
-    final baseSignatures = <String, MessageSignature>{
+    // A rich message exists and can be linked *from* nowhere and *to*
+    // nothing, so the resolver needs to know which keys they are. Both
+    // spellings, because a translation writes the suffix and a link does not.
+    final richPaths = <String>{
       for (final message in base.messages.values)
-        message.path: MessageSignature.infer(
-          message.body,
-          translationKey: message.path,
-          diagnostics: diagnostics,
-        ),
+        if (RichKey.isRich(message.leaf.key)) ...{
+          message.path,
+          RichKey.baseName(message.path),
+        },
     };
+
+    // Links are settled before anything compares one locale against another,
+    // because a link changes what a message's parameters *are*: a message
+    // that links to a plural has to supply its count. Resolved per locale —
+    // a translator can write a link too, and a link nothing defines is as
+    // wrong in Russian as in English — with the base locale first, so the one
+    // diagnostic about a mistake copied into twelve files points at the file
+    // the project is maintained in.
+    final others = locales
+        .where((locale) => locale != base)
+        .toList(growable: false);
+    final reportedLinks = <String>{};
+    final linkedKeys = <String>{};
+    final linkArguments = <String, Map<String, List<ArgumentSpec>>>{};
+    var baseSignatures = <String, MessageSignature>{};
+    for (final locale in [base, ...others]) {
+      final isBase = locale == base;
+      // A non base locale's signature is inferred twice: here, to feed the
+      // resolver, and again by the validator, which is what compares it. Only
+      // one of them may report what inference finds, or every kind conflict
+      // outside the base locale would be printed twice.
+      final signatures = <String, MessageSignature>{
+        for (final message in locale.messages.values)
+          message.path: MessageSignature.infer(
+            message.body,
+            translationKey: message.path,
+            diagnostics: isBase ? diagnostics : DiagnosticCollector(),
+          ),
+      };
+      final resolution = LinkResolver.resolve(
+        signatures: signatures,
+        richPaths: richPaths,
+        diagnostics: diagnostics,
+        reported: reportedLinks,
+      );
+      linkArguments[locale.locale.toFileTag()] = resolution.arguments;
+      for (final signature in signatures.values) {
+        for (final link in signature.links) {
+          linkedKeys.add(link.path);
+        }
+      }
+      if (!isBase) continue;
+      // Folded in rather than re inferred: the resolver has already decided
+      // these are compatible with what the message declares itself, and
+      // checking them twice would report every conflict twice.
+      for (final entry in resolution.arguments.entries) {
+        final signature = signatures[entry.key];
+        if (signature == null) continue;
+        for (final spec in entry.value) {
+          signature.arguments.putIfAbsent(spec.name, () => spec);
+        }
+      }
+      baseSignatures = signatures;
+    }
+    if (diagnostics.hasErrors) {
+      return GenerationResult(
+        diagnostics: diagnostics.diagnostics,
+        files: const [],
+        ignoredCount: diagnostics.ignoredCount,
+      );
+    }
 
     CrossLocaleValidator.validate(
       base: base,
-      others: locales.where((locale) => locale != base).toList(growable: false),
+      others: others,
       baseSignatures: baseSignatures,
+      linkArguments: linkArguments,
       diagnostics: diagnostics,
       fillMissingFromBase: config.fillMissingFromBase,
       extraKeys: config.extraKeys,
@@ -477,6 +555,7 @@ final class L10nPlusGenerator {
       ignoredCount: diagnostics.ignoredCount,
       coverage: _coverageOf(model),
       overrides: emitter.overrides,
+      linkedKeys: linkedKeys,
     );
   }
 

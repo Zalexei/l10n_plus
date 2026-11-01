@@ -1099,6 +1099,103 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
   String _isolatedLiteral(String expression) =>
       "'${_isolate(_interpolation(expression))}'";
 
+  /// Every message by dotted path, with the namespace that declares it.
+  ///
+  /// A link is the only construct that reads a message other than the one
+  /// being emitted, so this is built once, lazily, and a project without
+  /// links never builds it.
+  late final Map<String, ({NamespaceModel namespace, MessageModel message})>
+  _byPath = () {
+    final index =
+        <String, ({NamespaceModel namespace, MessageModel message})>{};
+    void walk(NamespaceModel namespace) {
+      for (final message in namespace.messages) {
+        index[message.path] = (namespace: namespace, message: message);
+      }
+      namespace.children.forEach(walk);
+    }
+
+    walk(model.root);
+    return index;
+  }();
+
+  /// The text [node] resolves to, when a link needs no call at all.
+  ///
+  /// A link whose target takes no parameters and whose text is literal — the
+  /// product name, the brand, the word a dozen messages share — is resolved
+  /// while generating and written in place. Not an optimization bolted on:
+  /// the whole performance argument of this library is that reading a
+  /// translation is reading a `const`, and a link that compiled to a call
+  /// would be the first place that stopped being true. Transitive, so a chain
+  /// of plain links costs nothing either.
+  ///
+  /// `null` when the target takes parameters or branches, which becomes a
+  /// call, and always `null` with `runtime_overrides` on — there the point of
+  /// the call is that overriding the *target* changes every message that
+  /// links to it, and inlined text could not.
+  String? _inlined(LinkNode node, _MessageContext context) {
+    if (config.runtimeOverrides) return null;
+    return _inlinedText(node.path, context.locale, <String>{});
+  }
+
+  String? _inlinedText(String path, LocaleModel locale, Set<String> seen) {
+    // A ring of links is already an error, so this is a belt rather than a
+    // check: a generator that recursed forever on input its own validator
+    // rejected would still be a generator that recursed forever.
+    if (!seen.add(path)) return null;
+    final target = _byPath[path];
+    if (target == null) return null;
+    final message = target.message;
+    if (message.isRich || message.arguments.isNotEmpty) return null;
+    final body =
+        message.bodies[locale.tag] ?? message.bodies[model.baseLocale.tag];
+    if (body == null) return null;
+
+    final buffer = StringBuffer();
+    for (final child in body.nodes) {
+      switch (child) {
+        case LiteralNode():
+          buffer.write(child.value);
+        case LinkNode():
+          final nested = _inlinedText(child.path, locale, seen);
+          if (nested == null) return null;
+          buffer.write(nested);
+        case ArgumentNode():
+        case NumberSignNode():
+        case PluralNode():
+        case SelectNode():
+          // Unreachable while the message has no arguments, and cheaper to
+          // say so than to prove it from here.
+          return null;
+      }
+    }
+    return buffer.toString();
+  }
+
+  /// The call [node] becomes when its target cannot be written in place.
+  ///
+  /// `const $AuthLoginEn().title(city: city)`: the receiver is a `const`
+  /// instance of the target's own implementation class, which Dart
+  /// canonicalizes, so the link costs one method call and no allocation. It
+  /// needs no pointer to the root — every generated class is `const`
+  /// constructible with no fields, which is what makes naming one from
+  /// anywhere free.
+  String _linkCall(LinkNode node, _MessageContext context) {
+    final target = _byPath[node.path]!;
+    final receiver =
+        'const ${target.namespace.interfaceName}'
+        '${context.locale.classSuffix}()';
+    final message = target.message;
+    if (message.arguments.isEmpty) return '$receiver.${message.dartName}';
+    final arguments = message.arguments
+        .map(
+          (argument) =>
+              '${argument.dartName}: ${context.parameterName(argument.name)}',
+        )
+        .join(', ');
+    return '$receiver.${message.dartName}($arguments)';
+  }
+
   /// Renders [body] as a single Dart expression.
   ///
   /// [inSpan] says the string is one span of a rich message rather than a
@@ -1132,6 +1229,10 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
           return argument.dartName;
         }
       }
+      if (node is LinkNode) {
+        final text = _inlined(node, context);
+        return text == null ? _linkCall(node, context) : _stringLiteral(text);
+      }
       if (node is PluralNode || node is SelectNode) {
         return context.helperCall(node, this);
       }
@@ -1143,6 +1244,17 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
       switch (node) {
         case LiteralNode():
           buffer.write(_escapeContent(node.value));
+        case LinkNode():
+          // Not isolated, with `bidi_isolation` on, for the reason a nested
+          // choice's rendering is not: what a link brings is this locale's
+          // own words in this locale's own direction. The values inside it
+          // were isolated where they were interpolated.
+          final text = _inlined(node, context);
+          buffer.write(
+            text == null
+                ? '\${${_linkCall(node, context)}}'
+                : _escapeContent(text),
+          );
         case ArgumentNode():
           final argument = context.argument(node.name);
           final format = context.formatOf(node);
@@ -1356,6 +1468,7 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
         return lines;
 
       case LiteralNode():
+      case LinkNode():
       case ArgumentNode():
       case NumberSignNode():
         return ["return '';"];
@@ -1390,6 +1503,11 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
           );
         case NumberSignNode():
           buffer.write('#');
+        case LinkNode():
+          // The link, not what it resolved to: the doc comment shows the
+          // message as the translation file writes it, and the resolved text
+          // is three lines below it in the body.
+          buffer.write('@:${node.path}');
         case PluralNode():
           buffer.write('{${node.argument}, plural, ...}');
         case SelectNode():
