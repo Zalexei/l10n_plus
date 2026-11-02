@@ -18,6 +18,10 @@ interfaces:
   Plan:
     - plans.free
     - plans.pro
+  # The element type of a record collection, which is what lets `Plan` hold a
+  # `features` member at all: without it the two lists would be two element
+  # types and `Plan` would be refused.
+  Feature: plans.*.features
 
 # Off, so the goldens show the `const` shape: an interface is a claim about
 # the member *declarations*, and `interfaces_test.dart` asserts that turning

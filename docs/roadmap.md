@@ -632,6 +632,54 @@ Diagnostics went from 72 codes to **81**: `rich_tag_mismatch`,
   why they were not attempted alongside rich text, and the first of them is the
   item below worth more than everything in this milestone.
 
+## Milestone 40 — the element type of a record collection (done)
+
+The second of the three refusals Milestone 38 wrote down, and the last one that
+was a missing feature rather than a question.
+
+* **A path's last segment may name a collection.** Then the interface is the
+  type of its *elements*: `Feature: plans.*.features` beside `PlanBlock:
+  plans.*`, and `PlanBlock` declares `List<Feature> get features` while
+  `$PlansFree` keeps `List<$PlansFreeFeaturesItem>`. Only the last segment,
+  because a collection has no children for a path to continue through.
+* **Nothing had to be arranged for the caller.** `List` is covariant in its
+  element, so a function taking `List<Feature>` already accepts the narrow
+  list; the covariant override exists for the member declaration alone. Where
+  Milestone 39 needed covariance to avoid breaking rich-text extensions, this
+  one gets it for free.
+* **The field set has to agree, not its order.** Fields are always `String` and
+  the generated constructor takes them by name, so the order is not observable
+  and comparing it would refuse translations for no reason. Which also lets a
+  list and a map share one element type — an element is an element.
+* **One entry is a namespace or a collection, never both**, with its own
+  diagnostic: a namespace is a set of members and a record is a set of fields,
+  and the mistake is almost always a path meant to be one or the other.
+* **A collection of text has no element type**, because every element is a
+  `String`. Refused with that sentence rather than generating an empty
+  interface.
+* No new diagnostic code — `invalid_interface` still covers every way an
+  interface can be wrong, and the registry stays at **104**. No cell moves
+  either: the interfaces row was already `Y`, and the matrix stays 38 against
+  31 over 47 rows.
+
+### What this one leaves open
+
+* **`dynamic_keys` is the one refusal left**, and it is a question rather than
+  a gap: sharing `operator [](XKey)` means one enum over two namespaces' keys,
+  and what the union of two key sets should be is not obvious. Nothing asks for
+  it.
+* **A record is still one level deep**, from Milestone 37. A field that is
+  itself an object would need a type of its own, and an element type does not
+  change that.
+* **Still no equality on the generated types.** The gap Milestone 39 found is
+  the same one: two records with equal fields are not equal, and an element
+  type makes that *more* visible, because a shared element type is exactly what
+  a caller would want to compare.
+* **A collection in two element types has to be disambiguated by hand**, the
+  same way a nested namespace does.
+* **Nothing checks that an element type is used.** `Feature` may exist only to
+  satisfy `PlanBlock` and be named nowhere in the application.
+
 ## Milestone 39 — a member that is itself an interface (done)
 
 The refusal Milestone 38 wrote down: a namespace in an interface could not hold
@@ -669,12 +717,10 @@ another namespace, because the member's type is named after its own path.
 
 ### What this one leaves open
 
-* **A list of records still cannot be shared.** It wants exactly the treatment
-  a nested namespace just got — a way to name the element type — and the
-  emitter cost is one `implements` on the element interface. The model cost is
-  not: the resolver would have to see collections, which live as a field on the
-  parent namespace rather than in the namespace index, and the field sets of
-  two collections would have to be compared against each other.
+* ~~**A list of records still cannot be shared.**~~ **Closed in Milestone 40**,
+  and the estimate here was right about where the work was: the emitter cost
+  was one `implements`, the model cost was the resolver learning to see
+  collections and a field-set comparison.
 * **`dynamic_keys` is a different question.** Sharing `operator [](XKey)` means
   one enum over two namespaces' keys, which is a decision about what the union
   of two key sets even means. Nothing asks for it.

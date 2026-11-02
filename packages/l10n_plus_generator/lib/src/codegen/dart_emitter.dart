@@ -94,15 +94,26 @@ final class DartEmitter {
   ///
   /// A namespace may be in two of them: Dart implements as many interfaces as
   /// are named, and two projects' reasons for a supertype are not one reason.
-  late final Map<String, List<String>> _sharedInterfaces = () {
+  late final Map<String, List<String>> _sharedInterfaces = _indexShared(
+    elementTypes: false,
+  );
+
+  /// Shared element types by the path of each record collection that has one.
+  late final Map<String, List<String>> _sharedElementTypes = _indexShared(
+    elementTypes: true,
+  );
+
+  /// Shared interface names by path, in `interfaces` order.
+  Map<String, List<String>> _indexShared({required bool elementTypes}) {
     final byPath = <String, List<String>>{};
     for (final interface in model.interfaces) {
+      if (interface.isElementType != elementTypes) continue;
       for (final path in interface.paths) {
         (byPath[path] ??= <String>[]).add(interface.name);
       }
     }
     return byPath;
-  }();
+  }
 
   /// Whether the locales are being emitted as deferred libraries.
   ///
@@ -998,9 +1009,13 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
   /// that is a thing the build can check.
   void _writeElementInterface(StringBuffer buffer, CollectionModel collection) {
     if (!collection.isRecord) return;
+    final shared = _sharedElementTypes[MapKey.baseName(collection.path)];
     buffer
       ..writeln('/// One element of `${MapKey.baseName(collection.path)}`.')
-      ..writeln('abstract interface class ${collection.interfaceName} {');
+      ..writeln(
+        'abstract interface class ${collection.interfaceName}'
+        '${shared == null ? '' : ' implements ${shared.join(', ')}'} {',
+      );
     for (final field in collection.fields) {
       final value =
           collection.entries.first.values[collection.fields.indexOf(field)];
@@ -1028,15 +1043,20 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
   void _writeSharedInterfaces(StringBuffer buffer) {
     for (final interface in model.interfaces) {
       final paths = interface.paths.map((path) => '`$path`').toList();
+      final listed = paths.length == 1
+          ? paths.single
+          : '${paths.take(paths.length - 1).join(', ')} and ${paths.last}';
       buffer
         ..writeln(
-          '/// The members shared by '
-          '${paths.length == 1 ? paths.single : '${paths.take(paths.length - 1).join(', ')} and ${paths.last}'}.',
+          interface.isElementType
+              ? '/// One element of $listed.'
+              : '/// The members shared by $listed.',
         )
         ..writeln('abstract interface class ${interface.name} {');
+      final of = interface.isElementType ? 'element' : 'namespace';
       for (final member in interface.members) {
         buffer
-          ..writeln('  /// The `${member.dartName}` of this namespace.')
+          ..writeln('  /// The `${member.dartName}` of this $of.')
           ..writeln('  ${member.declaration};')
           ..writeln();
       }

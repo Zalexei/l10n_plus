@@ -321,13 +321,21 @@ void main() {
       );
     });
 
-    test('a namespace whose list holds records', () {
+    test('a list of records with no element type of its own', () {
       final diagnostic = _only(
         '{"a": {"x": [{"t": "t"}]}, "b": {"x": [{"t": "t"}]}}',
         interfaces: '  Both:\n    - a\n    - b\n',
       );
       expect(diagnostic.code, 'invalid_interface');
-      expect(diagnostic.message, contains('the elements of "x" are records'));
+      expect(
+        diagnostic.message,
+        '"a" cannot implement "Both", because "x" holds records with no '
+        'element type to share.',
+      );
+      expect(
+        diagnostic.details,
+        contains('  interfaces:\n    X:\n      - a.x\n      - b.x'),
+      );
     });
 
     test('a namespace addressed by key', () {
@@ -449,6 +457,173 @@ void main() {
         interfaces: '  Change: onboarding.whatsNew.v2\n',
       );
       expect(source, contains(r'  $OnboardingWhatsNewV2Meta get meta;'));
+    });
+  });
+
+  group('an element type', () {
+    /// Two plans, each a list of the same record.
+    const String plans =
+        '{"plans": {'
+        '"free": {"features": [{"title": "Sync", "note": "Daily"}]},'
+        '"pro": {"features": [{"title": "Sync", "note": "Live"}]}'
+        '}}';
+
+    test('one type the elements of several collections implement', () {
+      final source = _generated(
+        plans,
+        interfaces: '  Feature: plans.*.features\n',
+      );
+
+      expect(source, contains('abstract interface class Feature {'));
+      expect(source, contains('  String get title;'));
+      expect(
+        source,
+        contains(
+          r'abstract interface class $PlansFreeFeaturesItem '
+          'implements Feature {',
+        ),
+      );
+      expect(
+        source,
+        contains(
+          r'abstract interface class $PlansProFeaturesItem '
+          'implements Feature {',
+        ),
+      );
+      expect(
+        source,
+        contains(
+          '/// One element of `plans.free.features` and '
+          '`plans.pro.features`.',
+        ),
+      );
+    });
+
+    test('the accessor keeps the narrow element type', () {
+      // Nothing needs to widen: a `List` is covariant in its element, so a
+      // function taking `List<Feature>` already accepts this one.
+      final source = _generated(
+        plans,
+        interfaces: '  Feature: plans.*.features\n',
+      );
+      expect(source, contains(r'List<$PlansFreeFeaturesItem> get features;'));
+    });
+
+    test('a namespace holding one can now be in an interface', () {
+      // The refusal Milestone 38 wrote down, lifted: the member is the
+      // collection over the *shared* element type.
+      final source = _generated(
+        plans,
+        interfaces: '  Feature: plans.*.features\n  PlanBlock: plans.*\n',
+      );
+      expect(source, contains('  List<Feature> get features;'));
+      expect(
+        source,
+        contains(r'abstract interface class $PlansFree implements PlanBlock {'),
+      );
+    });
+
+    test('without the element type, the namespace is still refused', () {
+      final diagnostic = _only(plans, interfaces: '  PlanBlock: plans.*\n');
+      expect(diagnostic.code, 'invalid_interface');
+      expect(
+        diagnostic.message,
+        contains('"features" holds records with no element type to share'),
+      );
+    });
+
+    test('a list and a map may share one element type', () {
+      final source = _generated(
+        '{"a": {"x": [{"t": "A"}]}, "b": {"x(map)": {"k": {"t": "B"}}}}',
+        interfaces: '  Both:\n    - a.x\n    - b.x\n',
+      );
+      expect(source, contains('abstract interface class Both {'));
+      expect(source, contains(r'List<$AXItem> get x;'));
+      expect(source, contains(r'Map<String, $BXItem> get x;'));
+    });
+
+    test('the fields have to agree', () {
+      final diagnostic = _only(
+        '{"a": {"x": [{"t": "A", "u": "A"}]}, "b": {"x": [{"t": "B"}]}}',
+        interfaces: '  Both:\n    - a.x\n    - b.x\n',
+      );
+      expect(diagnostic.code, 'invalid_interface');
+      expect(
+        diagnostic.message,
+        '"b.x" does not have the fields of "a.x", which "Both" was read from.',
+      );
+      expect(diagnostic.details, contains('"u" is missing'));
+      expect(diagnostic.details, contains('order is not compared'));
+    });
+
+    test('an extra field is reported too', () {
+      final diagnostic = _only(
+        '{"a": {"x": [{"t": "A"}]}, "b": {"x": [{"t": "B", "u": "B"}]}}',
+        interfaces: '  Both:\n    - a.x\n    - b.x\n',
+      );
+      expect(diagnostic.details, contains('"u" is not in "a.x"'));
+    });
+
+    test('the field order does not have to agree', () {
+      final source = _generated(
+        '{"a": {"x": [{"t": "A", "u": "A"}]}, '
+        '"b": {"x": [{"u": "B", "t": "B"}]}}',
+        interfaces: '  Both:\n    - a.x\n    - b.x\n',
+      );
+      expect(source, contains('abstract interface class Both {'));
+    });
+
+    test('a collection of text has no element type', () {
+      final diagnostic = _only(
+        '{"a": {"x": ["one"]}}',
+        interfaces: '  Both: a.x\n',
+      );
+      expect(diagnostic.code, 'invalid_interface');
+      expect(
+        diagnostic.message,
+        '"a.x" cannot give "Both" an element type, because its elements are '
+        'text.',
+      );
+      expect(diagnostic.details, contains('no type to share'));
+    });
+
+    test('a namespace and a collection in one entry is refused', () {
+      final diagnostic = _only(
+        '{"a": {"t": "A"}, "b": {"x": [{"t": "B"}]}}',
+        interfaces: '  Both:\n    - a\n    - b.x\n',
+      );
+      expect(diagnostic.code, 'invalid_interface');
+      expect(
+        diagnostic.message,
+        '"Both" names both the namespace "a" and the collection "b.x".',
+      );
+      expect(diagnostic.details, contains('Give the collection its own entry'));
+    });
+
+    test('a collection in two element types is refused', () {
+      final diagnostic = _only(
+        plans,
+        interfaces:
+            '  Feature: plans.*.features\n'
+            '  Perk: plans.*.features\n'
+            '  PlanBlock: plans.*\n',
+      );
+      expect(diagnostic.code, 'invalid_interface');
+      expect(
+        diagnostic.message,
+        contains('"features" is in 2 interfaces (Feature, Perk)'),
+      );
+    });
+
+    test('the (map) suffix is not part of the path', () {
+      // The suffix is a directive to the generator, as it is for an override
+      // key, so the configuration names `countries` rather than
+      // `countries(map)`.
+      final source = _generated(
+        '{"a": {"countries(map)": {"fr": {"name": "France"}}}}',
+        interfaces: '  Country: a.countries\n',
+      );
+      expect(source, contains('abstract interface class Country {'));
     });
   });
 

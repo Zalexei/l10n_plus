@@ -377,6 +377,34 @@ flutter:
   enabled: false
 EOF
   gen > /dev/null
-  grep -n 'get meta' lib/l10n/app_localizations.g.dart; }
+  grep -n 'get meta' lib/l10n/app_localizations.g.dart
+  print -r -- "-- a list of records needs an element type, and the fix is printed:"
+  print '{"plans": {"free": {"features": [{"title": "Sync"}]}, "pro": {"features": [{"title": "Sync"}]}}}' \
+    > translations/en.json
+  config <<'EOF'
+input_directory: translations
+output_directory: lib/l10n
+base_locale: en
+fallback_locale: en
+interfaces:
+  PlanBlock: plans.*
+flutter:
+  enabled: false
+EOF
+  gen
+  print -r -- "-- with the element type named, the member is the collection over it:"
+  config <<'EOF'
+input_directory: translations
+output_directory: lib/l10n
+base_locale: en
+fallback_locale: en
+interfaces:
+  PlanBlock: plans.*
+  Feature: plans.*.features
+flutter:
+  enabled: false
+EOF
+  gen > /dev/null
+  grep -n 'get features\|implements Feature' lib/l10n/app_localizations.g.dart; }
 
 reset; base_config

@@ -308,9 +308,15 @@ final class CollectionModel {
   String get elementType => interfaceName ?? 'String';
 
   /// The Dart type the accessor returns.
-  String get type => kind == CollectionKind.list
-      ? 'List<$elementType>'
-      : 'Map<String, $elementType>';
+  String get type => typeOf(elementType);
+
+  /// The Dart type this collection has over [element].
+  ///
+  /// Taken over the element type rather than reading [elementType], because
+  /// a shared interface declares the same collection over the *shared*
+  /// element type while the collection's own accessor keeps the narrow one.
+  String typeOf(String element) =>
+      kind == CollectionKind.list ? 'List<$element>' : 'Map<String, $element>';
 
   /// Every message of every element, which is what a translator is asked for.
   Iterable<MessageModel> get messages =>
@@ -402,6 +408,7 @@ final class InterfaceModel {
     required this.name,
     required this.paths,
     required this.members,
+    this.isElementType = false,
   });
 
   /// The type's name, exactly as the configuration wrote it.
@@ -412,6 +419,14 @@ final class InterfaceModel {
 
   /// Members in the first namespace's order.
   final List<InterfaceMemberModel> members;
+
+  /// Whether [paths] are record collections rather than namespaces.
+  ///
+  /// Then this is the type of their *elements*, and what has to agree is the
+  /// field set rather than a set of member declarations. One entry is one or
+  /// the other: a namespace and a record are two shapes, and an interface
+  /// over both would describe neither.
+  final bool isElementType;
 }
 
 final class LocalizationModel {

@@ -25,6 +25,10 @@ void main() {
   /// Reached through the supertype's own member type, which is a supertype.
   String stamp(ChangeData change) => change.meta.date;
 
+  /// Over the element type, which is the shape a pricing table wants.
+  String rows(List<Feature> features) =>
+      features.map((feature) => '${feature.title}: ${feature.note}').join('; ');
+
   group('one function over several namespaces', () {
     test('takes both children of the container', () {
       expect(headline(enT.onboarding.whatsNew.v2), 'New in 2.0: Add sync');
@@ -75,6 +79,34 @@ void main() {
         enT.onboarding.whatsNew.v3,
       ];
       expect(changes.map(stamp), ['Shipped in May', 'Shipped in June']);
+    });
+  });
+
+  group('an element type', () {
+    test('one function over the elements of several collections', () {
+      expect(rows(enT.plans.free.features), 'Sync: Once a day');
+      expect(rows(enT.plans.pro.features), 'Sync: Live; Export: CSV and PDF');
+      expect(rows(ruT.plans.free.features), 'Синхронизация: Раз в день');
+    });
+
+    test(
+      'the narrow list goes in without a cast, because List is covariant',
+      () {
+        // No `.cast<Feature>()` anywhere above: the accessor hands out
+        // `List<$PlansFreeFeaturesItem>` and that *is* a `List<Feature>`.
+        expect(enT.plans.free.features, isA<List<Feature>>());
+        expect(enT.plans.free.features, isA<List<$PlansFreeFeaturesItem>>());
+      },
+    );
+
+    test('and through the namespace supertype as well', () {
+      final blocks = <Plan>[enT.plans.free, enT.plans.pro];
+      expect(blocks.map((plan) => plan.features.length), [1, 2]);
+      expect(blocks.first.features.first.title, 'Sync');
+    });
+
+    test('the elements are still const, so reading one allocates nothing', () {
+      expect(identical(enT.plans.pro.features, enT.plans.pro.features), isTrue);
     });
   });
 

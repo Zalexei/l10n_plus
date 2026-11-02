@@ -151,6 +151,18 @@ abstract interface class $PlansFree implements Plan {
 
   /// `en`: Start
   String get cta;
+
+  /// `en`: 1 message, in order.
+  List<$PlansFreeFeaturesItem> get features;
+}
+
+/// One element of `plans.free.features`.
+abstract interface class $PlansFreeFeaturesItem implements Feature {
+  /// `en`: Sync
+  String get title;
+
+  /// `en`: Once a day
+  String get note;
 }
 
 /// Translations under `plans.pro`.
@@ -163,6 +175,18 @@ abstract interface class $PlansPro implements Plan {
 
   /// `en`: Upgrade
   String get cta;
+
+  /// `en`: 2 messages, in order.
+  List<$PlansProFeaturesItem> get features;
+}
+
+/// One element of `plans.pro.features`.
+abstract interface class $PlansProFeaturesItem implements Feature {
+  /// `en`: Sync
+  String get title;
+
+  /// `en`: Live
+  String get note;
 }
 
 /// The members shared by `onboarding.whatsNew.v2` and `onboarding.whatsNew.v3`.
@@ -186,6 +210,15 @@ abstract interface class ChangeMeta {
   String get date;
 }
 
+/// One element of `plans.free.features` and `plans.pro.features`.
+abstract interface class Feature {
+  /// The `title` of this element.
+  String get title;
+
+  /// The `note` of this element.
+  String get note;
+}
+
 /// The members shared by `plans.free` and `plans.pro`.
 abstract interface class Plan {
   /// The `name` of this namespace.
@@ -196,6 +229,9 @@ abstract interface class Plan {
 
   /// The `cta` of this namespace.
   String get cta;
+
+  /// The `features` of this namespace.
+  List<Feature> get features;
 }
 
 /// `en` translations.
@@ -316,6 +352,23 @@ class $PlansFreeEn implements $PlansFree {
 
   @override
   String get cta => 'Start';
+
+  @override
+  List<$PlansFreeFeaturesItem> get features => const [
+    $PlansFreeFeaturesItemEn(title: 'Sync', note: 'Once a day'),
+  ];
+}
+
+/// `en` element of `plans.free.features`.
+class $PlansFreeFeaturesItemEn implements $PlansFreeFeaturesItem {
+  /// Creates one element.
+  const $PlansFreeFeaturesItemEn({required this.title, required this.note});
+
+  @override
+  final String title;
+
+  @override
+  final String note;
 }
 
 /// `en` translations under `plans.pro`.
@@ -331,6 +384,24 @@ class $PlansProEn implements $PlansPro {
 
   @override
   String get cta => 'Upgrade';
+
+  @override
+  List<$PlansProFeaturesItem> get features => const [
+    $PlansProFeaturesItemEn(title: 'Sync', note: 'Live'),
+    $PlansProFeaturesItemEn(title: 'Export', note: 'CSV and PDF'),
+  ];
+}
+
+/// `en` element of `plans.pro.features`.
+class $PlansProFeaturesItemEn implements $PlansProFeaturesItem {
+  /// Creates one element.
+  const $PlansProFeaturesItemEn({required this.title, required this.note});
+
+  @override
+  final String title;
+
+  @override
+  final String note;
 }
 
 /// `ru` translations.
@@ -451,6 +522,23 @@ class $PlansFreeRu implements $PlansFree {
 
   @override
   String get cta => 'Начать';
+
+  @override
+  List<$PlansFreeFeaturesItem> get features => const [
+    $PlansFreeFeaturesItemRu(title: 'Синхронизация', note: 'Раз в день'),
+  ];
+}
+
+/// `ru` element of `plans.free.features`.
+class $PlansFreeFeaturesItemRu implements $PlansFreeFeaturesItem {
+  /// Creates one element.
+  const $PlansFreeFeaturesItemRu({required this.title, required this.note});
+
+  @override
+  final String title;
+
+  @override
+  final String note;
 }
 
 /// `ru` translations under `plans.pro`.
@@ -466,4 +554,22 @@ class $PlansProRu implements $PlansPro {
 
   @override
   String get cta => 'Перейти';
+
+  @override
+  List<$PlansProFeaturesItem> get features => const [
+    $PlansProFeaturesItemRu(title: 'Синхронизация', note: 'Сразу'),
+    $PlansProFeaturesItemRu(title: 'Экспорт', note: 'CSV и PDF'),
+  ];
+}
+
+/// `ru` element of `plans.pro.features`.
+class $PlansProFeaturesItemRu implements $PlansProFeaturesItem {
+  /// Creates one element.
+  const $PlansProFeaturesItemRu({required this.title, required this.note});
+
+  @override
+  final String title;
+
+  @override
+  final String note;
 }

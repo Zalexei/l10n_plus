@@ -48,6 +48,19 @@ GenerationResult _run() {
 String _file(GenerationResult result, String name) =>
     result.files.firstWhere((file) => p.basename(file.path) == name).contents;
 
+/// The member declarations inside `interface`'s body, doc comments dropped.
+List<String> _members(String source, String interface) {
+  final start = source.indexOf('abstract interface class $interface ');
+  final open = source.indexOf('{', start);
+  final end = source.indexOf('\n}', open);
+  return source
+      .substring(open + 1, end)
+      .split('\n')
+      .map((line) => line.trim())
+      .where((line) => line.isNotEmpty && !line.startsWith('///'))
+      .toList();
+}
+
 void main() {
   test('matches its goldens', () {
     final result = _run();
@@ -109,19 +122,23 @@ void main() {
   });
 
   test('the member text is the namespaces own, character for character', () {
-    // The interface and the namespace both emit `MessageModel.declaration`,
-    // which is why a namespace satisfies its supertype by having been
-    // generated at all. If the two ever drifted, this is where it shows.
+    // The shared interface and the namespace both emit
+    // `MessageModel.declaration`, which is why a namespace satisfies its
+    // supertype by having been generated at all. If the two ever drifted,
+    // this is where it shows: every member of `ChangeData` is a line of
+    // `$OnboardingWhatsNewV2` too — except the nested one, which is narrower
+    // on purpose and is asserted by the test below.
     final source = _file(_run(), 'app_localizations.g.dart');
-    for (final member in [
-      'String get title;',
-      'String footer({required String year});',
-      'List<String> get rows;',
-    ]) {
-      // Once in `$OnboardingWhatsNewV2`, once in `$OnboardingWhatsNewV3`,
-      // once in `ChangeData`.
-      expect(member.allMatches(source).length, 3, reason: member);
-    }
+    final shared = _members(source, 'ChangeData');
+    final own = _members(source, r'$OnboardingWhatsNewV2');
+
+    expect(shared, isNotEmpty);
+    expect(
+      shared.where((member) => !member.contains('ChangeMeta')),
+      everyElement(isIn(own)),
+    );
+    // And the one that is not shared verbatim is the nested type.
+    expect(shared, contains('ChangeMeta get meta;'));
   });
 
   test(
@@ -149,6 +166,32 @@ void main() {
       );
     },
   );
+
+  test('a record collection shares an element type, and stays const', () {
+    // The shared interface takes the collection over the shared element type
+    // and the namespace keeps the narrow one. Nothing had to widen for a
+    // caller either: a `List` is covariant in its element.
+    final source = _file(_run(), 'app_localizations.g.dart');
+    expect(source, contains('  List<Feature> get features;'));
+    expect(source, contains(r'  List<$PlansFreeFeaturesItem> get features;'));
+    expect(
+      source,
+      contains(
+        r'abstract interface class $PlansFreeFeaturesItem '
+        'implements Feature {',
+      ),
+    );
+    expect(
+      source,
+      contains(
+        '/// One element of `plans.free.features` and `plans.pro.features`.',
+      ),
+    );
+    expect(
+      source,
+      contains(r'List<$PlansFreeFeaturesItem> get features => const ['),
+    );
+  });
 
   test('a member that takes an argument is a method, not a getter', () {
     expect(

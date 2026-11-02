@@ -28,12 +28,28 @@
     "free": {
       "name": "Free",
       "price": "0 a month",
-      "cta": "Start"
+      "cta": "Start",
+      "features": [
+        {
+          "title": "Sync",
+          "note": "Once a day"
+        }
+      ]
     },
     "pro": {
       "name": "Pro",
       "price": "9 a month",
-      "cta": "Upgrade"
+      "cta": "Upgrade",
+      "features": [
+        {
+          "title": "Sync",
+          "note": "Live"
+        },
+        {
+          "title": "Export",
+          "note": "CSV and PDF"
+        }
+      ]
     }
   }
 }

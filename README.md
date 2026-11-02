@@ -817,18 +817,54 @@ has one type, and picking one of the two for you would make the generated
 signature depend on the alphabet. An interface over a *single* namespace needs
 none of this — there is nothing for the member's type to disagree with.
 
+### A member that is a list of records
+
+A path's **last** segment may name a collection instead of a namespace, and
+then the interface is the type of its *elements*:
+
+```yaml
+interfaces:
+  PlanBlock: plans.*
+  Feature: plans.*.features
+```
+
+```dart
+abstract interface class Feature {
+  String get title;
+  String get note;
+}
+
+abstract interface class PlanBlock {
+  List<Feature> get features;              // the shared collection type
+}
+
+abstract interface class $PlansFree implements PlanBlock {
+  List<$PlansFreeFeaturesItem> get features;   // still the narrow one
+}
+```
+
+What has to agree is the **field set**, not its order: the generated
+constructor takes fields by name, so two collections may list them
+differently. A list and a map may share one element type — an element is an
+element — and the `(map)` suffix is not part of the path, so the
+configuration names `countries` rather than `countries(map)`.
+
+A caller needs no cast in either direction: `List` is covariant in its
+element, so `render(List<Feature>)` accepts `plans.free.features` as it
+stands. Without the `Feature` line, `PlanBlock` is refused and the error
+prints the configuration to paste, exactly as it does for a nested namespace.
+
+A collection of **text** cannot give an element type — every element is a
+`String`, so there is nothing to share — and one `interfaces` entry is a
+namespace *or* a collection, never both: a namespace is a set of members and a
+record is a set of fields, and a type over both would describe neither.
+
 ### What this does not do
 
-Two things are still refused, each with the reason printed:
-
-* **a list of records**, because the element type is named after the
-  collection's path, so two namespaces hold two different element types;
-* **a namespace addressed by `dynamic_keys`**, whose `operator []` takes an
-  enum named after the namespace it addresses.
-
-Neither is quietly generated half way. The first wants the same treatment the
-nested namespace just got — a way to name the element type — and the second
-wants one enum over two namespaces' keys, which is a different question.
+One thing is still refused: **a namespace addressed by `dynamic_keys`**, whose
+`operator []` takes an enum named after the namespace it addresses. Sharing it
+would mean one enum over two namespaces' keys, which is a decision about what
+the union of two key sets means rather than a missing feature.
 
 The name lives in the configuration rather than in a key suffix, unlike
 `(rich)` and `(map)`. Those tell a translator what a value *is*; a Dart type

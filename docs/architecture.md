@@ -1717,14 +1717,40 @@ and the nested member of a whole set is one line — which matters because the
 alternative is a configuration entry per sibling, and then adding a sibling is
 no longer only a translation change.
 
-**Two refusals left, for two different reasons.** A list of records is refused
-because the element type is named after the collection's path; that wants the
-same treatment the nested namespace just got. A namespace addressed by
-`dynamic_keys` is refused because its `operator []` takes an enum named after
-the namespace, and sharing that would mean one enum over two namespaces' keys —
-a different question, and nobody has asked it. A nested namespace in *two*
-interfaces is refused too: a member has one type, and choosing between them
-would make a generated signature depend on the alphabet.
+**An element type, which is the same idea aimed one level in.** A path's last
+segment may name a *collection* rather than a namespace, and then the
+interface is the type of its elements. The collection's own element interface
+gets the `implements`, the shared namespace interface declares the collection
+over the shared element type, and the namespace's own keeps the narrow one —
+the covariance above, except that here nothing even had to be arranged: `List`
+is covariant in its element, so `render(List<Feature>)` already accepts
+`List<$PlansFreeFeaturesItem>`. The override is there for the member
+declaration, not for the caller.
+
+Only the last segment, because a collection has no children and a path cannot
+continue through one. The `(map)` suffix is stripped when a path is matched,
+for the reason an override key does not carry it: it is a directive to the
+generator rather than part of the key's identity.
+
+What has to agree is the **field set** rather than a list of declarations.
+Fields are always `String` and the generated constructor takes them by name,
+so their order is not observable and comparing it would refuse translations
+for no reason. That makes a list and a map able to share one element type,
+which is right — an element is an element.
+
+One entry is a namespace *or* a collection. A namespace is a set of members
+and a record is a set of fields; an interface over both would describe
+neither, and the mistake is nearly always a path that was meant to be one or
+the other, so it is worth its own diagnostic rather than a confusing member
+comparison.
+
+**One refusal left.** A namespace addressed by `dynamic_keys` still cannot be
+in an interface: its `operator []` takes an enum named after the namespace it
+addresses, and sharing that means deciding what the union of two key sets is.
+That is a question about the feature rather than a gap in this one, and nobody
+has asked it. A nested namespace or collection covered by *two* interfaces is
+refused as well: a member has one type, and choosing between them would make a
+generated signature depend on the alphabet.
 
 The name lives in the configuration, which is the line this project now draws:
 a key suffix describes the *data* — `(rich)` and `(map)` tell a translator what

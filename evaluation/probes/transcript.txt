@@ -564,3 +564,27 @@ exit=1
 119:  ChangeMeta get meta;
 173:  $OnboardingWhatsNewV2Meta get meta => const $OnboardingWhatsNewV2MetaEn();
 194:  $OnboardingWhatsNewV3Meta get meta => const $OnboardingWhatsNewV3MetaEn();
+-- a list of records needs an element type, and the fix is printed:
+evaluation/probes/workspace/translations/en.json:1:21
+plans.free
+error[invalid_interface]: "plans.free" cannot implement "PlanBlock", because "features" holds records with no element type to share.
+  The element type is named after the collection's path, so "plans.free.features" and "plans.pro.features" are different types. Give them one:
+    interfaces:
+      Features:
+        - plans.free.features
+        - plans.pro.features
+  ╷
+1 │ {"plans": {"free": {"features": [{"title": "Sync"}]}, "pro": {"features": [{"title": "Sync"}]}}}
+  │                     ^^^^^^^^^^
+  ╵
+
+1 error(s), 0 warning(s).
+exit=1
+-- with the element type named, the member is the collection over it:
+83:  List<$PlansFreeFeaturesItem> get features;
+87:abstract interface class $PlansFreeFeaturesItem implements Feature {
+95:  List<$PlansProFeaturesItem> get features;
+99:abstract interface class $PlansProFeaturesItem implements Feature {
+113:  List<Feature> get features;
+149:  List<$PlansFreeFeaturesItem> get features => const [
+169:  List<$PlansProFeaturesItem> get features => const [

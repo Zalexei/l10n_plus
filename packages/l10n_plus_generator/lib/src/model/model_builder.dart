@@ -342,13 +342,17 @@ final class ModelBuilder {
       required NamespaceModel namespace,
       required String reason,
       required String fix,
+      SourceSpan? span,
     }) {
       diagnostics.add(
         Diagnostic.error(
           code: 'invalid_interface',
           message:
               '"${namespace.path}" cannot implement "$name", because $reason.',
-          span: spanOf(namespace),
+          // A namespace has no span of its own, so the nearest thing in the
+          // file is what the refusal is about — a namespace of nothing but
+          // collections has no message to point at.
+          span: span ?? spanOf(namespace),
           translationKey: namespace.path,
           details: fix,
         ),
@@ -436,23 +440,57 @@ final class ModelBuilder {
         );
       }
       for (final collection in namespace.collections) {
+        final key = MapKey.baseName(collection.path);
+        var type = collection.type;
         if (collection.isRecord) {
-          refuse(
-            name: name,
-            namespace: namespace,
-            reason: 'the elements of "${collection.dartName}" are records',
-            fix:
-                'The element type is named after the collection\'s path, so '
-                'two namespaces hold two different element types. The same '
-                'reason a nested namespace is refused, and the same feature '
-                'would close both.',
-          );
-          return null;
+          // The same question a nested namespace asks, one level in: the
+          // element type is named after the collection's path, so the shared
+          // interface has to name it. The collection's own accessor keeps the
+          // narrow element type and overrides this covariantly, which Dart
+          // accepts because a list is covariant in its element.
+          final shared = sharedTypeOf(key);
+          if (shared == null && siblings.length > 1) {
+            final relative = key.substring(namespace.path.length + 1);
+            final wanted = siblings
+                .map((sibling) => '${sibling.path}.$relative')
+                .where(
+                  (path) => siblings.any(
+                    (sibling) => sibling.collections.any(
+                      (other) => MapKey.baseName(other.path) == path,
+                    ),
+                  ),
+                )
+                .toList();
+            final claimed = _sharedBy(key);
+            refuse(
+              name: name,
+              namespace: namespace,
+              span: collection.keySpan,
+              reason: claimed.length > 1
+                  ? '"$relative" is in ${claimed.length} interfaces '
+                        '(${claimed.join(', ')}) and there is nothing to '
+                        'choose between them'
+                  : '"$relative" holds records with no element type to share',
+              fix: claimed.length > 1
+                  ? 'A member has one type. Leave "$relative" in the one '
+                        'interface this member should have, and give the '
+                        'other a path that does not cover it.'
+                  : 'The element type is named after the collection\'s path, '
+                        'so '
+                        '${wanted.map((path) => '"$path"').join(' and ')} '
+                        'are different types. Give them one:\n'
+                        '  interfaces:\n'
+                        '    ${DartIdentifiers.upperCamel(relative)}:\n'
+                        '${wanted.map((path) => '      - $path').join('\n')}',
+            );
+            return null;
+          }
+          if (shared != null) type = collection.typeOf(shared);
         }
         members.add(
           InterfaceMemberModel(
             dartName: collection.dartName,
-            declaration: '${collection.type} get ${collection.dartName}',
+            declaration: '$type get ${collection.dartName}',
           ),
         );
       }
@@ -465,11 +503,16 @@ final class ModelBuilder {
     /// A `*` segment stands for every child at that level, so one line names
     /// a nested member of a whole set and adding a sibling stays a change to
     /// a translation file.
-    List<NamespaceModel>? match(String pattern, String name) {
+    ({List<NamespaceModel> namespaces, List<CollectionModel> collections})?
+    match(String pattern, String name) {
+      final segments = pattern.split('.');
       var current = <NamespaceModel>[root];
       final walked = <String>[];
-      for (final segment in pattern.split('.')) {
+      for (var index = 0; index < segments.length; index++) {
+        final segment = segments[index];
+        final isLast = index == segments.length - 1;
         final next = <NamespaceModel>[];
+        final matchedCollections = <CollectionModel>[];
         for (final namespace in current) {
           if (segment == '*') {
             next.addAll(namespace.children);
@@ -479,7 +522,22 @@ final class ModelBuilder {
                 : '${namespace.path}.$segment';
             final child = namespaces[path];
             if (child != null) next.add(child);
+            // Only the last segment may be a collection: a collection has no
+            // children, so a path cannot continue through one. The `(map)`
+            // suffix is stripped because it is a directive to the generator
+            // rather than part of the key's identity — the same reason an
+            // override key does not carry it.
+            if (isLast) {
+              for (final collection in namespace.collections) {
+                if (MapKey.baseName(collection.path) == path) {
+                  matchedCollections.add(collection);
+                }
+              }
+            }
           }
+        }
+        if (isLast && (next.isNotEmpty || matchedCollections.isNotEmpty)) {
+          return (namespaces: next, collections: matchedCollections);
         }
         if (next.isEmpty) {
           final prefix = walked.join('.');
@@ -530,7 +588,7 @@ final class ModelBuilder {
         walked.add(segment);
         current = next;
       }
-      return current;
+      return (namespaces: current, collections: const []);
     }
 
     // Every pattern is expanded before a single member is read: which type a
@@ -540,8 +598,10 @@ final class ModelBuilder {
     // the nested type's name comes from the configuration, not from its
     // members.
     final resolvedByName = <String, List<NamespaceModel>>{};
+    final collectionsByName = <String, List<CollectionModel>>{};
     for (final name in interfaces.keys.toList()..sort()) {
       final resolved = <NamespaceModel>[];
+      final collections = <CollectionModel>[];
       final seen = <String>{};
       var failed = false;
       for (final pattern in interfaces[name]!) {
@@ -550,11 +610,43 @@ final class ModelBuilder {
           failed = true;
           continue;
         }
-        for (final target in matched) {
+        for (final target in matched.namespaces) {
           if (seen.add(target.path)) resolved.add(target);
         }
+        for (final collection in matched.collections) {
+          if (seen.add(MapKey.baseName(collection.path))) {
+            collections.add(collection);
+          }
+        }
       }
-      if (failed || resolved.isEmpty) continue;
+      if (failed) continue;
+      // One shape per entry. A namespace is a set of members and a record is
+      // a set of fields; a type over both would describe neither, and the
+      // mistake is almost always a path that was meant to be one or the
+      // other.
+      if (resolved.isNotEmpty && collections.isNotEmpty) {
+        diagnostics.add(
+          Diagnostic.error(
+            code: 'invalid_interface',
+            message:
+                '"$name" names both the namespace "${resolved.first.path}" '
+                'and the collection '
+                '"${MapKey.baseName(collections.first.path)}".',
+            span: spanOf(resolved.first) ?? collections.first.keySpan,
+            translationKey: resolved.first.path,
+            details:
+                'An interface is a set of members or the type of a '
+                'collection\'s elements, not both. Give the collection its '
+                'own entry.',
+          ),
+        );
+        continue;
+      }
+      if (collections.isNotEmpty) {
+        collectionsByName[name] = collections;
+        continue;
+      }
+      if (resolved.isEmpty) continue;
       resolvedByName[name] = resolved;
     }
 
@@ -563,8 +655,102 @@ final class ModelBuilder {
         (_sharedByPath[namespace.path] ??= <String>[]).add(entry.key);
       }
     }
+    for (final entry in collectionsByName.entries) {
+      for (final collection in entry.value) {
+        (_sharedByPath[MapKey.baseName(collection.path)] ??= <String>[]).add(
+          entry.key,
+        );
+      }
+    }
 
     final models = <InterfaceModel>[];
+
+    // The element types. What has to agree is the field *set*: the field
+    // order is not observable, because the generated constructor takes them
+    // by name.
+    for (final name in collectionsByName.keys) {
+      final collections = collectionsByName[name]!;
+      String describe(CollectionModel collection) =>
+          '"${MapKey.baseName(collection.path)}"';
+
+      var agreed = true;
+      for (final collection in collections) {
+        if (collection.isRecord) continue;
+        diagnostics.add(
+          Diagnostic.error(
+            code: 'invalid_interface',
+            message:
+                '${describe(collection)} cannot give "$name" an element '
+                'type, because its elements are text.',
+            span: collection.keySpan,
+            translationKey: MapKey.baseName(collection.path),
+            details:
+                'Every element of a collection of text is a `String`, so '
+                'there is no type to share. An interface here names the type '
+                'a *record* element implements.',
+          ),
+        );
+        agreed = false;
+      }
+      if (!agreed) continue;
+
+      final declaring = collections.first;
+      final expected = declaring.fields.toSet();
+      for (final collection in collections.skip(1)) {
+        final actual = collection.fields.toSet();
+        final missing = expected.difference(actual).toList()..sort();
+        final extra = actual.difference(expected).toList()..sort();
+        if (missing.isEmpty && extra.isEmpty) continue;
+        diagnostics.add(
+          Diagnostic.error(
+            code: 'invalid_interface',
+            message:
+                '${describe(collection)} does not have the fields of '
+                '${describe(declaring)}, which "$name" was read from.',
+            span: collection.keySpan,
+            translationKey: MapKey.baseName(collection.path),
+            details: [
+              for (final field in missing) '  "$field" is missing',
+              for (final field in extra)
+                '  "$field" is not in ${describe(declaring)}',
+              'Every collection of one element type has the same fields. '
+                  'Their order is not compared, because the generated '
+                  'constructor takes them by name.',
+            ].join('\n'),
+          ),
+        );
+        agreed = false;
+      }
+      if (!agreed) continue;
+
+      final free = _claimTopLevel(
+        name,
+        _TopLevelName(
+          'the element type "$name"',
+          span: declaring.keySpan,
+          translationKey: MapKey.baseName(declaring.path),
+        ),
+      );
+      if (!free) continue;
+
+      models.add(
+        InterfaceModel(
+          name: name,
+          paths: collections
+              .map((collection) => MapKey.baseName(collection.path))
+              .toList(),
+          members: [
+            for (final field in declaring.fields)
+              InterfaceMemberModel(
+                dartName: field,
+                declaration: 'String get $field',
+              ),
+          ],
+          isElementType: true,
+        ),
+      );
+    }
+
     for (final name in resolvedByName.keys) {
       final resolved = resolvedByName[name]!;
       final declaring = resolved.first;
