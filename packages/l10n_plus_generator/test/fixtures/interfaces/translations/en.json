@@ -4,12 +4,23 @@
       "v2": {
         "title": "New in 2.0",
         "footer": "Shipped in {year}",
-        "rows": ["Add sync"]
+        "rows": [
+          "Add sync"
+        ],
+        "meta": {
+          "date": "Shipped in May"
+        }
       },
       "v3": {
         "title": "New in 3.0",
         "footer": "Shipped in {year}",
-        "rows": ["New game modes", "And a lot more"]
+        "rows": [
+          "New game modes",
+          "And a lot more"
+        ],
+        "meta": {
+          "date": "Shipped in June"
+        }
       }
     }
   },

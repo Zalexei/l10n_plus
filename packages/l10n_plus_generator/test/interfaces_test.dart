@@ -302,7 +302,7 @@ void main() {
   });
 
   group('what cannot be in one', () {
-    test('a namespace that holds a namespace', () {
+    test('a nested namespace with no shared type of its own', () {
       final diagnostic = _only(
         '{"a": {"x": {"deep": "d"}}, "b": {"x": {"deep": "d"}}}',
         interfaces: '  Both:\n    - a\n    - b\n',
@@ -310,9 +310,15 @@ void main() {
       expect(diagnostic.code, 'invalid_interface');
       expect(
         diagnostic.message,
-        '"a" cannot implement "Both", because it holds the namespace "a.x".',
+        '"a" cannot implement "Both", because "x" is a namespace with no '
+        'type of its own to share.',
       );
-      expect(diagnostic.details, contains('named after its own path'));
+      // And the fix is printed as the configuration to paste, with the
+      // sibling paths it has to cover.
+      expect(
+        diagnostic.details,
+        contains('  interfaces:\n    X:\n      - a.x\n      - b.x'),
+      );
     });
 
     test('a namespace whose list holds records', () {
@@ -349,6 +355,103 @@ void main() {
     });
   });
 
+  group('a member that is a namespace', () {
+    /// Two versions, each with a nested `meta` of the same shape.
+    const String nested =
+        '{"onboarding": {"whatsNew": {'
+        '"v2": {"title": "New in 2.0", "meta": {"date": "May"}},'
+        '"v3": {"title": "New in 3.0", "meta": {"date": "June"}}'
+        '}}}';
+
+    test('takes the shared type, named by an entry of its own', () {
+      final source = _generated(
+        nested,
+        interfaces:
+            '  ChangeData: onboarding.whatsNew.*\n'
+            '  ChangeMeta:\n'
+            '    - onboarding.whatsNew.v2.meta\n'
+            '    - onboarding.whatsNew.v3.meta\n',
+      );
+
+      expect(source, contains('  ChangeMeta get meta;'));
+      expect(source, contains('abstract interface class ChangeMeta {'));
+    });
+
+    test('a "*" in the middle of a path says the same in one line', () {
+      final source = _generated(
+        nested,
+        interfaces:
+            '  ChangeData: onboarding.whatsNew.*\n'
+            '  ChangeMeta: onboarding.whatsNew.*.meta\n',
+      );
+      expect(source, contains('  ChangeMeta get meta;'));
+      expect(
+        source,
+        contains(
+          '/// The members shared by `onboarding.whatsNew.v2.meta` and '
+          '`onboarding.whatsNew.v3.meta`.',
+        ),
+      );
+    });
+
+    test('the namespaces own interface keeps the narrow type', () {
+      // Covariance, which is what keeps the generated API from widening: a
+      // rich text extension is declared on `$OnboardingWhatsNewV2Meta`, and
+      // an accessor typed as the supertype would not reach it.
+      final source = _generated(
+        nested,
+        interfaces:
+            '  ChangeData: onboarding.whatsNew.*\n'
+            '  ChangeMeta: onboarding.whatsNew.*.meta\n',
+      );
+      expect(source, contains(r'  $OnboardingWhatsNewV2Meta get meta;'));
+      expect(
+        source,
+        contains(
+          r'  $OnboardingWhatsNewV2Meta get meta => '
+          r'const $OnboardingWhatsNewV2MetaEn();',
+        ),
+      );
+    });
+
+    test('two levels of nesting', () {
+      final source = _generated(
+        '{"a": {"x": {"y": {"t": "A"}}}, "b": {"x": {"y": {"t": "B"}}}}',
+        interfaces:
+            '  Outer: [a, b]\n'
+            '  Middle: "*.x"\n'
+            '  Inner: "*.x.y"\n',
+      );
+      expect(source, contains('  Middle get x;'));
+      expect(source, contains('  Inner get y;'));
+    });
+
+    test('a child in two interfaces is refused, both named', () {
+      final diagnostic = _only(
+        nested,
+        interfaces:
+            '  ChangeData: onboarding.whatsNew.*\n'
+            '  ChangeMeta: onboarding.whatsNew.*.meta\n'
+            '  Stamp: onboarding.whatsNew.*.meta\n',
+      );
+      expect(diagnostic.code, 'invalid_interface');
+      expect(
+        diagnostic.message,
+        contains('"meta" is in 2 interfaces (ChangeMeta, Stamp)'),
+      );
+      expect(diagnostic.details, contains('A member has one type'));
+    });
+
+    test('one namespace alone may keep its own nested type', () {
+      // Nothing to disagree with, so nothing to insist on.
+      final source = _generated(
+        nested,
+        interfaces: '  Change: onboarding.whatsNew.v2\n',
+      );
+      expect(source, contains(r'  $OnboardingWhatsNewV2Meta get meta;'));
+    });
+  });
+
   group('the configuration itself', () {
     test('a path that is not a namespace offers the nearest one', () {
       final diagnostic = _only(
@@ -370,6 +473,30 @@ void main() {
       );
       expect(diagnostic.code, 'invalid_config');
       expect(diagnostic.details, contains('Drop the ".*"'));
+    });
+
+    test('a "*" alone names every top level namespace', () {
+      final source = _generated(
+        '{"a": {"title": "A"}, "b": {"title": "B"}}',
+        interfaces: '  Titled: "*"\n',
+      );
+      expect(
+        source,
+        contains('abstract interface class \$A implements Titled {'),
+      );
+      expect(
+        source,
+        contains('abstract interface class \$B implements Titled {'),
+      );
+    });
+
+    test('a "*" in the middle that matches nothing names the prefix', () {
+      final diagnostic = _only(
+        '{"a": {"x": {"deep": "d"}}}',
+        interfaces: '  Both: "a.*.nope"\n',
+      );
+      expect(diagnostic.code, 'invalid_config');
+      expect(diagnostic.message, contains('is not a namespace'));
     });
 
     test('a name that cannot be a Dart type is refused', () {

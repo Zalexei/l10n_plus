@@ -1691,12 +1691,40 @@ also cost the matrix's *non-nullable accessor* cell, which is a property this
 library claims. There is no option to behave the other way, because the option
 is a different project.
 
-**Three refusals, one missing feature.** A nested namespace, a list of records
-and a namespace addressed by `dynamic_keys` are all refused, and all three for
-one reason: the member's type is named after the path it came from, so two
-namespaces hold two different types. An interface whose member is itself an
-interface closes all three at once. Until it exists the refusals print the
-reason rather than generating something that nearly works.
+**A member that is itself an interface, and the covariance that pays for it.**
+A nested namespace gets its own `interfaces` entry, and the outer interface
+declares the member as *that* type. The obvious implementation — make the
+accessor return the shared type everywhere — was wrong, and provably so: a
+rich-text helper is an `extension ... on $PlansFree`, so widening the accessor
+to `Plan` would put the helper out of reach at the call site. Instead the
+namespace's own interface keeps declaring its own nested type and **overrides
+the shared member covariantly**, which Dart accepts because the nested type
+implements the shared one. Nothing in the generated API widens, the emitter
+needed no change at all — the shared interface's body comes from the model —
+and both readings work: `ChangeData.meta` is `ChangeMeta`,
+`$OnboardingWhatsNewV2.meta` is `$OnboardingWhatsNewV2Meta`.
+
+No dependency order was needed either, which I expected to have to build. The
+nested type's *name* comes from the configuration, not from its members, so
+the pass expands every pattern first, learns which interfaces cover which
+paths, and only then reads members. A nested interface that itself fails to
+agree makes the build fail, so a member can never name a type that was not
+emitted.
+
+A `*` is a path segment rather than a trailing marker: `a.b.*` is every
+namespace under `a.b` and `a.*.b` is the `b` of each. One rule instead of two,
+and the nested member of a whole set is one line — which matters because the
+alternative is a configuration entry per sibling, and then adding a sibling is
+no longer only a translation change.
+
+**Two refusals left, for two different reasons.** A list of records is refused
+because the element type is named after the collection's path; that wants the
+same treatment the nested namespace just got. A namespace addressed by
+`dynamic_keys` is refused because its `operator []` takes an enum named after
+the namespace, and sharing that would mean one enum over two namespaces' keys —
+a different question, and nobody has asked it. A nested namespace in *two*
+interfaces is refused too: a member has one type, and choosing between them
+would make a generated signature depend on the alphabet.
 
 The name lives in the configuration, which is the line this project now draws:
 a key suffix describes the *data* — `(rich)` and `(map)` tell a translator what

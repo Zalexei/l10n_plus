@@ -92,6 +92,9 @@ abstract interface class $OnboardingWhatsNew {
 
 /// Translations under `onboarding.whatsNew.v2`.
 abstract interface class $OnboardingWhatsNewV2 implements ChangeData {
+  /// Translations under `onboarding.whatsNew.v2.meta`.
+  $OnboardingWhatsNewV2Meta get meta;
+
   /// `en`: New in 2.0
   String get title;
 
@@ -102,8 +105,17 @@ abstract interface class $OnboardingWhatsNewV2 implements ChangeData {
   List<String> get rows;
 }
 
+/// Translations under `onboarding.whatsNew.v2.meta`.
+abstract interface class $OnboardingWhatsNewV2Meta implements ChangeMeta {
+  /// `en`: Shipped in May
+  String get date;
+}
+
 /// Translations under `onboarding.whatsNew.v3`.
 abstract interface class $OnboardingWhatsNewV3 implements ChangeData {
+  /// Translations under `onboarding.whatsNew.v3.meta`.
+  $OnboardingWhatsNewV3Meta get meta;
+
   /// `en`: New in 3.0
   String get title;
 
@@ -112,6 +124,12 @@ abstract interface class $OnboardingWhatsNewV3 implements ChangeData {
 
   /// `en`: 2 messages, in order.
   List<String> get rows;
+}
+
+/// Translations under `onboarding.whatsNew.v3.meta`.
+abstract interface class $OnboardingWhatsNewV3Meta implements ChangeMeta {
+  /// `en`: Shipped in June
+  String get date;
 }
 
 /// Translations under `plans`.
@@ -149,6 +167,9 @@ abstract interface class $PlansPro implements Plan {
 
 /// The members shared by `onboarding.whatsNew.v2` and `onboarding.whatsNew.v3`.
 abstract interface class ChangeData {
+  /// The `meta` of this namespace.
+  ChangeMeta get meta;
+
   /// The `title` of this namespace.
   String get title;
 
@@ -157,6 +178,12 @@ abstract interface class ChangeData {
 
   /// The `rows` of this namespace.
   List<String> get rows;
+}
+
+/// The members shared by `onboarding.whatsNew.v2.meta` and `onboarding.whatsNew.v3.meta`.
+abstract interface class ChangeMeta {
+  /// The `date` of this namespace.
+  String get date;
 }
 
 /// The members shared by `plans.free` and `plans.pro`.
@@ -216,6 +243,9 @@ class $OnboardingWhatsNewV2En implements $OnboardingWhatsNewV2 {
   const $OnboardingWhatsNewV2En();
 
   @override
+  $OnboardingWhatsNewV2Meta get meta => const $OnboardingWhatsNewV2MetaEn();
+
+  @override
   String get title => 'New in 2.0';
 
   @override
@@ -225,10 +255,22 @@ class $OnboardingWhatsNewV2En implements $OnboardingWhatsNewV2 {
   List<String> get rows => const ['Add sync'];
 }
 
+/// `en` translations under `onboarding.whatsNew.v2.meta`.
+class $OnboardingWhatsNewV2MetaEn implements $OnboardingWhatsNewV2Meta {
+  /// Creates the en namespace.
+  const $OnboardingWhatsNewV2MetaEn();
+
+  @override
+  String get date => 'Shipped in May';
+}
+
 /// `en` translations under `onboarding.whatsNew.v3`.
 class $OnboardingWhatsNewV3En implements $OnboardingWhatsNewV3 {
   /// Creates the en namespace.
   const $OnboardingWhatsNewV3En();
+
+  @override
+  $OnboardingWhatsNewV3Meta get meta => const $OnboardingWhatsNewV3MetaEn();
 
   @override
   String get title => 'New in 3.0';
@@ -238,6 +280,15 @@ class $OnboardingWhatsNewV3En implements $OnboardingWhatsNewV3 {
 
   @override
   List<String> get rows => const ['New game modes', 'And a lot more'];
+}
+
+/// `en` translations under `onboarding.whatsNew.v3.meta`.
+class $OnboardingWhatsNewV3MetaEn implements $OnboardingWhatsNewV3Meta {
+  /// Creates the en namespace.
+  const $OnboardingWhatsNewV3MetaEn();
+
+  @override
+  String get date => 'Shipped in June';
 }
 
 /// `en` translations under `plans`.
@@ -327,6 +378,9 @@ class $OnboardingWhatsNewV2Ru implements $OnboardingWhatsNewV2 {
   const $OnboardingWhatsNewV2Ru();
 
   @override
+  $OnboardingWhatsNewV2Meta get meta => const $OnboardingWhatsNewV2MetaRu();
+
+  @override
   String get title => 'Новое в 2.0';
 
   @override
@@ -336,10 +390,22 @@ class $OnboardingWhatsNewV2Ru implements $OnboardingWhatsNewV2 {
   List<String> get rows => const ['Синхронизация'];
 }
 
+/// `ru` translations under `onboarding.whatsNew.v2.meta`.
+class $OnboardingWhatsNewV2MetaRu implements $OnboardingWhatsNewV2Meta {
+  /// Creates the ru namespace.
+  const $OnboardingWhatsNewV2MetaRu();
+
+  @override
+  String get date => 'Вышло в мае';
+}
+
 /// `ru` translations under `onboarding.whatsNew.v3`.
 class $OnboardingWhatsNewV3Ru implements $OnboardingWhatsNewV3 {
   /// Creates the ru namespace.
   const $OnboardingWhatsNewV3Ru();
+
+  @override
+  $OnboardingWhatsNewV3Meta get meta => const $OnboardingWhatsNewV3MetaRu();
 
   @override
   String get title => 'Новое в 3.0';
@@ -349,6 +415,15 @@ class $OnboardingWhatsNewV3Ru implements $OnboardingWhatsNewV3 {
 
   @override
   List<String> get rows => const ['Новые режимы', 'И много ещё'];
+}
+
+/// `ru` translations under `onboarding.whatsNew.v3.meta`.
+class $OnboardingWhatsNewV3MetaRu implements $OnboardingWhatsNewV3Meta {
+  /// Creates the ru namespace.
+  const $OnboardingWhatsNewV3MetaRu();
+
+  @override
+  String get date => 'Вышло в июне';
 }
 
 /// `ru` translations under `plans`.

@@ -124,6 +124,32 @@ void main() {
     }
   });
 
+  test(
+    'a nested namespace is the shared type here and the narrow one there',
+    () {
+      // The two declarations that make covariance do the work: the supertype
+      // promises `ChangeMeta`, the namespace's own interface promises its own
+      // nested type, and Dart accepts the narrower override. So a caller
+      // holding `ChangeData` reads `meta.date`, and a caller holding
+      // `$OnboardingWhatsNewV2` keeps everything it had — a rich text
+      // extension included, since those are declared on the narrow type.
+      final source = _file(_run(), 'app_localizations.g.dart');
+      expect(source, contains('  ChangeMeta get meta;'));
+      expect(source, contains(r'  $OnboardingWhatsNewV2Meta get meta;'));
+      expect(
+        source,
+        contains(
+          r'  $OnboardingWhatsNewV2Meta get meta => '
+          r'const $OnboardingWhatsNewV2MetaEn();',
+        ),
+      );
+      expect(
+        'abstract interface class ChangeMeta {'.allMatches(source).length,
+        1,
+      );
+    },
+  );
+
   test('a member that takes an argument is a method, not a getter', () {
     expect(
       _file(_run(), 'app_localizations.g.dart'),

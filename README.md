@@ -766,20 +766,69 @@ The order of keys inside a namespace does not matter — the members are read by
 key — but the generated member order is the first namespace named, so moving a
 key in *that* one rewrites the declaration order and nothing else.
 
+### A member that is a namespace
+
+A nested group gets its own entry, and then it is a member like any other:
+
+```yaml
+interfaces:
+  ChangeData: onboarding.whatsNew.*
+  ChangeMeta: onboarding.whatsNew.*.meta
+```
+
+A `*` is a path **segment**, not only a suffix: `a.b.*` is every namespace
+under `a.b`, and `a.*.b` is the `b` of each. So the nested member of a whole
+set is one line, and adding a `v4` stays a change to a translation file.
+
+What comes out keeps both types:
+
+```dart
+abstract interface class ChangeData {
+  ChangeMeta get meta;        // what a caller holding the supertype reads
+}
+
+abstract interface class $OnboardingWhatsNewV2 implements ChangeData {
+  $OnboardingWhatsNewV2Meta get meta;   // what the accessor still hands out
+}
+```
+
+The narrow type overrides the shared one covariantly, so nothing in the
+generated API widens: `context.l10n.onboarding.whatsNew.v2.meta` is still the
+specific type, which matters because a rich-text helper is an extension on it.
+
+Without the `ChangeMeta` line, `ChangeData` is **refused** — `v2.meta` and
+`v3.meta` would be two unrelated types — and the error prints the
+configuration to paste:
+
+```
+error[invalid_interface]: "onboarding.whatsNew.v2" cannot implement
+  "ChangeData", because "meta" is a namespace with no type of its own to share.
+  A nested namespace generates a type named after its own path, so
+  "onboarding.whatsNew.v2.meta" and "onboarding.whatsNew.v3.meta" are
+  different types. Give them one:
+    interfaces:
+      Meta:
+        - onboarding.whatsNew.v2.meta
+        - onboarding.whatsNew.v3.meta
+```
+
+A nested namespace that is in **two** interfaces is refused as well: a member
+has one type, and picking one of the two for you would make the generated
+signature depend on the alphabet. An interface over a *single* namespace needs
+none of this — there is nothing for the member's type to disagree with.
+
 ### What this does not do
 
-A namespace in an interface holds **messages, lists and maps of text** and
-nothing else. Three things are refused, each with the reason printed:
+Two things are still refused, each with the reason printed:
 
-* **a nested namespace**, because its type is named after its own path, so two
-  namespaces would have members of two different types;
-* **a list of records**, for exactly the same reason — the element type is
-  named after the collection's path;
+* **a list of records**, because the element type is named after the
+  collection's path, so two namespaces hold two different element types;
 * **a namespace addressed by `dynamic_keys`**, whose `operator []` takes an
   enum named after the namespace it addresses.
 
-All three want one feature — an interface whose member is itself an interface —
-and none of them is quietly generated half way.
+Neither is quietly generated half way. The first wants the same treatment the
+nested namespace just got — a way to name the element type — and the second
+wants one enum over two namespaces' keys, which is a different question.
 
 The name lives in the configuration rather than in a key suffix, unlike
 `(rich)` and `(map)`. Those tell a translator what a value *is*; a Dart type

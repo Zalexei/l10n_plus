@@ -542,11 +542,15 @@ exit=1
 87:abstract interface class $OnboardingWhatsNewV2 implements ChangeData {
 96:abstract interface class $OnboardingWhatsNewV3 implements ChangeData {
 105:abstract interface class ChangeData {
--- and a namespace holding a namespace says why it cannot be in one:
+-- a nested namespace needs a type of its own, and the fix is printed:
 evaluation/probes/workspace/translations/en.json:1:37
 onboarding.whatsNew.v2
-error[invalid_interface]: "onboarding.whatsNew.v2" cannot implement "ChangeData", because it holds the namespace "onboarding.whatsNew.v2.meta".
-  A nested namespace generates a type named after its own path, so the member types of two namespaces would differ by the paths they came from. An interface whose member is itself an interface is a feature this does not have yet; until then the shared shape has to be one level of messages.
+error[invalid_interface]: "onboarding.whatsNew.v2" cannot implement "ChangeData", because "meta" is a namespace with no type of its own to share.
+  A nested namespace generates a type named after its own path, so "onboarding.whatsNew.v2.meta" and "onboarding.whatsNew.v3.meta" are different types. Give them one:
+    interfaces:
+      Meta:
+        - onboarding.whatsNew.v2.meta
+        - onboarding.whatsNew.v3.meta
   ╷
 1 │ {"onboarding": {"whatsNew": {"v2": {"title": "New in 2.0", "meta": {"date": "May"}}, "v3": {"title": "New in 3.0", "meta": {"date": "June"}}}}}
   │                                     ^^^^^^^
@@ -554,3 +558,9 @@ error[invalid_interface]: "onboarding.whatsNew.v2" cannot implement "ChangeData"
 
 1 error(s), 0 warning(s).
 exit=1
+-- with one line for every nested meta, the member is the shared type:
+89:  $OnboardingWhatsNewV2Meta get meta;
+104:  $OnboardingWhatsNewV3Meta get meta;
+119:  ChangeMeta get meta;
+173:  $OnboardingWhatsNewV2Meta get meta => const $OnboardingWhatsNewV2MetaEn();
+194:  $OnboardingWhatsNewV3Meta get meta => const $OnboardingWhatsNewV3MetaEn();

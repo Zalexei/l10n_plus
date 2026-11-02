@@ -360,9 +360,23 @@ EOF
     > translations/en.json
   gen > /dev/null
   grep -n 'abstract interface class ChangeData\|implements ChangeData' lib/l10n/app_localizations.g.dart
-  print -r -- "-- and a namespace holding a namespace says why it cannot be in one:"
+  print -r -- "-- a nested namespace needs a type of its own, and the fix is printed:"
   print '{"onboarding": {"whatsNew": {"v2": {"title": "New in 2.0", "meta": {"date": "May"}}, "v3": {"title": "New in 3.0", "meta": {"date": "June"}}}}}' \
     > translations/en.json
-  gen; }
+  gen
+  print -r -- "-- with one line for every nested meta, the member is the shared type:"
+  config <<'EOF'
+input_directory: translations
+output_directory: lib/l10n
+base_locale: en
+fallback_locale: en
+interfaces:
+  ChangeData: onboarding.whatsNew.*
+  ChangeMeta: onboarding.whatsNew.*.meta
+flutter:
+  enabled: false
+EOF
+  gen > /dev/null
+  grep -n 'get meta' lib/l10n/app_localizations.g.dart; }
 
 reset; base_config

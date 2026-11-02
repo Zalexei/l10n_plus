@@ -632,6 +632,59 @@ Diagnostics went from 72 codes to **81**: `rich_tag_mismatch`,
   why they were not attempted alongside rich text, and the first of them is the
   item below worth more than everything in this milestone.
 
+## Milestone 39 — a member that is itself an interface (done)
+
+The refusal Milestone 38 wrote down: a namespace in an interface could not hold
+another namespace, because the member's type is named after its own path.
+
+* **One more `interfaces` entry, and the member is that type.** `ChangeMeta:
+  onboarding.whatsNew.*.meta` beside `ChangeData: onboarding.whatsNew.*`, and
+  the shared interface declares `ChangeMeta get meta`.
+* **A `*` is a path segment now, not a trailing marker.** `a.b.*` is every
+  namespace under `a.b`, `a.*.b` is the `b` of each. One rule instead of two,
+  and the nested member of a whole set is one line — without it the
+  configuration grows an entry per sibling and adding a sibling stops being a
+  translation change.
+* **Covariance, because the obvious version was wrong.** Making the accessor
+  return the shared type everywhere compiles and quietly breaks rich text: a
+  helper is an `extension ... on $PlansFree`, and an accessor widened to `Plan`
+  puts it out of reach. So the namespace's own interface keeps its narrow
+  nested type and overrides the shared member covariantly. Nothing in the
+  generated API widens, and **the emitter needed no change at all** — the
+  shared interface's body is built in the model.
+* **No dependency order, which I had planned to write.** The nested type's name
+  is a fact about the configuration, so the pass expands every pattern, learns
+  which interfaces cover which paths, and only then reads members. An
+  interface naming a type that failed to agree cannot reach the emitter,
+  because a failed interface fails the build.
+* **Two refusals left, and one new one.** A list of records and a namespace
+  addressed by `dynamic_keys` are still refused, for the two different reasons
+  below. A nested namespace covered by *two* interfaces is refused as well: a
+  member has one type, and picking one would make a generated signature depend
+  on the alphabet. No new diagnostic code — `invalid_interface` still covers
+  every way an interface can be wrong, and the registry stays at **104**.
+* **No cell moves.** The interfaces row was already `Y`; this milestone removes
+  a refusal rather than winning anything, and the matrix is unchanged at 38
+  against 31.
+
+### What this one leaves open
+
+* **A list of records still cannot be shared.** It wants exactly the treatment
+  a nested namespace just got — a way to name the element type — and the
+  emitter cost is one `implements` on the element interface. The model cost is
+  not: the resolver would have to see collections, which live as a field on the
+  parent namespace rather than in the namespace index, and the field sets of
+  two collections would have to be compared against each other.
+* **`dynamic_keys` is a different question.** Sharing `operator [](XKey)` means
+  one enum over two namespaces' keys, which is a decision about what the union
+  of two key sets even means. Nothing asks for it.
+* **A nested member in two interfaces has to be disambiguated by hand**, by
+  giving one of the two a path that does not cover it. The configuration cannot
+  say "this member is that one of them", and it is not clear that it should.
+* **Nothing checks that the nesting is used.** `ChangeMeta` may be declared
+  purely to satisfy `ChangeData` and never named in the application; a type
+  with no readers is still not a thing this build looks for.
+
 ## Milestone 38 — namespaces that share a type (done)
 
 The one row `slang` held that was not about collections: a supertype over
@@ -670,12 +723,11 @@ written once and handed any of them.
 
 ### What this one leaves open
 
-* **An interface whose member is an interface.** The next step, and the one
-  that closes all three refusals above at once. It needs a way to name the
-  nested type, which the configuration can already express — `interfaces` is a
-  map of name to path — so the work is in the model: resolve the nested paths
-  first, then compare members by the type each resolved to rather than by the
-  path it came from.
+* ~~**An interface whose member is an interface.**~~ **Closed in Milestone 39**
+  for a nested namespace, and it did *not* need the dependency order predicted
+  here: the nested type's name comes from the configuration, not from its
+  members. The prediction that it would close all three refusals was also
+  wrong — it closes one.
 * **No explicit attribute list.** The members are read from the first namespace
   named. A project cannot declare them in the configuration instead, which is
   what would allow a genuinely optional member — `String? content`, written by

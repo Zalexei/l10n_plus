@@ -11,6 +11,10 @@ locale_enum_name: AppLocale
 # to have exactly them.
 interfaces:
   ChangeData: onboarding.whatsNew.*
+  # A "*" in the middle of a path: the nested `meta` of every version, in one
+  # line, so adding a v4 stays a change to a translation file. Without this
+  # entry `ChangeData` would be refused — `meta` would be two types.
+  ChangeMeta: onboarding.whatsNew.*.meta
   Plan:
     - plans.free
     - plans.pro

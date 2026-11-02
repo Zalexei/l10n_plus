@@ -179,8 +179,9 @@ final class L10nPlusConfig {
 
   /// Namespaces that share a generated supertype, by the type's name.
   ///
-  /// A value is one path or a list of them; a path ending in `.*` names every
-  /// child of that namespace rather than the namespace itself. The members
+  /// A value is one path or a list of them, and a path segment may be `*` to
+  /// mean every child at that level — `a.b.*` is every namespace under `a.b`,
+  /// `a.*.b` is the `b` of each. The members
   /// have to match exactly, which is the whole point: the alternative is a
   /// supertype whose divergent members are nullable, and a `null` at the
   /// screen that read one is the class of mistake this library exists to move
@@ -458,9 +459,14 @@ final class L10nPlusConfig {
   /// letter is also what keeps `class` or `for` out.
   static final RegExp _typeName = RegExp(r'^[A-Z][A-Za-z0-9_]*$');
 
-  /// A path, with an optional `.*` naming the children instead of the node.
+  /// A dotted path whose segments may be `*`, standing for every child.
+  ///
+  /// `a.b` is one namespace, `a.b.*` is every namespace under it, and
+  /// `a.*.b` is the `b` of every namespace under `a` — which is what names a
+  /// nested member of a whole set in one line, so adding a sibling stays a
+  /// change to a translation file.
   static final RegExp _interfacePath = RegExp(
-    r'^[^.*\s][^.*\s]*(\.[^.*\s]+)*(\.\*)?$',
+    r'^(\*|[^.*\s]+)(\.(\*|[^.*\s]+))*$',
   );
 
   /// Reads `interfaces`, dropping entries that cannot name a type or a path.
@@ -543,9 +549,10 @@ final class L10nPlusConfig {
               message: '"$name" names "$text", which is not a namespace path.',
               span: path.span,
               details:
-                  'A path is dotted keys, optionally ending in ".*" to name '
-                  'every child of a namespace rather than the namespace '
-                  'itself.',
+                  'A path is dotted keys, where a segment may be "*" to mean '
+                  'every child at that level: "a.b" is one namespace, "a.b.*" '
+                  'is every namespace under it, and "a.*.b" is the "b" of '
+                  'each.',
             ),
           );
           continue;

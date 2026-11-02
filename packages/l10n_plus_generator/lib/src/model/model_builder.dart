@@ -288,6 +288,24 @@ final class ModelBuilder {
     return models..sort((a, b) => a.name.compareTo(b.name));
   }
 
+  /// Interfaces covering a namespace path, by path, in interface name order.
+  ///
+  /// Filled by [_interfaces] before any member is read, because the type a
+  /// nested member has is a fact about the configuration.
+  final Map<String, List<String>> _sharedByPath = {};
+
+  /// The interfaces covering [path], in name order.
+  List<String> _sharedBy(String path) => _sharedByPath[path] ?? const [];
+
+  /// The one interface [path] is reached through, or `null`.
+  ///
+  /// Two is not a tie to break: a member has one type, and choosing for the
+  /// project would make a generated signature depend on the alphabet.
+  String? _sharedTypeOf(String path) {
+    final names = _sharedBy(path);
+    return names.length == 1 ? names.single : null;
+  }
+
   /// Builds one shared interface per entry of [interfaces].
   ///
   /// A view over the namespaces the walk produced, like a key enum: nothing is
@@ -338,26 +356,16 @@ final class ModelBuilder {
     }
 
     /// The members of [namespace], or `null` when it cannot be in [name].
+    ///
+    /// [siblings] is every namespace of the same interface, which is what
+    /// decides whether a nested namespace needs a shared type: with one
+    /// namespace there is nothing for its member's type to disagree with.
     List<InterfaceMemberModel>? membersOf(
       NamespaceModel namespace,
-      String name,
-    ) {
-      if (namespace.children.isNotEmpty) {
-        refuse(
-          name: name,
-          namespace: namespace,
-          reason:
-              'it holds the namespace '
-              '"${namespace.children.first.path}"',
-          fix:
-              'A nested namespace generates a type named after its own path, '
-              'so the member types of two namespaces would differ by the '
-              'paths they came from. An interface whose member is itself an '
-              'interface is a feature this does not have yet; until then the '
-              'shared shape has to be one level of messages.',
-        );
-        return null;
-      }
+      String name, {
+      required List<NamespaceModel> siblings,
+      required String? Function(String path) sharedTypeOf,
+    }) {
       final keyEnum = addressedByKey[namespace.path];
       if (keyEnum != null) {
         refuse(
@@ -375,6 +383,50 @@ final class ModelBuilder {
       }
 
       final members = <InterfaceMemberModel>[];
+      for (final child in namespace.children) {
+        // The *shared* type, not the child's own: a nested namespace is
+        // reached through this interface, so the member has to be the type
+        // every sibling's child also is. The namespace's own interface keeps
+        // declaring the narrow type and overrides this one covariantly, which
+        // is why nothing in the generated API widens.
+        final shared = sharedTypeOf(child.path);
+        if (shared == null && siblings.length > 1) {
+          final key = child.path.substring(namespace.path.length + 1);
+          final wanted = siblings
+              .map((sibling) => '${sibling.path}.$key')
+              .where(namespaces.containsKey)
+              .toList();
+          final claimed = _sharedBy(child.path);
+          refuse(
+            name: name,
+            namespace: namespace,
+            reason: claimed.length > 1
+                ? '"$key" is in ${claimed.length} interfaces '
+                      '(${claimed.join(', ')}) and there is nothing to choose '
+                      'between them'
+                : '"$key" is a namespace with no type of its own to share',
+            fix: claimed.length > 1
+                ? 'A member has one type. Leave "$key" in the one interface '
+                      'this member should have, and give the other a path '
+                      'that does not cover it.'
+                : 'A nested namespace generates a type named after its own '
+                      'path, so '
+                      '${wanted.map((path) => '"$path"').join(' and ')} '
+                      'are different types. Give them one:\n'
+                      '  interfaces:\n'
+                      '    ${DartIdentifiers.upperCamel(key)}:\n'
+                      '${wanted.map((path) => '      - $path').join('\n')}',
+          );
+          return null;
+        }
+        members.add(
+          InterfaceMemberModel(
+            dartName: child.dartName,
+            declaration:
+                '${shared ?? child.interfaceName} get ${child.dartName}',
+          ),
+        );
+      }
       for (final message in namespace.messages) {
         members.add(
           InterfaceMemberModel(
@@ -407,62 +459,121 @@ final class ModelBuilder {
       return members;
     }
 
-    final models = <InterfaceModel>[];
+    /// The namespaces [pattern] matches, or `null` after reporting why none
+    /// do.
+    ///
+    /// A `*` segment stands for every child at that level, so one line names
+    /// a nested member of a whole set and adding a sibling stays a change to
+    /// a translation file.
+    List<NamespaceModel>? match(String pattern, String name) {
+      var current = <NamespaceModel>[root];
+      final walked = <String>[];
+      for (final segment in pattern.split('.')) {
+        final next = <NamespaceModel>[];
+        for (final namespace in current) {
+          if (segment == '*') {
+            next.addAll(namespace.children);
+          } else {
+            final path = namespace.path.isEmpty
+                ? segment
+                : '${namespace.path}.$segment';
+            final child = namespaces[path];
+            if (child != null) next.add(child);
+          }
+        }
+        if (next.isEmpty) {
+          final prefix = walked.join('.');
+          final candidates =
+              current
+                  .expand((namespace) => namespace.children)
+                  .map((namespace) => namespace.path)
+                  .toList()
+                ..sort();
+          if (segment == '*') {
+            diagnostics.add(
+              Diagnostic.error(
+                code: 'invalid_config',
+                message: prefix.isEmpty
+                    ? '"$name" names "$pattern", and this project has no '
+                          'namespace.'
+                    : '"$name" names "$pattern", and "$prefix" has no '
+                          'namespace under it.',
+                span: prefix.isEmpty ? null : spanOf(namespaces[prefix]!),
+                translationKey: prefix.isEmpty ? null : prefix,
+                details: pattern.endsWith('.*')
+                    ? 'A "*" segment means every group at that level. Drop '
+                          'the ".*" to give "$prefix" itself the interface.'
+                    : 'A "*" segment means every group at that level, and '
+                          '"$prefix" holds messages only.',
+              ),
+            );
+          } else {
+            final attempted = [...walked, segment].join('.');
+            final nearest = NearestKey.of(attempted, candidates);
+            // No span: this came from the configuration file, which the model
+            // builder has never read.
+            diagnostics.add(
+              Diagnostic.error(
+                code: 'invalid_config',
+                message: '"$name" names "$pattern", which is not a namespace.',
+                details: [
+                  if (nearest != null) 'Did you mean "$nearest"?',
+                  if (candidates.isNotEmpty)
+                    'Namespaces:\n'
+                        '${candidates.map((key) => '  $key').join('\n')}',
+                ].join('\n'),
+              ),
+            );
+          }
+          return null;
+        }
+        walked.add(segment);
+        current = next;
+      }
+      return current;
+    }
+
+    // Every pattern is expanded before a single member is read: which type a
+    // nested member has is decided by what the *other* entries resolved to,
+    // and that is a fact about the configuration rather than about the
+    // translations. Which is also why no dependency order is needed here —
+    // the nested type's name comes from the configuration, not from its
+    // members.
+    final resolvedByName = <String, List<NamespaceModel>>{};
     for (final name in interfaces.keys.toList()..sort()) {
       final resolved = <NamespaceModel>[];
       final seen = <String>{};
       var failed = false;
-      for (final path in interfaces[name]!) {
-        final isContainer = path.endsWith('.*');
-        final key = isContainer ? path.substring(0, path.length - 2) : path;
-        final namespace = namespaces[key];
-        if (namespace == null) {
-          final groups = namespaces.keys.where((key) => key.isNotEmpty).toList()
-            ..sort();
-          final nearest = NearestKey.of(key, groups);
-          // No span: this came from the configuration file, which the model
-          // builder has never read.
-          diagnostics.add(
-            Diagnostic.error(
-              code: 'invalid_config',
-              message: '"$name" names "$path", which is not a namespace.',
-              details: [
-                if (nearest != null) 'Did you mean "$nearest"?',
-                if (groups.isNotEmpty)
-                  'Namespaces:\n${groups.map((key) => '  $key').join('\n')}',
-              ].join('\n'),
-            ),
-          );
+      for (final pattern in interfaces[name]!) {
+        final matched = match(pattern, name);
+        if (matched == null) {
           failed = true;
           continue;
         }
-        final targets = isContainer ? namespace.children : [namespace];
-        if (targets.isEmpty) {
-          diagnostics.add(
-            Diagnostic.error(
-              code: 'invalid_config',
-              message:
-                  '"$name" names "$path", and "$key" has no namespace under '
-                  'it.',
-              span: spanOf(namespace),
-              translationKey: key,
-              details:
-                  'A path ending in ".*" means every group under the '
-                  'namespace. Drop the ".*" to give "$key" itself the '
-                  'interface.',
-            ),
-          );
-          failed = true;
-          continue;
-        }
-        for (final target in targets) {
+        for (final target in matched) {
           if (seen.add(target.path)) resolved.add(target);
         }
       }
       if (failed || resolved.isEmpty) continue;
+      resolvedByName[name] = resolved;
+    }
 
+    for (final entry in resolvedByName.entries) {
+      for (final namespace in entry.value) {
+        (_sharedByPath[namespace.path] ??= <String>[]).add(entry.key);
+      }
+    }
+
+    final models = <InterfaceModel>[];
+    for (final name in resolvedByName.keys) {
+      final resolved = resolvedByName[name]!;
       final declaring = resolved.first;
-      final declaringMembers = membersOf(declaring, name);
+      final declaringMembers = membersOf(
+        declaring,
+        name,
+        siblings: resolved,
+        sharedTypeOf: _sharedTypeOf,
+      );
       if (declaringMembers == null) continue;
       if (declaringMembers.isEmpty) {
         diagnostics.add(
@@ -485,7 +596,12 @@ final class ModelBuilder {
       };
       var agreed = true;
       for (final namespace in resolved.skip(1)) {
-        final members = membersOf(namespace, name);
+        final members = membersOf(
+          namespace,
+          name,
+          siblings: resolved,
+          sharedTypeOf: _sharedTypeOf,
+        );
         if (members == null) {
           agreed = false;
           continue;
@@ -547,7 +663,7 @@ final class ModelBuilder {
       );
     }
 
-    return models;
+    return models..sort((a, b) => a.name.compareTo(b.name));
   }
 
   void _unaddressable({
