@@ -1833,19 +1833,19 @@ rejected. Dart VM, JIT, one machine — read the ratios:
 
 | | generated | flat map |
 | --- | --- | --- |
-| getter, three namespaces deep | 3.6 ns | 7.5 ns |
-| interpolation, one argument | 20.5 ns | 78.5 ns |
-| plural, CLDR branch | 21.8 ns | 74.9 ns |
+| getter, three namespaces deep | 3.8 ns | 8.1 ns |
+| interpolation, one argument | 22.0 ns | 83.1 ns |
+| plural, CLDR branch | 22.8 ns | 79.4 ns |
 
 Namespace access allocates nothing — `identical(t.auth, t.auth)` is `true`,
 because every namespace object is `const`, and a test reads the generated
 source to check that every accessor in it is.
 
-Through Flutter, `context.l10n` and three getters cost 44 ns against 6 ns for
-the same call without a `BuildContext`; the difference is Flutter's inherited
-widget lookup. Switching locale rebuilds exactly the widgets that read it. Formatting a number costs more than
-ten plural branches, which is why formatters are shared and `intl` stays out of
-projects that never format.
+Through Flutter, `context.l10n` and three getters cost about 50 ns against
+6 ns for the same call without a `BuildContext`; the difference is Flutter's
+inherited widget lookup. Switching locale rebuilds exactly the widgets that
+read it. Formatting a number costs more than ten plural branches, which is why
+formatters are shared and `intl` stays out of projects that never format.
 
 See [`docs/architecture.md`](docs/architecture.md#benchmarks) for the full
 table and the method.

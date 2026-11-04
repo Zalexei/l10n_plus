@@ -14,7 +14,10 @@ expressions behind an interface.
 
 ## Packages
 
-Three packages, not four.
+Four packages. The fourth, `l10n_plus_builder`, is the `build_runner` adapter
+this section used to describe as future work: it carries `build`, a dependency
+the CLI must never resolve, which is the test a package of its own has to pass.
+The CLI does not pass it, for the reason below.
 
 | Package | Role | Ships in an app? |
 | --- | --- | --- |
@@ -57,9 +60,10 @@ example ships the exact `build.yaml` needed.
 The CLI is an entry point, not a reusable library. It already depends only on
 `L10nPlusGenerator`, so the boundary that matters — *generation engine knows
 nothing about the CLI* — is a module boundary and is enforced by imports. A
-fourth package would add a release surface and a version constraint for zero
-architectural gain. A `build_runner` adapter, when it arrives, will be a real
-package because it has a real dependency (`build`) that the CLI must not carry.
+package of its own would add a release surface and a version constraint for
+zero architectural gain. That is the test `l10n_plus_builder` passes and the
+CLI does not: `build` is a real dependency, which is why the adapter ships
+separately and the section above spells it out.
 
 ### Why `l10n_plus_flutter` is separate
 
@@ -118,8 +122,9 @@ Stage responsibilities:
 * **Emitters** — no decisions left, only rendering.
 
 The pipeline performs **no writes**. `GenerationResult` carries the files, and
-the caller (today the CLI, tomorrow a `build_runner` adapter) decides what to do
-with them.
+the caller — the CLI, or the `build_runner` adapter — decides what to do with
+them. That both go through the same result is why their output is
+byte-identical.
 
 ## AST
 
@@ -134,9 +139,9 @@ it from `@key`.
 `NumberSignNode`, `PluralNode`, `SelectNode`, composed into `MessageBody`.
 `PluralCase` is a sealed `ExactPluralCase | CategoryPluralCase`, which is what
 lets `=0` be emitted before the CLDR conditions without a special case in the
-emitter. `selectordinal` is rejected with a dedicated diagnostic rather than
-silently mishandled; adding it later means one more node type and one more rule
-table.
+emitter. `selectordinal` shares `PluralNode`, carrying a `PluralType` that
+picks the CLDR **ordinal** table instead of the cardinal one — the one more
+rule table this paragraph used to cost, and no extra node type.
 
 ## Decisions and trade-offs
 
@@ -334,11 +339,12 @@ Two independent oracles check the result, and they are complementary rather
 than redundant:
 
 * **CLDR's own samples.** Every rule carries `@integer` and `@decimal` lists
-  naming values that must land in that category; 2698 cardinal and 1044 ordinal
+  naming values that must land in that category; 3420 cardinal and 1174 ordinal
   values are run through the *generated code* and compared. They come from the
-  release the conditions were generated from, and they cover all 222 languages.
+  release the conditions were generated from, and they cover all 224 entries —
+  the 222 languages and the two tags CLDR qualifies by script or region.
 * **`package:intl`.** It carries its own copy of the rules, generated from ICU
-  data, so it is a second implementation. It covers 89 of the 222 and answers
+  data, so it is a second implementation. It covers 90 of the 224 and answers
   `other` for the rest — which would read as agreement, so languages it does
   not carry are excluded rather than compared.
 * **ICU itself, for ordinals**, where `intl` has no table at all.
@@ -2045,21 +2051,23 @@ so that decision is a number rather than an assertion. The map baseline is
 favourable to the map: pre-joined keys, no nesting to walk, no argument
 checking.
 
-Dart VM, JIT, one machine. Read the ratios, not the absolutes.
+Dart VM, JIT, one machine. Read the ratios, not the absolutes. One run of the
+harness on 2026-11-04, Dart 3.9.0 on macos_arm64; repeats of the first two rows
+moved by 0.1 and 0.4 ns.
 
 | | generated | flat map |
 | --- | --- | --- |
-| getter, three namespaces deep | 3.6 ns | 7.5 ns |
-| interpolation, one argument | 20.5 ns | 78.5 ns |
-| plural, CLDR branch | 21.8 ns | 74.9 ns |
-| select, generated enum | 21.5 ns | — |
-| number, shared `NumberFormat` | 295.7 ns | — |
-| locale fallback resolution | 308.3 ns | — |
+| getter, three namespaces deep | 3.8 ns | 8.1 ns |
+| interpolation, one argument | 22.0 ns | 83.1 ns |
+| plural, CLDR branch | 22.8 ns | 79.4 ns |
+| select, generated enum | 22.8 ns | — |
+| number, shared `NumberFormat` | 320.5 ns | — |
+| locale fallback resolution | 327.6 ns | — |
 
 What the numbers say:
 
 * **Namespace access is a field read.** `identical(t.auth, t.auth)` is `true`,
-  so there is nothing to time and nothing to allocate; the 3.6 ns is the
+  so there is nothing to time and nothing to allocate; the 3.8 ns is the
   `switch` over the locale enum the benchmark cycles through to stop the loop
   folding, not the access. `identical` on two accessors is a sample, though,
   and "no allocation" is a claim about all of them:
@@ -2097,17 +2105,22 @@ The absolutes are an upper bound; the split between them is the point.
 | | |
 | --- | --- |
 | `AppLocalizations.forLocale(...)` then three getters | 6 ns |
-| `context.l10n` then the same three getters | 44 ns |
-| `AppLocalizations.of(L10nLocale.parse(tag))` | 394 ns |
+| `context.l10n` then the same three getters | 51 ns |
+| `AppLocalizations.of(L10nLocale.parse(tag))` | 445 ns |
 
-`context.l10n` costs about eight times the direct call, and the difference is
-`dependOnInheritedWidgetOfExactType` — Flutter's, not this library's. Reading
+Five runs put `context.l10n` between 47 and 51 ns and the parse between 445 and
+464; the direct call is 5 to 7 ns, which is small enough that the ratio printed
+by the test swings between 7 and 10 times on the same machine.
+
+What the multiple is made of matters more than the multiple:
+`dependOnInheritedWidgetOfExactType` is Flutter's, not this library's. Reading
 a translation through a `BuildContext` is still an order of magnitude cheaper
 than resolving a locale tag, which parses a string.
 
 Switching locale over a tree of 200 widgets, 100 of which read `context.l10n`:
-7.4 ms median of nine switches, 14.2 ms for the first because it compiles the
-Russian path. That is 74 µs per rebuilt widget, which is a `flutter test`
+8.0 ms median of nine switches, 15.9 ms for the first because it compiles the
+Russian path. The median is the noisiest number here — five runs spread it from
+8.0 to 9.6 ms. That is 80 µs per rebuilt widget, which is a `flutter test`
 number for Flutter's rebuild pipeline and says nothing about this package —
 what the package contributes is one `notifyListeners`.
 

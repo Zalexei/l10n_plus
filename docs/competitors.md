@@ -125,7 +125,7 @@ config lines rather than 1.
 | Bidi isolation of interpolated values | **Y — `\u{2068}`/`\u{2069}` in the literal, opt in, warned about** | N | N | N |
 | Published, community, Stack Overflow | **N** | Y | Y | Y |
 
-Counting the verdicts over the 46 comparable rows — with
+Counting the verdicts over the 47 comparable rows — with
 [`evaluation/tally.py`](../evaluation/tally.py), which is committed this time
 and states its rule, so the number can be reproduced rather than taken on
 trust:
