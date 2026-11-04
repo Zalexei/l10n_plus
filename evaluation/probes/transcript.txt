@@ -588,3 +588,27 @@ exit=1
 113:  List<Feature> get features;
 149:  List<$PlansFreeFeaturesItem> get features => const [
 169:  List<$PlansProFeaturesItem> get features => const [
+
+######## 30. a shared interface named after a type the generated code uses ########
+evaluation/probes/workspace/translations/en.json:1:21
+plans.free
+error[type_name_collision]: Generated declaration "String" would shadow the type "String" from dart:core.
+  Wanted by the interface "String".
+  A declaration in the generated file wins over an import, so every member the generated code types as "String" would mean that declaration instead, and the mistake would surface in your code rather than here. Rename it.
+  ╷
+1 │ {"plans": {"free": {"title": "Free"}, "pro": {"title": "Pro"}}}
+  │                     ^^^^^^^
+  ╵
+
+1 error(s), 0 warning(s).
+exit=1
+-- and the root class, which used to compile into shadowed members too:
+error[type_name_collision]: Generated declaration "List" would shadow the type "List" from dart:core.
+  Wanted by the generated class "List".
+  A declaration in the generated file wins over an import, so every member the generated code types as "List" would mean that declaration instead, and the mistake would surface in your code rather than here. Rename it.
+
+1 error(s), 0 warning(s).
+exit=1
+-- a key that is a number, whose select enum used to be "enum 1S":
+11:enum AppLocale implements AppLocaleBase {
+39:enum $1S {

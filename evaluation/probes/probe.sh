@@ -407,4 +407,37 @@ EOF
   gen > /dev/null
   grep -n 'get features\|implements Feature' lib/l10n/app_localizations.g.dart; }
 
+probe 30 "a shared interface named after a type the generated code uses" && {
+  print '{"plans": {"free": {"title": "Free"}, "pro": {"title": "Pro"}}}' \
+    > translations/en.json
+  config <<'EOF'
+input_directory: translations
+output_directory: lib/l10n
+base_locale: en
+fallback_locale: en
+interfaces:
+  String:
+    - plans.free
+    - plans.pro
+flutter:
+  enabled: false
+EOF
+  gen
+  print -r -- "-- and the root class, which used to compile into shadowed members too:"
+  config <<'EOF'
+input_directory: translations
+output_directory: lib/l10n
+base_locale: en
+fallback_locale: en
+class_name: List
+flutter:
+  enabled: false
+EOF
+  gen
+  print -r -- "-- a key that is a number, whose select enum used to be \"enum 1S\":"
+  print '{"1": "{s, select, a{A} other{B}}"}' > translations/en.json
+  base_config
+  gen > /dev/null
+  grep -n '^enum' lib/l10n/app_localizations.g.dart; }
+
 reset; base_config

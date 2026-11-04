@@ -75,6 +75,18 @@ abstract final class DartIdentifiers {
   static String upperCamelPath(Iterable<String> segments) =>
       segments.map(upperCamel).join();
 
+  /// Escapes a *type* name, which [upperCamel] deliberately does not.
+  ///
+  /// Namespace interfaces and record types are emitted with a `$` in front,
+  /// which already makes a leading digit legal, so nothing escaped the camel
+  /// case names themselves. A select enum is the one generated type whose
+  /// name is written exactly as [upperCamelPath] returns it: the key `1` gave
+  /// `enum 1S`, which is not an identifier, and generation died inside the
+  /// formatter over its own output. Reserved words cannot reach a type name —
+  /// they are all lower case and [upperCamel] capitalizes — so a leading
+  /// digit is the whole job.
+  static String typeName(String camelCase) => _escape(camelCase);
+
   static String _capitalize(String value) {
     if (value.isEmpty) return value;
     return value[0].toUpperCase() + value.substring(1).toLowerCase();

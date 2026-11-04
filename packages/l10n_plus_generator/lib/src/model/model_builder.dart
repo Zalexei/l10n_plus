@@ -67,6 +67,12 @@ final class ModelBuilder {
     required List<LocaleModel> localeModels,
   }) {
     _localeModels = localeModels;
+    _externalTypes.forEach((name, origin) {
+      _topLevelNames[name] = _TopLevelName(
+        'the type "$name" from $origin',
+        isExternal: true,
+      );
+    });
     // Claimed before the walk, so a key colliding with one of them is reported
     // against the key, which is the thing that can be renamed.
     _claimTopLevel(
@@ -886,6 +892,52 @@ final class ModelBuilder {
     'resolve': 'a generated static member',
   };
 
+  /// Types the generated code refers to by name.
+  ///
+  /// These are not collisions but *shadowing*: Dart resolves a name in the
+  /// generated file to a declaration in that file before anything imported,
+  /// so `interfaces: {String: ...}` compiled a file in which every member
+  /// typed `String` meant the generated interface. Nothing was reported here
+  /// and the mistake surfaced in the consumer's code, which is the one place
+  /// this package promises to leave nothing.
+  ///
+  /// The list is the capitalized identifiers the emitters write as types,
+  /// read off the committed goldens rather than from memory. Every one is
+  /// seeded whether or not the feature that needs it is on: turning `flutter`
+  /// or a formatter on later must not take away a name that was legal before.
+  static const Map<String, String> _externalTypes = {
+    'AppLocaleBase': 'package:l10n_plus',
+    'BaseTranslations': 'package:l10n_plus',
+    'BuildContext': 'package:flutter',
+    'DateFormat': 'package:intl',
+    'DateTime': 'dart:core',
+    'DeferredAppLocale': 'package:l10n_plus',
+    'Exception': 'dart:core',
+    'Function': 'dart:core',
+    'Future': 'dart:async',
+    'L10nController': 'package:l10n_plus_flutter',
+    'L10nLocale': 'package:l10n_plus',
+    'L10nLocaleResolver': 'package:l10n_plus',
+    'L10nOverrideMismatch': 'package:l10n_plus',
+    'L10nOverrides': 'package:l10n_plus',
+    'L10nScope': 'package:l10n_plus_flutter',
+    'L10nSpan': 'package:l10n_plus',
+    'L10nSpanBuilder': 'package:l10n_plus',
+    'L10nTagSpan': 'package:l10n_plus',
+    'L10nTextSpan': 'package:l10n_plus',
+    'List': 'dart:core',
+    'Locale': 'package:flutter',
+    'Map': 'dart:core',
+    'NumberFormat': 'package:intl',
+    'Object': 'dart:core',
+    'PluralOperands': 'package:l10n_plus',
+    'StateError': 'dart:core',
+    'String': 'dart:core',
+    'TextSpan': 'package:flutter',
+    'TextStyle': 'package:flutter',
+    'WidgetsFlutterBinding': 'package:flutter',
+  };
+
   /// Claims one name in the generated file's single top level namespace.
   ///
   /// Returns whether the name was free. Dart has one namespace for classes,
@@ -898,6 +950,25 @@ final class ModelBuilder {
     if (previous == null) {
       _topLevelNames[name] = owner;
       return true;
+    }
+    if (previous.isExternal) {
+      diagnostics.add(
+        Diagnostic.error(
+          code: 'type_name_collision',
+          message:
+              'Generated declaration "$name" would shadow '
+              '${previous.description}.',
+          span: owner.span,
+          translationKey: owner.translationKey,
+          details:
+              'Wanted by ${owner.description}.\n'
+              'A declaration in the generated file wins over an import, so '
+              'every member the generated code types as "$name" would mean '
+              'that declaration instead, and the mistake would surface in '
+              'your code rather than here. Rename it.',
+        ),
+      );
+      return false;
     }
     diagnostics.add(
       Diagnostic.error(
@@ -2206,9 +2277,10 @@ final class ModelBuilder {
   }
 
   SelectEnumModel? _selectEnum(TranslationLeaf leaf, ArgumentSpec spec) {
-    final name =
-        DartIdentifiers.upperCamelPath(leaf.path.split('.')) +
-        DartIdentifiers.upperCamel(spec.name);
+    final name = DartIdentifiers.typeName(
+      DartIdentifiers.upperCamelPath(leaf.path.split('.')) +
+          DartIdentifiers.upperCamel(spec.name),
+    );
 
     final free = _claimTopLevel(
       name,
@@ -2275,6 +2347,7 @@ final class _TopLevelName {
     this.span,
     this.translationKey,
     this.isEnum = false,
+    this.isExternal = false,
   });
 
   /// Human readable phrase naming the declaration, e.g. `the namespace "auth"`.
@@ -2288,4 +2361,7 @@ final class _TopLevelName {
 
   /// Whether this is a select enum, which decides the diagnostic code.
   final bool isEnum;
+
+  /// Whether this is a type the generated code imports rather than declares.
+  final bool isExternal;
 }

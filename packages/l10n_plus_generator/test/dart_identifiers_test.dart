@@ -50,6 +50,15 @@ void main() {
       expect(DartIdentifiers.enumConstant('name'), 'name');
     });
 
+    test('a type name escapes a leading digit, a member name already did', () {
+      // The key `1` gave the accessor `$1` and the select enum `1S`: the
+      // escape lived in `lowerCamel` only, and `upperCamel` feeds names that
+      // are written as types.
+      expect(DartIdentifiers.typeName(DartIdentifiers.upperCamel('1')), r'$1');
+      expect(DartIdentifiers.typeName('AuthLoginGender'), 'AuthLoginGender');
+      expect(DartIdentifiers.lowerCamel('1'), r'$1');
+    });
+
     test('a member is not an enum constant, so index stays index', () {
       // Escaping every member called `index` would be noise: only enums
       // cannot have one.
