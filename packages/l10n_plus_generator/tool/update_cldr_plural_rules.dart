@@ -1,7 +1,14 @@
 // Regenerates the CLDR plural tables from the published CLDR data.
 //
 //   dart run tool/update_cldr_plural_rules.dart
+//   dart run tool/update_cldr_plural_rules.dart --cldr 49
 //   dart run tool/update_cldr_plural_rules.dart --from path/to/cldr-core
+//
+// The release is pinned, not `@latest`. `@latest` moved to CLDR 49 while the
+// tables said 48, so a run meant to change one entry would have rewritten all
+// of them -- silently, because the version in the generated file is read from
+// the data. Taking a new release is now typing its number, and whatever
+// arrives is checked against what was asked for.
 //
 // Writes two files:
 //
@@ -17,9 +24,16 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+/// The CLDR release the committed tables were generated from.
+///
+/// Changing this number is how a CLDR upgrade starts, and it belongs in the
+/// same commit as the regenerated tables: the generated file states the
+/// version it was built from, so the two can only disagree by accident.
+const String _pinnedCldr = '48';
+
 /// Where the CLDR JSON is fetched from when `--from` is not given.
-const String _cdn =
-    'https://cdn.jsdelivr.net/npm/cldr-core@latest/supplemental';
+String _cdn(String version) =>
+    'https://cdn.jsdelivr.net/npm/cldr-core@$version/supplemental';
 
 /// CLDR categories in the order the generated `if` chain must evaluate them.
 const List<String> _categoryOrder = ['zero', 'one', 'two', 'few', 'many'];
@@ -35,16 +49,18 @@ const String _integral = '@n == @i';
 Future<void> main(List<String> arguments) async {
   final fromIndex = arguments.indexOf('--from');
   final from = fromIndex == -1 ? null : arguments[fromIndex + 1];
+  final cldrIndex = arguments.indexOf('--cldr');
+  final wanted = cldrIndex == -1 ? _pinnedCldr : arguments[cldrIndex + 1];
 
-  final cardinalJson = await _load('plurals.json', from);
-  final ordinalJson = await _load('ordinals.json', from);
+  final cardinalJson = await _load('plurals.json', from, wanted);
+  final ordinalJson = await _load('ordinals.json', from, wanted);
 
   final cardinalRoot =
       jsonDecode(cardinalJson)['supplemental'] as Map<String, dynamic>;
   final ordinalRoot =
       jsonDecode(ordinalJson)['supplemental'] as Map<String, dynamic>;
-  final version =
-      (cardinalRoot['version'] as Map<String, dynamic>)['_cldrVersion'];
+  final version = _versionOf(cardinalRoot, 'plurals.json', wanted);
+  _versionOf(ordinalRoot, 'ordinals.json', wanted);
 
   final cardinal = _read(
     cardinalRoot['plurals-type-cardinal'] as Map<String, dynamic>,
@@ -65,16 +81,41 @@ Future<void> main(List<String> arguments) async {
     ..writeln('  cardinal: ${cardinal.length} entries')
     ..writeln('  ordinal:  ${ordinal.length} entries')
     ..writeln('Run `dart format .` and `UPDATE_GOLDENS=1 dart test` next.');
+  if (version != _pinnedCldr) {
+    stdout.writeln(
+      'This is not the pinned release $_pinnedCldr. Set _pinnedCldr to '
+      '$version in this file, in the same commit as the tables.',
+    );
+  }
 }
 
-Future<String> _load(String name, String? from) async {
+/// The release the data says it is, which must be the release that was asked
+/// for.
+///
+/// Both files are checked, and `--from` is checked too: a directory holding
+/// another release is the same mistake as a moving `@latest`, and it is the
+/// one actually made while this tool was being changed.
+String _versionOf(Map<String, dynamic> root, String file, String wanted) {
+  final version =
+      (root['version'] as Map<String, dynamic>)['_cldrVersion'] as String;
+  if (version != wanted) {
+    throw StateError(
+      '$file is CLDR $version, not the $wanted that was asked for. '
+      'Pass --cldr $version to take that release deliberately.',
+    );
+  }
+  return version;
+}
+
+Future<String> _load(String name, String? from, String version) async {
   if (from != null) return File('$from/$name').readAsStringSync();
+  final cdn = _cdn(version);
   final client = HttpClient();
   try {
-    final request = await client.getUrl(Uri.parse('$_cdn/$name'));
+    final request = await client.getUrl(Uri.parse('$cdn/$name'));
     final response = await request.close();
     if (response.statusCode != 200) {
-      throw HttpException('GET $_cdn/$name -> ${response.statusCode}');
+      throw HttpException('GET $cdn/$name -> ${response.statusCode}');
     }
     return response.transform(utf8.decoder).join();
   } finally {
