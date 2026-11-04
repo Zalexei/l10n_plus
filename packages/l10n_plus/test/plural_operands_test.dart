@@ -41,6 +41,59 @@ void main() {
     expect(operands.n, 3);
     expect(operands.i, 3);
   });
+
+  group('exponential notation', () {
+    // `(1e-7).toString()` is `1e-7`, which has no `.` in it at all, so
+    // reading the fraction off the string found none: a genuinely fractional
+    // number arrived at the rules as `v = 0`, and Russian called 1e-7 `many`
+    // where ICU says `other`. Doubles print this way below 1e-6 and from
+    // 1e21 up, and the large side has no fraction to speak of, so a negative
+    // exponent is the whole case.
+    test('a small fraction has visible fraction digits', () {
+      final operands = PluralOperands(1e-7);
+      expect(operands.i, 0);
+      expect(operands.v, 7);
+      expect(operands.w, 7);
+      expect(operands.f, 1);
+      expect(operands.t, 1);
+    });
+
+    test('a mantissa with its own digits is expanded, not rounded', () {
+      final operands = PluralOperands(1.5e-7);
+      expect(operands.v, 8);
+      expect(operands.f, 15);
+      expect(operands.t, 15);
+    });
+
+    test('the digits beyond an int are read modulo, not dropped', () {
+      // 1e-300 spells out 300 fraction digits, which no `int` holds. The
+      // rules only ever ask `f = 0`, `f = 1`, `f % 10` and `f % 100`, and the
+      // last digits answer all four.
+      final operands = PluralOperands(1e-300);
+      expect(operands.v, 300);
+      expect(operands.f, 1);
+      expect(operands.t, 1);
+    });
+
+    test('digits a double cannot hold are not read as no fraction', () {
+      // The same reading, in the formatted factory: `toStringAsFixed(20)` of
+      // 0.1 is 0.10000000000000000555, twenty digits that no `int` holds, and
+      // `tryParse` answered null -- which was stored as `f = 0`, the operand
+      // of a whole number.
+      final operands = PluralOperands.formatted(
+        0.1,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 20,
+      );
+      expect(operands.v, 20);
+      expect(operands.f % 10, 5);
+    });
+
+    test('a value a double prints plainly is unchanged', () {
+      expect(PluralOperands(1e-6).v, 6);
+      expect(PluralOperands(1e-6).f, 1);
+    });
+  });
 }
 
 void _formattedTests() {

@@ -12,19 +12,59 @@ final class PluralOperands {
       return PluralOperands._(absolute.toDouble(), i, 0, 0, 0, 0);
     }
 
-    var fraction = absolute.toString().split('.').elementAtOrNull(1) ?? '';
-    // `toString` of a double can use exponent notation; bail out to no digits.
-    if (!RegExp(r'^[0-9]+$').hasMatch(fraction)) fraction = '';
-
+    final fraction = _fractionDigits(absolute.toDouble());
     final withoutTrailing = fraction.replaceFirst(RegExp(r'0+$'), '');
     return PluralOperands._(
       absolute.toDouble(),
       i,
       fraction.length,
       withoutTrailing.length,
-      fraction.isEmpty ? 0 : int.parse(fraction),
-      withoutTrailing.isEmpty ? 0 : int.parse(withoutTrailing),
+      _digitsAsInt(fraction),
+      _digitsAsInt(withoutTrailing),
     );
+  }
+
+  /// The fraction digits of [absolute], written out in plain decimal.
+  ///
+  /// `toString` switches to exponential notation below 1e-6 and from 1e21 up,
+  /// and such a string has no `.` in it at all. Reading the digits after the
+  /// point therefore found none, and a genuinely fractional number reached
+  /// the rules as though it were whole: Russian called 1e-7 `many` where ICU
+  /// says `other`. This is not the recorded `1.0 == 1` compromise, which is
+  /// about a value a double cannot tell apart; here the value is fractional
+  /// and the string was simply not read. The large side cannot arrive here —
+  /// a value that big is its own `truncate` — so a negative exponent is the
+  /// whole case.
+  static String _fractionDigits(double absolute) {
+    final text = absolute.toString();
+    final exponentAt = text.indexOf('e');
+    if (exponentAt < 0) {
+      final pointAt = text.indexOf('.');
+      return pointAt < 0 ? '' : text.substring(pointAt + 1);
+    }
+    final exponent = int.parse(text.substring(exponentAt + 1));
+    final mantissa = text.substring(0, exponentAt);
+    final pointAt = mantissa.indexOf('.');
+    final digits = pointAt < 0 ? mantissa : mantissa.replaceFirst('.', '');
+    final point = (pointAt < 0 ? mantissa.length : pointAt) + exponent;
+    if (point >= digits.length) return '';
+    return point <= 0 ? '0' * -point + digits : digits.substring(point);
+  }
+
+  /// [digits] read as an integer, from the end.
+  ///
+  /// A double can spell out a few hundred fraction digits (1e-300 has 300)
+  /// and no `int` holds that, so parsing the whole string either throws or,
+  /// with `tryParse`, silently answered 0 — which reads as *no* fraction at
+  /// all. CLDR's conditions only ever ask `f = 0`, `f = 1`, `f % 10` and
+  /// `f % 100`, and the last digits answer all four, so the tail is the whole
+  /// answer.
+  static int _digitsAsInt(String digits) {
+    if (digits.isEmpty) return 0;
+    final tail = digits.length > 18
+        ? digits.substring(digits.length - 18)
+        : digits;
+    return int.parse(tail);
   }
 
   /// Computes the operands of [n] as a formatter will *render* it.
@@ -76,8 +116,8 @@ final class PluralOperands {
       int.tryParse(integer) ?? absolute.truncate(),
       visible.length,
       withoutTrailing.length,
-      int.tryParse(visible) ?? 0,
-      int.tryParse(withoutTrailing) ?? 0,
+      _digitsAsInt(visible),
+      _digitsAsInt(withoutTrailing),
     );
   }
 
