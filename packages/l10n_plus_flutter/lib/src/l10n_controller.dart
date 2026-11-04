@@ -51,6 +51,10 @@ final class L10nController<L extends AppLocaleBase, T extends BaseTranslations>
   bool _followSystem;
   bool _disposed = false;
 
+  /// Counts locale requests, so a switch that waited can tell it was
+  /// superseded while it waited.
+  int _request = 0;
+
   /// The active locale.
   L get locale => _locale;
 
@@ -82,6 +86,7 @@ final class L10nController<L extends AppLocaleBase, T extends BaseTranslations>
   /// same thing an unsupported locale renders. [setLocaleAsync] is the version
   /// that waits, for a caller that would rather not show that frame.
   void setLocale(L locale) {
+    _request++;
     _followSystem = false;
     _set(locale);
   }
@@ -96,12 +101,22 @@ final class L10nController<L extends AppLocaleBase, T extends BaseTranslations>
   /// Loading does not depend on this: [setLocale] starts it too. This only
   /// decides whether the switch is visible before or after the download.
   Future<void> setLocaleAsync(L locale) async {
+    // The choice is made here, not when the download lands: a system locale
+    // change arriving mid flight must not cancel a language the caller asked
+    // for by name.
+    final request = ++_request;
+    _followSystem = false;
     // Typed as `Object` so the test promotes to `DeferredAppLocale` itself:
     // `L`'s bound is `AppLocaleBase`, and promoting a type variable to an
     // unrelated interface gives an intersection whose members the analyzer
     // will not resolve.
     final Object candidate = locale;
     if (candidate is DeferredAppLocale) await candidate.load();
+    // The two guards `_load` takes on its way back, for the same two reasons:
+    // notifying a disposed controller throws, and a caller who has chosen
+    // again in the meantime has moved on. Awaiting a download is exactly the
+    // gap in which both happen, and this path had neither.
+    if (_disposed || _request != request) return;
     setLocale(locale);
   }
 
@@ -110,6 +125,7 @@ final class L10nController<L extends AppLocaleBase, T extends BaseTranslations>
   /// [systemLocales] is the platform's preferred locale list, most preferred
   /// first. [L10nScope] keeps it up to date automatically.
   void useSystemLocale(List<L10nLocale> systemLocales) {
+    _request++;
     _followSystem = true;
     _set(_resolveSystem(systemLocales));
   }
@@ -117,6 +133,7 @@ final class L10nController<L extends AppLocaleBase, T extends BaseTranslations>
   /// Called by [L10nScope] when the platform locales change.
   void handleSystemLocalesChanged(List<L10nLocale> systemLocales) {
     if (!_followSystem) return;
+    _request++;
     _set(_resolveSystem(systemLocales));
   }
 
