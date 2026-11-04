@@ -112,8 +112,8 @@ abstract final class CrossLocaleValidator {
     final language = locale.locale.language;
     for (final type in PluralType.values) {
       final known = type == PluralType.ordinal
-          ? CldrPluralRules.ordinalForLanguage(language) != null
-          : CldrPluralRules.forLanguage(language) != null;
+          ? CldrPluralRules.ordinalFor(locale.locale) != null
+          : CldrPluralRules.cardinalFor(locale.locale) != null;
       if (known) continue;
 
       for (final message in locale.messages.values) {
@@ -637,10 +637,11 @@ abstract final class CrossLocaleValidator {
     DiagnosticCollector diagnostics,
   ) {
     for (final plural in _pluralNodes(message.body)) {
-      final rules = plural.type == PluralType.ordinal
-          ? CldrPluralRules.ordinalForLanguage(locale.locale.language)
-          : CldrPluralRules.forLanguage(locale.locale.language);
-      if (rules == null) continue;
+      final found = plural.type == PluralType.ordinal
+          ? CldrPluralRules.ordinalFor(locale.locale)
+          : CldrPluralRules.cardinalFor(locale.locale);
+      if (found == null) continue;
+      final rules = found.rules;
       final declared = plural.cases.keys
           .whereType<CategoryPluralCase>()
           .map((c) => c.category)
@@ -662,7 +663,7 @@ abstract final class CrossLocaleValidator {
             span: plural.span,
             translationKey: message.path,
             details:
-                '${locale.locale.language} uses: '
+                '${found.tag} uses: '
                 '${_sortedCategories(supported).join(', ')}.\n'
                 'Those counts will fall back to the "other" branch.',
           ),

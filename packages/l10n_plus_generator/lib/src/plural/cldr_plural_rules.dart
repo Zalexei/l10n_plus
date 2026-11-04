@@ -1,3 +1,5 @@
+import 'package:l10n_plus/l10n_plus.dart';
+
 import '../ast/message_ast.dart';
 
 /// Cardinal plural rules for one language.
@@ -63,9 +65,12 @@ final class PluralRuleSet {
 ///   selecting a branch. Relations over it are decided at
 ///   generation time and do not reach the output.
 ///
-/// Script and region qualified CLDR entries (`pt-PT`,
-/// `kok-Latn`) are left out: rules are looked up by language
-/// subtag, so nothing could reach them.
+///
+/// Most entries are keyed by language. The few CLDR qualifies
+/// by script or region are here too, because one of them is
+/// not its language: `pt-PT` counts `one` for 1 alone where
+/// `pt` counts it for 0 and 1 both. [cardinalFor] and
+/// [ordinalFor] walk a locale lineage to find them.
 abstract final class CldrPluralRules {
   /// The CLDR release these tables were generated from.
   static const String cldrVersion = '48';
@@ -517,6 +522,10 @@ abstract final class CldrPluralRules {
       // i = 0 or n = 1
       PluralCategory.one: '@i == 0 || @n == 1',
     }),
+    'kok-Latn': PluralRuleSet({
+      // i = 0 or n = 1
+      PluralCategory.one: '@i == 0 || @n == 1',
+    }),
     'ks': PluralRuleSet({
       // n = 1
       PluralCategory.one: '@n == 1',
@@ -756,6 +765,12 @@ abstract final class CldrPluralRules {
     'pt': PluralRuleSet({
       // i = 0..1
       PluralCategory.one: '@i >= 0 && @i <= 1',
+      // e = 0 and i != 0 and i % 1000000 = 0 and v = 0 or e != 0..5
+      PluralCategory.many: '@i != 0 && @i % 1000000 == 0 && @v == 0',
+    }),
+    'pt-PT': PluralRuleSet({
+      // i = 1 and v = 0
+      PluralCategory.one: '@i == 1 && @v == 0',
       // e = 0 and i != 0 and i % 1000000 = 0 and v = 0 or e != 0..5
       PluralCategory.many: '@i != 0 && @i % 1000000 == 0 && @v == 0',
     }),
@@ -1263,6 +1278,14 @@ abstract final class CldrPluralRules {
       // n = 4
       PluralCategory.few: '@n == 4',
     }),
+    'kok-Latn': PluralRuleSet({
+      // n = 1
+      PluralCategory.one: '@n == 1',
+      // n = 2,3
+      PluralCategory.two: '(@n == 2 || @n == 3)',
+      // n = 4
+      PluralCategory.few: '@n == 4',
+    }),
     'kw': PluralRuleSet({
       // n = 1..4 or n % 100 = 1..4,21..24,41..44,61..64,81..84
       PluralCategory.one:
@@ -1402,18 +1425,67 @@ abstract final class CldrPluralRules {
     'zu': PluralRuleSet({}),
   };
 
-  /// Cardinal rules for [language], or `null` when CLDR has none.
-  static PluralRuleSet? forLanguage(String language) => _rules[language];
+  /// The cardinal rules CLDR gives [locale], and the tag they came from.
+  ///
+  /// CLDR keys most of its rules by language and a few by script or region,
+  /// and one of those is not its language: `pt-PT` counts `one` for 1 alone
+  /// where `pt` counts it for 0 and 1 both. So this walks
+  /// [L10nLocale.lineage], most specific first, which is how ICU reaches the
+  /// same entry.
+  ///
+  /// CLDR's `parentLocales` are not read, so a region with no entry of its
+  /// own takes its language: `pt-MZ` inherits `pt-PT` in ICU and `pt` here.
+  static ({String tag, PluralRuleSet rules})? cardinalFor(L10nLocale locale) =>
+      _lookup(_rules, locale);
 
-  /// Ordinal rules for [language], or `null` when CLDR has none.
-  static PluralRuleSet? ordinalForLanguage(String language) =>
-      _ordinalRules[language];
+  /// The ordinal rules CLDR gives [locale], resolved as in [cardinalFor].
+  static ({String tag, PluralRuleSet rules})? ordinalFor(L10nLocale locale) =>
+      _lookup(_ordinalRules, locale);
+
+  static ({String tag, PluralRuleSet rules})? _lookup(
+    Map<String, PluralRuleSet> table,
+    L10nLocale locale,
+  ) {
+    for (final candidate in locale.lineage) {
+      final tag = candidate.toLanguageTag();
+      final rules = table[tag];
+      if (rules != null) return (tag: tag, rules: rules);
+    }
+    return null;
+  }
+
+  /// Cardinal rules published under exactly [tag], or `null`.
+  ///
+  /// Takes a CLDR table key rather than a locale: for asking whether a
+  /// language is in the table at all, where no fallback is wanted.
+  static PluralRuleSet? forLanguage(String tag) => _rules[tag];
+
+  /// Ordinal rules published under exactly [tag], or `null`.
+  static PluralRuleSet? ordinalForLanguage(String tag) => _ordinalRules[tag];
 
   /// Every language with cardinal rules, sorted, for diagnostics.
-  static List<String> get supportedLanguages =>
-      _rules.keys.toList(growable: false)..sort();
+  ///
+  /// Language subtags only. The qualified tags in the table are not
+  /// languages, and a diagnostic that counts languages must not count them.
+  static List<String> get supportedLanguages => _languagesOf(_rules);
 
   /// Every language with ordinal rules, sorted, for diagnostics.
   static List<String> get supportedOrdinalLanguages =>
-      _ordinalRules.keys.toList(growable: false)..sort();
+      _languagesOf(_ordinalRules);
+
+  /// Every key of the cardinal table, qualified tags included, sorted.
+  ///
+  /// For tests that have to cover the table itself rather than report on
+  /// languages, where leaving `pt-PT` out would leave it unchecked.
+  static List<String> get cardinalTags => _tagsOf(_rules);
+
+  /// Every key of the ordinal table, qualified tags included, sorted.
+  static List<String> get ordinalTags => _tagsOf(_ordinalRules);
+
+  static List<String> _languagesOf(Map<String, PluralRuleSet> table) =>
+      table.keys.where((tag) => !tag.contains('-')).toList(growable: false)
+        ..sort();
+
+  static List<String> _tagsOf(Map<String, PluralRuleSet> table) =>
+      table.keys.toList(growable: false)..sort();
 }

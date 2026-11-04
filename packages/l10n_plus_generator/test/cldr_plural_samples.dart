@@ -893,6 +893,10 @@ const Map<String, Map<String, List<num>>> cldrCardinalSamples = {
     'one': [0, 1, 0.04],
     'other': [2, 17, 100, 1000, 10000, 100000, 1000000, 1.1, 2.6],
   },
+  'kok-Latn': {
+    'one': [0, 1, 0.04],
+    'other': [2, 17, 100, 1000, 10000, 100000, 1000000, 1.1, 2.6],
+  },
   'ks': {
     'one': [1],
     'other': [0, 2, 16, 100, 1000, 10000, 100000, 1000000, 0.9, 1.1, 1.6],
@@ -1192,6 +1196,11 @@ const Map<String, Map<String, List<num>>> cldrCardinalSamples = {
     'one': [0, 1, 1.5],
     'many': [1000000],
     'other': [2, 17, 100, 1000, 10000, 100000, 3.5],
+  },
+  'pt-PT': {
+    'one': [1],
+    'many': [1000000],
+    'other': [0, 2, 16, 100, 1000, 10000, 100000, 1.5],
   },
   'rm': {
     'one': [1],
@@ -1970,6 +1979,12 @@ const Map<String, Map<String, List<num>>> cldrOrdinalSamples = {
     'other': [0, 15, 100, 1000, 10000, 100000, 1000000],
   },
   'kok': {
+    'one': [1],
+    'two': [2, 3],
+    'few': [4],
+    'other': [0, 5, 19, 100, 1000, 10000, 100000, 1000000],
+  },
+  'kok-Latn': {
     'one': [1],
     'two': [2, 3],
     'few': [4],

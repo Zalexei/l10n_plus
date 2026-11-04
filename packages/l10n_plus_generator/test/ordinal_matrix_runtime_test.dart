@@ -77,7 +77,7 @@ void main() {
   test('every sample lands in the category ICU picks', () {
     final mismatches = <String>[];
     for (final locale in AppLocale.values) {
-      final language = locale.l10nLocale.language;
+      final language = locale.l10nLocale.toLanguageTag();
       if (!locales.containsKey(language)) continue; // ICU folds it away.
       final t = AppLocalizations.forLocale(locale);
       for (var i = 0; i < samples.length; i++) {
@@ -101,7 +101,7 @@ void main() {
     'a language never produces a category its rule set does not declare',
     () {
       for (final locale in AppLocale.values) {
-        final language = locale.l10nLocale.language;
+        final language = locale.l10nLocale.toLanguageTag();
         final declared = CldrPluralRules.ordinalForLanguage(
           language,
         )!.categories.map((c) => c.name).toSet();

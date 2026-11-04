@@ -303,6 +303,9 @@ enum AppLocale implements AppLocaleBase {
   /// `kok`
   kok(L10nLocale('kok')),
 
+  /// `kok-Latn`
+  kokLatn(L10nLocale('kok', script: 'Latn')),
+
   /// `ks`
   ks(L10nLocale('ks')),
 
@@ -458,6 +461,9 @@ enum AppLocale implements AppLocaleBase {
 
   /// `pt`
   pt(L10nLocale('pt')),
+
+  /// `pt-PT`
+  ptPt(L10nLocale('pt', country: 'PT')),
 
   /// `rm`
   rm(L10nLocale('rm')),
@@ -780,6 +786,7 @@ enum AppLocale implements AppLocaleBase {
     AppLocale.kn => const AppLocalizationsKn(),
     AppLocale.ko => const AppLocalizationsKo(),
     AppLocale.kok => const AppLocalizationsKok(),
+    AppLocale.kokLatn => const AppLocalizationsKokLatn(),
     AppLocale.ks => const AppLocalizationsKs(),
     AppLocale.ksb => const AppLocalizationsKsb(),
     AppLocale.ksh => const AppLocalizationsKsh(),
@@ -832,6 +839,7 @@ enum AppLocale implements AppLocaleBase {
     AppLocale.prg => const AppLocalizationsPrg(),
     AppLocale.ps => const AppLocalizationsPs(),
     AppLocale.pt => const AppLocalizationsPt(),
+    AppLocale.ptPt => const AppLocalizationsPtPt(),
     AppLocale.rm => const AppLocalizationsRm(),
     AppLocale.ro => const AppLocalizationsRo(),
     AppLocale.rof => const AppLocalizationsRof(),
@@ -3153,6 +3161,27 @@ class AppLocalizationsKok implements AppLocalizations {
   }
 }
 
+/// `kok-Latn` translations.
+class AppLocalizationsKokLatn implements AppLocalizations {
+  /// Creates the kok-Latn translations.
+  const AppLocalizationsKokLatn();
+
+  @override
+  AppLocale get appLocale => AppLocale.kokLatn;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('kok', script: 'Latn');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.i == 0 || $operands.n == 1) {
+      return 'one';
+    }
+    return 'other';
+  }
+}
+
 /// `ks` translations.
 class AppLocalizationsKs implements AppLocalizations {
   /// Creates the ks translations.
@@ -4335,6 +4364,30 @@ class AppLocalizationsPt implements AppLocalizations {
   String cat({required num count}) {
     final $operands = PluralOperands(count);
     if ($operands.i >= 0 && $operands.i <= 1) {
+      return 'one';
+    }
+    if ($operands.i != 0 && $operands.i % 1000000 == 0 && $operands.v == 0) {
+      return 'many';
+    }
+    return 'other';
+  }
+}
+
+/// `pt-PT` translations.
+class AppLocalizationsPtPt implements AppLocalizations {
+  /// Creates the pt-PT translations.
+  const AppLocalizationsPtPt();
+
+  @override
+  AppLocale get appLocale => AppLocale.ptPt;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('pt', country: 'PT');
+
+  @override
+  String cat({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.i == 1 && $operands.v == 0) {
       return 'one';
     }
     if ($operands.i != 0 && $operands.i % 1000000 == 0 && $operands.v == 0) {

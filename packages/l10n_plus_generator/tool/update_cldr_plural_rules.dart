@@ -62,8 +62,8 @@ Future<void> main(List<String> arguments) async {
 
   stdout
     ..writeln('CLDR $version')
-    ..writeln('  cardinal: ${cardinal.length} languages')
-    ..writeln('  ordinal:  ${ordinal.length} languages')
+    ..writeln('  cardinal: ${cardinal.length} entries')
+    ..writeln('  ordinal:  ${ordinal.length} entries')
     ..writeln('Run `dart format .` and `UPDATE_GOLDENS=1 dart test` next.');
 }
 
@@ -99,10 +99,9 @@ final class _Language {
 Map<String, _Language> _read(Map<String, dynamic> table) {
   final result = <String, _Language>{};
   for (final entry in table.entries) {
-    // Rules are looked up by language subtag alone, so a script or region
-    // qualified entry (`pt-PT`, `kok-Latn`) has no way of being reached.
-    if (entry.key.contains('-')) continue;
-
+    // Script and region qualified entries (`pt-PT`, `kok-Latn`) are kept:
+    // `pt-PT` is the one entry in either table whose rules are not its
+    // language's, and the lookup reaches it through the locale's lineage.
     final language = _Language(entry.key);
     final rules = entry.value as Map<String, dynamic>;
     for (final category in [..._categoryOrder, 'other']) {
@@ -299,12 +298,86 @@ const String _exactValueAccessor = r'''
   );
 ''';
 
+/// The lookup the tables are reached through, written out as source.
+///
+/// A rule set alone is not enough to report with: a `pt_PT` file whose
+/// diagnostic says `pt` is naming the other language's rules. So the lookup
+/// returns the tag that answered as well.
+const String _lookupAccessors = '''
+  /// The cardinal rules CLDR gives [locale], and the tag they came from.
+  ///
+  /// CLDR keys most of its rules by language and a few by script or region,
+  /// and one of those is not its language: `pt-PT` counts `one` for 1 alone
+  /// where `pt` counts it for 0 and 1 both. So this walks
+  /// [L10nLocale.lineage], most specific first, which is how ICU reaches the
+  /// same entry.
+  ///
+  /// CLDR's `parentLocales` are not read, so a region with no entry of its
+  /// own takes its language: `pt-MZ` inherits `pt-PT` in ICU and `pt` here.
+  static ({String tag, PluralRuleSet rules})? cardinalFor(L10nLocale locale) =>
+      _lookup(_rules, locale);
+
+  /// The ordinal rules CLDR gives [locale], resolved as in [cardinalFor].
+  static ({String tag, PluralRuleSet rules})? ordinalFor(L10nLocale locale) =>
+      _lookup(_ordinalRules, locale);
+
+  static ({String tag, PluralRuleSet rules})? _lookup(
+    Map<String, PluralRuleSet> table,
+    L10nLocale locale,
+  ) {
+    for (final candidate in locale.lineage) {
+      final tag = candidate.toLanguageTag();
+      final rules = table[tag];
+      if (rules != null) return (tag: tag, rules: rules);
+    }
+    return null;
+  }
+
+  /// Cardinal rules published under exactly [tag], or `null`.
+  ///
+  /// Takes a CLDR table key rather than a locale: for asking whether a
+  /// language is in the table at all, where no fallback is wanted.
+  static PluralRuleSet? forLanguage(String tag) => _rules[tag];
+
+  /// Ordinal rules published under exactly [tag], or `null`.
+  static PluralRuleSet? ordinalForLanguage(String tag) => _ordinalRules[tag];
+
+  /// Every language with cardinal rules, sorted, for diagnostics.
+  ///
+  /// Language subtags only. The qualified tags in the table are not
+  /// languages, and a diagnostic that counts languages must not count them.
+  static List<String> get supportedLanguages => _languagesOf(_rules);
+
+  /// Every language with ordinal rules, sorted, for diagnostics.
+  static List<String> get supportedOrdinalLanguages =>
+      _languagesOf(_ordinalRules);
+
+  /// Every key of the cardinal table, qualified tags included, sorted.
+  ///
+  /// For tests that have to cover the table itself rather than report on
+  /// languages, where leaving `pt-PT` out would leave it unchecked.
+  static List<String> get cardinalTags => _tagsOf(_rules);
+
+  /// Every key of the ordinal table, qualified tags included, sorted.
+  static List<String> get ordinalTags => _tagsOf(_ordinalRules);
+
+  static List<String> _languagesOf(Map<String, PluralRuleSet> table) =>
+      table.keys.where((tag) => !tag.contains('-')).toList(growable: false)
+        ..sort();
+
+  static List<String> _tagsOf(Map<String, PluralRuleSet> table) =>
+      table.keys.toList(growable: false)..sort();
+}
+''';
+
 String _rulesLibrary(
   Object? version,
   Map<String, _Language> cardinal,
   Map<String, _Language> ordinal,
 ) {
   final buffer = StringBuffer()
+    ..writeln("import 'package:l10n_plus/l10n_plus.dart';")
+    ..writeln()
     ..writeln("import '../ast/message_ast.dart';")
     ..writeln()
     ..writeln('/// Cardinal plural rules for one language.')
@@ -364,9 +437,12 @@ String _rulesLibrary(
     ..writeln('///   selecting a branch. Relations over it are decided at')
     ..writeln('///   generation time and do not reach the output.')
     ..writeln('///')
-    ..writeln('/// Script and region qualified CLDR entries (`pt-PT`,')
-    ..writeln('/// `kok-Latn`) are left out: rules are looked up by language')
-    ..writeln('/// subtag, so nothing could reach them.')
+    ..writeln('///')
+    ..writeln('/// Most entries are keyed by language. The few CLDR qualifies')
+    ..writeln('/// by script or region are here too, because one of them is')
+    ..writeln('/// not its language: `pt-PT` counts `one` for 1 alone where')
+    ..writeln('/// `pt` counts it for 0 and 1 both. [cardinalFor] and')
+    ..writeln('/// [ordinalFor] walk a locale lineage to find them.')
     ..writeln('abstract final class CldrPluralRules {')
     ..writeln('  /// The CLDR release these tables were generated from.')
     ..writeln("  static const String cldrVersion = '$version';")
@@ -392,36 +468,7 @@ String _rulesLibrary(
     ordinal,
   );
 
-  buffer
-    ..writeln()
-    ..writeln(
-      '  /// Cardinal rules for [language], or `null` when CLDR has '
-      'none.',
-    )
-    ..writeln('  static PluralRuleSet? forLanguage(String language) =>')
-    ..writeln('      _rules[language];')
-    ..writeln()
-    ..writeln(
-      '  /// Ordinal rules for [language], or `null` when CLDR has '
-      'none.',
-    )
-    ..writeln('  static PluralRuleSet? ordinalForLanguage(String language) =>')
-    ..writeln('      _ordinalRules[language];')
-    ..writeln()
-    ..writeln(
-      '  /// Every language with cardinal rules, sorted, for '
-      'diagnostics.',
-    )
-    ..writeln('  static List<String> get supportedLanguages =>')
-    ..writeln('      _rules.keys.toList(growable: false)..sort();')
-    ..writeln()
-    ..writeln(
-      '  /// Every language with ordinal rules, sorted, for '
-      'diagnostics.',
-    )
-    ..writeln('  static List<String> get supportedOrdinalLanguages =>')
-    ..writeln('      _ordinalRules.keys.toList(growable: false)..sort();')
-    ..writeln('}');
+  buffer.write(_lookupAccessors);
   return buffer.toString();
 }
 

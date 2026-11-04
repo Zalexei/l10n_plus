@@ -2040,10 +2040,12 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
         }
         final afterExact = lines.length;
 
-        final language = context.locale.locale.language;
-        final rules = plural.type == PluralType.ordinal
-            ? CldrPluralRules.ordinalForLanguage(language)
-            : CldrPluralRules.forLanguage(language);
+        final locale = context.locale.locale;
+        final rules =
+            (plural.type == PluralType.ordinal
+                    ? CldrPluralRules.ordinalFor(locale)
+                    : CldrPluralRules.cardinalFor(locale))
+                ?.rules;
         final categories = <PluralCategory, MessageBody>{
           for (final entry in plural.cases.entries)
             if (entry.key case final CategoryPluralCase key)

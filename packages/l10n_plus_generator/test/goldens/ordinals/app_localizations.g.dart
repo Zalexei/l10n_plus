@@ -171,6 +171,9 @@ enum AppLocale implements AppLocaleBase {
   /// `kok`
   kok(L10nLocale('kok')),
 
+  /// `kok-Latn`
+  kokLatn(L10nLocale('kok', script: 'Latn')),
+
   /// `kw`
   kw(L10nLocale('kw')),
 
@@ -391,6 +394,7 @@ enum AppLocale implements AppLocaleBase {
     AppLocale.kn => const AppLocalizationsKn(),
     AppLocale.ko => const AppLocalizationsKo(),
     AppLocale.kok => const AppLocalizationsKok(),
+    AppLocale.kokLatn => const AppLocalizationsKokLatn(),
     AppLocale.kw => const AppLocalizationsKw(),
     AppLocale.ky => const AppLocalizationsKy(),
     AppLocale.lij => const AppLocalizationsLij(),
@@ -1613,6 +1617,33 @@ class AppLocalizationsKok implements AppLocalizations {
 
   @override
   L10nLocale get l10nLocale => const L10nLocale('kok');
+
+  @override
+  String ord({required num count}) {
+    final $operands = PluralOperands(count);
+    if ($operands.n == 1) {
+      return 'one';
+    }
+    if (($operands.n == 2 || $operands.n == 3)) {
+      return 'two';
+    }
+    if ($operands.n == 4) {
+      return 'few';
+    }
+    return 'other';
+  }
+}
+
+/// `kok-Latn` translations.
+class AppLocalizationsKokLatn implements AppLocalizations {
+  /// Creates the kok-Latn translations.
+  const AppLocalizationsKokLatn();
+
+  @override
+  AppLocale get appLocale => AppLocale.kokLatn;
+
+  @override
+  L10nLocale get l10nLocale => const L10nLocale('kok', script: 'Latn');
 
   @override
   String ord({required num count}) {

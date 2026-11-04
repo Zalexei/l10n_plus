@@ -355,8 +355,19 @@ the integer digits, so it reads 1.5 as `i = 2` and is wrong for Danish, French,
 Portuguese and Hindi fractions; CLDR's samples are right there. Both are in the
 suite, and the guard was verified by regression against both.
 
-Script and region qualified CLDR entries (`pt-PT`, `kok-Latn`) are left out:
-rules are looked up by language subtag, so nothing could reach them.
+CLDR keys most of its rules by language and two by script or region, and one
+of those is not its language: `pt-PT` counts `one` for 1 alone where `pt`
+counts it for 0 and 1 both, so European Portuguese says `0 itens` where
+Brazilian says `0 item`. Both qualified entries are in the table, and the
+lookup walks the locale's lineage — `pt_PT`, then `pt` — which is how ICU
+reaches the same entry. A diagnostic names the tag that answered, because
+"pt uses" in a report about a `pt_PT` file describes a different language.
+
+CLDR's `parentLocales` are not read, so a region with no entry of its own
+takes its language's rules: `pt_MZ` inherits `pt_PT` in ICU and `pt` here.
+That is a second data file and a second inheritance rule for one language
+family, and it buys nothing a project cannot get by naming the locale
+`pt_PT`.
 
 
 ### Select arguments: enum per message argument

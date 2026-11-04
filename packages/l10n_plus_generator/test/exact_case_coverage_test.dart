@@ -140,7 +140,7 @@ void main() {
     });
 
     test('other is never a single value', () {
-      for (final language in CldrPluralRules.supportedLanguages) {
+      for (final language in CldrPluralRules.cardinalTags) {
         expect(
           CldrPluralRules.forLanguage(
             language,

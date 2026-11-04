@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:l10n_plus/l10n_plus.dart';
 import 'package:l10n_plus_generator/src/ast/message_ast.dart';
 import 'package:l10n_plus_generator/src/plural/cldr_plural_rules.dart';
 import 'package:path/path.dart' as p;
@@ -54,6 +55,12 @@ String _ordinalBundle(String language) => _message(
   CldrPluralRules.ordinalForLanguage(language)!.categories,
 );
 
+/// A CLDR table key as a translation file name.
+///
+/// CLDR writes a qualified key with a hyphen (`pt-PT`); translation files are
+/// named the way the generator reads them back, with an underscore.
+String _fileTag(String tag) => L10nLocale.parse(tag).toFileTag();
+
 String _message(String key, String type, Set<PluralCategory> categories) {
   final branches = [
     for (final category in PluralCategory.values)
@@ -65,13 +72,13 @@ String _message(String key, String type, Set<PluralCategory> categories) {
 }
 
 void main() {
-  test('every language in the table generates its own CLDR branches', () {
-    final languages = CldrPluralRules.supportedLanguages;
+  test('every entry in the table generates its own CLDR branches', () {
+    final tags = CldrPluralRules.cardinalTags;
     final result = runGenerator({
       // English first: it is the base locale.
       'en.json': _bundle('en'),
-      for (final language in languages)
-        if (language != 'en') '$language.json': _bundle(language),
+      for (final tag in tags)
+        if (tag != 'en') '${_fileTag(tag)}.json': _bundle(tag),
     }, configYaml: _config);
 
     expect(
@@ -104,12 +111,12 @@ void main() {
     );
   });
 
-  test('every ordinal language generates its own CLDR branches', () {
-    final languages = CldrPluralRules.supportedOrdinalLanguages;
+  test('every ordinal entry generates its own CLDR branches', () {
+    final tags = CldrPluralRules.ordinalTags;
     final result = runGenerator({
       'en.json': _ordinalBundle('en'),
-      for (final language in languages)
-        if (language != 'en') '$language.json': _ordinalBundle(language),
+      for (final tag in tags)
+        if (tag != 'en') '${_fileTag(tag)}.json': _ordinalBundle(tag),
     }, configYaml: _config);
 
     expect(
@@ -142,23 +149,36 @@ void main() {
     );
   });
 
-  test('the matrix covers every language the tables claim', () {
-    for (final (fixture, languages) in [
-      ('plurals', CldrPluralRules.supportedLanguages),
-      ('ordinals', CldrPluralRules.supportedOrdinalLanguages),
+  test('the matrix covers every entry the tables claim', () {
+    for (final (fixture, tags) in [
+      ('plurals', CldrPluralRules.cardinalTags),
+      ('ordinals', CldrPluralRules.ordinalTags),
     ]) {
       final golden = File(
         p.join(_packageRoot, 'test/goldens/$fixture/app_localizations.g.dart'),
       );
       if (!golden.existsSync()) continue;
       final source = golden.readAsStringSync();
-      for (final language in languages) {
+      for (final tag in tags) {
         expect(
           source,
-          contains("L10nLocale('$language')"),
-          reason: '$language is in the $fixture table but not executed.',
+          contains(_localeLiteral(tag)),
+          reason: '$tag is in the $fixture table but not executed.',
         );
       }
     }
   });
+}
+
+/// The locale literal the emitter writes for [tag], to search the golden for.
+///
+/// Spelled out rather than asserted as a bare language code: `pt-PT` reaches
+/// the generated file as `L10nLocale('pt', country: 'PT')`, and a search for
+/// the language alone would pass while nothing executed its rules.
+String _localeLiteral(String tag) {
+  final locale = L10nLocale.parse(tag);
+  final buffer = StringBuffer("L10nLocale('${locale.language}'");
+  if (locale.script != null) buffer.write(", script: '${locale.script}'");
+  if (locale.country != null) buffer.write(", country: '${locale.country}'");
+  return (buffer..write(')')).toString();
 }

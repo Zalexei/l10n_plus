@@ -48,14 +48,14 @@ void main() {
     // A language whose every sample was dropped as unrepresentable would
     // silently stop being checked, so the coverage is asserted rather than
     // assumed.
-    for (final language in CldrPluralRules.supportedLanguages) {
+    for (final language in CldrPluralRules.cardinalTags) {
       expect(
         cldrCardinalSamples[language],
         isNotNull,
         reason: '$language has no usable cardinal samples.',
       );
     }
-    for (final language in CldrPluralRules.supportedOrdinalLanguages) {
+    for (final language in CldrPluralRules.ordinalTags) {
       final rules = CldrPluralRules.ordinalForLanguage(language)!;
       if (rules.conditions.isEmpty) continue; // `other` only: nothing to check.
       expect(
@@ -68,7 +68,7 @@ void main() {
 
   test('the samples exercise every category each language declares', () {
     final gaps = <String>[];
-    for (final language in CldrPluralRules.supportedLanguages) {
+    for (final language in CldrPluralRules.cardinalTags) {
       final declared = CldrPluralRules.forLanguage(
         language,
       )!.categories.map((category) => category.name);
@@ -111,16 +111,20 @@ List<String> _check({
   return mismatches;
 }
 
-/// The generated locale enums, keyed by language, so a sample can be run
+/// The generated locale enums, keyed by CLDR tag, so a sample can be run
 /// against the locale that carries its rules.
+///
+/// Keyed by the whole tag rather than the language: CLDR's samples for
+/// `pt-PT` belong to the `pt_PT` locale, and keying by language would run
+/// them against `pt` and call Brazilian answers correct.
 final Map<String, cardinals.AppLocale> _cardinalLocales = {
   for (final locale in cardinals.AppLocale.values)
-    locale.l10nLocale.language: locale,
+    locale.l10nLocale.toLanguageTag(): locale,
 };
 
 final Map<String, ordinals.AppLocale> _ordinalLocales = {
   for (final locale in ordinals.AppLocale.values)
-    locale.l10nLocale.language: locale,
+    locale.l10nLocale.toLanguageTag(): locale,
 };
 
 cardinals.AppLocale _cardinalLocale(String language) =>

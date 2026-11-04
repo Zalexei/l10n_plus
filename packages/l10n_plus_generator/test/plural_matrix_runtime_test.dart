@@ -61,7 +61,10 @@ void main() {
     final mismatches = <String>[];
     var compared = 0;
     for (final locale in AppLocale.values) {
-      final language = locale.l10nLocale.language;
+      // `intl` keys its rules by the whole locale, written as a file name, so
+      // `pt_PT` reaches European Portuguese there. Asking by language instead
+      // would compare it against Brazilian and read the disagreement as ours.
+      final language = locale.l10nLocale.toFileTag();
       // `intl` carries fewer languages than CLDR publishes and answers
       // `other` for the rest, so comparing against it there would turn a
       // missing oracle into a fake agreement. Those languages are covered by
@@ -90,7 +93,7 @@ void main() {
     'a language never produces a category its rule set does not declare',
     () {
       for (final locale in AppLocale.values) {
-        final language = locale.l10nLocale.language;
+        final language = locale.l10nLocale.toLanguageTag();
         final declared = CldrPluralRules.forLanguage(
           language,
         )!.categories.map((c) => c.name).toSet();
@@ -111,12 +114,13 @@ void main() {
     // es, fr, it and pt were missing `many` until the oracle said so.
     final missing = <String>[];
     for (final locale in AppLocale.values) {
-      final language = locale.l10nLocale.language;
+      final language = locale.l10nLocale.toLanguageTag();
       final declared = CldrPluralRules.forLanguage(
         language,
       )!.categories.map((c) => c.name).toSet();
       final reachable = {
-        for (final sample in samples) intlCategory(language, sample),
+        for (final sample in samples)
+          intlCategory(locale.l10nLocale.toFileTag(), sample),
       };
       final gap = reachable.difference(declared);
       if (gap.isNotEmpty) missing.add('$language: ${gap.join(', ')}');
