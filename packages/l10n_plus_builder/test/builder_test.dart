@@ -66,6 +66,26 @@ Builder _builder({List<String>? outputs}) =>
 const List<String> _coreOnly = ['lib/generated/app_localizations.g.dart'];
 
 void main() {
+  test('a dotted input directory finds the same assets as the CLI', () async {
+    // `Glob` matches the string it is handed, and an asset path never carries
+    // a `./`, so `./translations/**` matched nothing: a configuration the CLI
+    // accepts generated a library there and no files here. The promise that
+    // both entry points produce the same output is only worth anything if
+    // both entry points accept the same configuration.
+    final step = _FakeBuildStep({
+      'l10n_plus.yaml': _config.replaceFirst(
+        'input_directory: translations',
+        'input_directory: ./translations',
+      ),
+      'translations/en.json': '{"title": "Hello"}',
+    });
+
+    await _builder(outputs: _coreOnly).build(step);
+
+    expect(step.written.keys, _coreOnly);
+    expect(step.written.values.single, contains("'Hello'"));
+  });
+
   test('generates the library from translation assets', () async {
     final step = _FakeBuildStep({
       'l10n_plus.yaml': _config,

@@ -63,11 +63,16 @@ final class L10nPlusBuilder implements Builder {
     // Reading each translation file through `buildStep` is what registers it
     // as a dependency of the generated output.
     final inputs = <TranslationInput>[];
+    // Asset paths are package relative and never carry a `./`, and `Glob`
+    // matches the string it is handed: `./translations/**` found nothing,
+    // while the CLI resolved the same configuration against the file system
+    // and generated the library. Normalizing is the whole difference.
+    final inputDirectory = p.posix.normalize(
+      p.posix.joinAll(p.split(config.inputDirectory)),
+    );
     // `**`, not `*`: a locale may live in a subdirectory, and discovery on the
     // file system side is recursive too.
-    await for (final id in buildStep.findAssets(
-      Glob('${config.inputDirectory}/**'),
-    )) {
+    await for (final id in buildStep.findAssets(Glob('$inputDirectory/**'))) {
       if (!extensions.contains(p.extension(id.path).replaceFirst('.', ''))) {
         continue;
       }
