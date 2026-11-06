@@ -44,4 +44,4 @@ locales is only known once the translations are read. With
 
 Miss one and the builder names the file it wanted to write.
 
-Full guide: **the repository README.**
+Full guide: **the [repository README](https://github.com/Zalexei/l10n_plus#readme).**

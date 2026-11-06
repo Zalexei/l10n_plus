@@ -26,4 +26,4 @@ t.auth.login.title;                  // 'Log in'
 t.wallet.cards(count: 3);            // '3 cards'
 ```
 
-Full guide, configuration and design notes: **the repository README and `docs/architecture.md`.**
+Full guide, configuration and design notes: **the [repository README](https://github.com/Zalexei/l10n_plus#readme) and [`docs/architecture.md`](https://github.com/Zalexei/l10n_plus/blob/main/docs/architecture.md).**

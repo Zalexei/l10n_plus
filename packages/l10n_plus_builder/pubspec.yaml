@@ -1,7 +1,14 @@
 name: l10n_plus_builder
 description: build_runner adapter for the l10n_plus code generator, for projects that already use build_runner.
 version: 0.1.0
-publish_to: none
+repository: https://github.com/Zalexei/l10n_plus/tree/main/packages/l10n_plus_builder
+issue_tracker: https://github.com/Zalexei/l10n_plus/issues
+topics:
+  - localization
+  - i18n
+  - l10n
+  - codegen
+  - build-runner
 resolution: workspace
 
 environment:

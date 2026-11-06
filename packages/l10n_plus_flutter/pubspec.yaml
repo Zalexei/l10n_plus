@@ -1,7 +1,14 @@
 name: l10n_plus_flutter
 description: Flutter integration for l10n_plus, with a locale controller, a scope widget and a BuildContext extension.
 version: 0.1.0
-publish_to: none
+repository: https://github.com/Zalexei/l10n_plus/tree/main/packages/l10n_plus_flutter
+issue_tracker: https://github.com/Zalexei/l10n_plus/issues
+topics:
+  - localization
+  - i18n
+  - l10n
+  - translation
+  - flutter
 resolution: workspace
 
 environment:

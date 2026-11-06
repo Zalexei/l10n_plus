@@ -24,4 +24,4 @@ What it does:
 Configuration lives in `l10n_plus.yaml`. Translations may be split across many
 files, and output across one file per locale.
 
-Full guide, every option and the design notes: **the repository README and `docs/architecture.md`.**
+Full guide, every option and the design notes: **the [repository README](https://github.com/Zalexei/l10n_plus#readme) and [`docs/architecture.md`](https://github.com/Zalexei/l10n_plus/blob/main/docs/architecture.md).**

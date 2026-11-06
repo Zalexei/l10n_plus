@@ -31,4 +31,4 @@ single source of truth, and a delegate would create a second path to the same
 state. Add `GlobalMaterialLocalizations.delegates` for Flutter's own widgets —
 that is not this package's job.
 
-Full guide and design notes: **the repository README and `docs/architecture.md`.**
+Full guide and design notes: **the [repository README](https://github.com/Zalexei/l10n_plus#readme) and [`docs/architecture.md`](https://github.com/Zalexei/l10n_plus/blob/main/docs/architecture.md).**
