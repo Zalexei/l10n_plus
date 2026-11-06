@@ -1,0 +1,13 @@
+input_directory: translations
+output_directory: lib/generated
+base_locale: en
+fallback_locale: en
+class_name: AppLocalizations
+locale_enum_name: AppLocale
+
+global_translations: true
+global_getter: t
+
+flutter:
+  enabled: true
+  context_extension: l10n

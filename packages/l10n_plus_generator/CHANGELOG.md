@@ -45,11 +45,12 @@ Every generated top level name is claimed in one registry, so two keys that
 would produce one class name are reported rather than emitted.
 `file_per_locale` splits the library into one `part` per locale.
 
-**Without a `BuildContext`.** `AppLocalizations.current` reads the locale in
-`AppLocalizations.currentLocale`, which the generated controller factory keeps
-in step with the screen; `global_accessor: t` adds a top level getter over it.
-A snapshot, not a subscription — documented as such. A top level key named
-`current` or `currentLocale` is now an `identifier_collision`.
+**Without a `BuildContext`.** `global_translations: true` adds
+`AppLocalizations.current`, read from a cell the generated controller factory
+installs its locale in, plus `setCurrentLocale` and `resetCurrent` for code
+with no controller; `global_getter: t` adds a top level getter over it. A
+snapshot, not a subscription, and documented as one. Off, the output is
+unchanged.
 
 **CLI.** `generate`, `analyze` and `unused`, all with diagnostics carrying
 file, line, column, key, and what was expected versus found.

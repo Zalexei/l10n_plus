@@ -5,6 +5,7 @@
 /// run time.
 library;
 
+export 'src/current.dart' show L10nCurrent;
 export 'src/locale.dart' show L10nLocale;
 export 'src/locale_resolver.dart' show L10nLocaleResolver;
 export 'src/overrides.dart' show L10nOverrideMismatch, L10nOverrides;

@@ -1143,15 +1143,50 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
       ..writeln('        fallback: fallbackLocale,')
       ..writeln('      );')
       ..writeln()
-      ..writeln('  /// The locale [current] reads.')
+      ..writeln('  /// The locale these translations belong to.')
+      ..writeln('  $localeEnum get appLocale;')
+      ..writeln();
+    if (config.globalTranslations) _writeCurrent(buffer);
+    _writeInterfaceMembers(buffer, namespace);
+    buffer
+      ..writeln('}')
+      ..writeln();
+    final getter = config.globalGetter;
+    if (getter != null) {
+      buffer
+        ..writeln(
+          '/// Shorthand for [$name.current], named by `global_getter`.',
+        )
+        ..writeln('///')
+        ..writeln('/// The same snapshot: it does not rebuild anything, and a')
+        ..writeln('/// string read from it keeps the language it was read in.')
+        ..writeln('$name get $getter => $name.current;')
+        ..writeln();
+    }
+  }
+
+  /// The members `global_translations` adds to the root class.
+  void _writeCurrent(StringBuffer buffer) {
+    final name = model.className;
+    final localeEnum = model.localeEnumName;
+    buffer
+      ..writeln('  /// The cell behind [current].')
       ..writeln('  ///')
-      ..writeln('  /// A controller made by the generated factory keeps this')
       ..writeln(
-        '  /// in step with the locale it shows. Without one — a server,',
+        '  /// The controller made by the generated factory installs its',
       )
-      ..writeln('  /// a test, a background isolate — set it yourself; until')
-      ..writeln('  /// then it is [fallbackLocale].')
-      ..writeln('  static $localeEnum currentLocale = fallbackLocale;')
+      ..writeln('  /// locale here and releases it on dispose.')
+      ..writeln(
+        '  static final L10nCurrent<$localeEnum> currentCell = '
+        'L10nCurrent<$localeEnum>();',
+      )
+      ..writeln()
+      ..writeln('  /// The locale [current] reads: the one a controller or')
+      ..writeln('  /// [setCurrentLocale] installed, else [fallbackLocale].')
+      ..writeln(
+        '  static $localeEnum get currentLocale => '
+        'currentCell.locale ?? fallbackLocale;',
+      )
       ..writeln()
       ..writeln(
         '  /// Translations of [currentLocale], without a `BuildContext`.',
@@ -1166,25 +1201,18 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
       ..writeln('  /// the text is shown.')
       ..writeln('  static $name get current => currentLocale.translations;')
       ..writeln()
-      ..writeln('  /// The locale these translations belong to.')
-      ..writeln('  $localeEnum get appLocale;')
+      ..writeln('  /// Makes [locale] current without a controller: pure Dart,')
+      ..writeln('  /// a test, a background isolate.')
+      ..writeln(
+        '  static void setCurrentLocale($localeEnum locale) => '
+        'currentCell.install(locale);',
+      )
+      ..writeln()
+      ..writeln(
+        '  /// Empties [currentCell], so [current] reads [fallbackLocale].',
+      )
+      ..writeln('  static void resetCurrent() => currentCell.reset();')
       ..writeln();
-    _writeInterfaceMembers(buffer, namespace);
-    buffer
-      ..writeln('}')
-      ..writeln();
-    final accessor = config.globalAccessor;
-    if (accessor != null) {
-      buffer
-        ..writeln(
-          '/// Shorthand for [$name.current], named by `global_accessor`.',
-        )
-        ..writeln('///')
-        ..writeln('/// The same snapshot: it does not rebuild anything, and a')
-        ..writeln('/// string read from it keeps the language it was read in.')
-        ..writeln('$name get $accessor => $name.current;')
-        ..writeln();
-    }
   }
 
   void _writeInterfaceMembers(StringBuffer buffer, NamespaceModel namespace) {

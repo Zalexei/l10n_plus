@@ -502,6 +502,7 @@ final class L10nPlusGenerator {
           diagnostics: diagnostics,
           dynamicKeys: config.dynamicKeys,
           interfaces: config.interfaces,
+          globalTranslations: config.globalTranslations,
         ).build(
           baseLocaleModel: localeModels.firstWhere(
             (locale) => locale.locale == config.baseLocale,

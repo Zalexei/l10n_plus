@@ -19,7 +19,14 @@ final String _packageRoot = p.dirname(
 );
 
 /// One fixture directory per input format, plus one per file layout.
-const List<String> _fixtures = ['json', 'arb', 'yaml', 'split', 'fill_missing'];
+const List<String> _fixtures = [
+  'json',
+  'arb',
+  'yaml',
+  'split',
+  'fill_missing',
+  'current',
+];
 
 GenerationResult _run(String fixture) {
   final root = p.join(_packageRoot, 'test/fixtures', fixture);

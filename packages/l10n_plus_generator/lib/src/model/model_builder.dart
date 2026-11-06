@@ -30,6 +30,7 @@ final class ModelBuilder {
     required this.diagnostics,
     this.dynamicKeys = const [],
     this.interfaces = const {},
+    this.globalTranslations = false,
   });
 
   /// Generated root class name.
@@ -55,6 +56,9 @@ final class ModelBuilder {
 
   /// Shared supertypes by name, from `interfaces`.
   final Map<String, List<String>> interfaces;
+
+  /// Whether the root class declares `current` and its companions.
+  final bool globalTranslations;
 
   final Map<String, SelectEnumModel> _enums = {};
   final Map<String, _TopLevelName> _topLevelNames = {};
@@ -890,8 +894,23 @@ final class ModelBuilder {
     'forLocale': 'a generated static member',
     'of': 'a generated static member',
     'resolve': 'a generated static member',
+  };
+
+  /// Members `global_translations` adds to the root class.
+  ///
+  /// Claimed only with the option on, so a project that never asked for
+  /// `current` keeps every key it could write before.
+  static const Map<String, String> _currentMembers = {
     'current': 'a generated static member',
+    'currentCell': 'a generated static member',
     'currentLocale': 'a generated static member',
+    'resetCurrent': 'a generated static member',
+    'setCurrentLocale': 'a generated static member',
+  };
+
+  Map<String, String> get _generatedRootMembers => {
+    ..._rootMembers,
+    if (globalTranslations) ..._currentMembers,
   };
 
   /// Types the generated code refers to by name.
@@ -918,6 +937,7 @@ final class ModelBuilder {
     'Function': 'dart:core',
     'Future': 'dart:async',
     'L10nController': 'package:l10n_plus_flutter',
+    'L10nCurrent': 'package:l10n_plus',
     'L10nLocale': 'package:l10n_plus',
     'L10nLocaleResolver': 'package:l10n_plus',
     'L10nOverrideMismatch': 'package:l10n_plus',
@@ -1034,15 +1054,16 @@ final class ModelBuilder {
     final collections = <CollectionModel>[];
     final usedNames = <String, String>{
       if (group.path.isEmpty)
-        for (final entry in _rootMembers.entries) entry.key: entry.value,
+        for (final entry in _generatedRootMembers.entries)
+          entry.key: entry.value,
     };
 
     void claim(String dartName, TranslationNode node) {
       final previous = usedNames[dartName];
       if (previous != null) {
         final isGenerated =
-            _rootMembers.containsKey(dartName) &&
-            _rootMembers[dartName] == previous;
+            _generatedRootMembers.containsKey(dartName) &&
+            _generatedRootMembers[dartName] == previous;
         diagnostics.add(
           Diagnostic.error(
             code: 'identifier_collision',

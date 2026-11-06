@@ -3,12 +3,12 @@ import 'package:test/test.dart';
 
 import 'support/fixture.dart';
 
-/// `AppLocalizations.current` and the optional top level getter over it.
-///
-/// What it reads at run time is pinned by `current_locale_runtime_test.dart`
-/// against a golden; this file pins what is written and what is refused.
+/// `global_translations` and `global_getter`: what is written and what is
+/// refused. What `current` reads at run time is pinned against the `current`
+/// golden by `current_locale_runtime_test.dart`.
 void main() {
   const en = {'en.json': '{"title": "Log in"}'};
+  const on = '$defaultConfigYaml\nglobal_translations: true\n';
 
   String library(GenerationResult result) =>
       result.files.map((file) => file.contents).join('\n');
@@ -26,53 +26,49 @@ void main() {
     );
   }
 
-  test('the root class always has current, settable through currentLocale', () {
+  test('off by default: no current, no cell', () {
     final source = library(runGenerator(en));
+    expect(source, isNot(contains('current')));
+    expect(source, isNot(contains('L10nCurrent')));
+  });
+
+  test('on: the root class gets current and its companions', () {
+    final result = runGenerator(en, configYaml: on);
+    expect(errorsOf(result), isEmpty);
+    final source = library(result);
+    for (final member in [
+      'static final L10nCurrent<AppLocale> currentCell',
+      'static AppLocale get currentLocale',
+      'static AppLocalizations get current',
+      'static void setCurrentLocale(AppLocale locale)',
+      'static void resetCurrent()',
+    ]) {
+      expect(source, contains(member));
+    }
+    expect(source, isNot(contains('=> AppLocalizations.current;')));
+  });
+
+  test('global_getter writes a top level getter, once', () {
+    final result = runGenerator({
+      ...en,
+      'ru.json': '{"title": "Войти"}',
+    }, configYaml: '${on}global_getter: tr\nfile_per_locale: true\n');
+    expect(errorsOf(result), isEmpty);
     expect(
-      source,
-      contains('static AppLocale currentLocale = fallbackLocale;'),
-    );
-    expect(
-      source,
-      contains(
-        'static AppLocalizations get current => currentLocale.translations;',
+      'AppLocalizations get tr => AppLocalizations.current;'.allMatches(
+        library(result),
       ),
-    );
-  });
-
-  test('no top level getter unless the project names one', () {
-    expect(
-      library(runGenerator(en)),
-      isNot(contains('=> AppLocalizations.current;')),
-    );
-  });
-
-  test('global_accessor writes a top level getter over current', () {
-    final result = runGenerator(
-      en,
-      configYaml: '$defaultConfigYaml\nglobal_accessor: t\n',
-    );
-    expect(errorsOf(result), isEmpty);
-    expect(
-      library(result),
-      contains('AppLocalizations get t => AppLocalizations.current;'),
-    );
-  });
-
-  test('global_accessor is written once with a file per locale', () {
-    final result = runGenerator(
-      {...en, 'ru.json': '{"title": "Войти"}'},
-      configYaml:
-          '$defaultConfigYaml\nglobal_accessor: tr\nfile_per_locale: true\n',
-    );
-    expect(errorsOf(result), isEmpty);
-    expect(
-      '=> AppLocalizations.current;'.allMatches(library(result)),
       hasLength(1),
     );
   });
 
-  group('global_accessor is refused when it cannot compile', () {
+  test('global_getter without global_translations is refused', () {
+    final result = parse('global_getter: t');
+    expect(result.config, isNull);
+    expect(result.codes, ['invalid_config']);
+  });
+
+  group('global_getter is refused when it cannot compile', () {
     for (final name in [
       'T',
       'my-t',
@@ -83,35 +79,54 @@ void main() {
       'appLocalizationsSupportedLocales',
     ]) {
       test('"$name"', () {
-        final result = parse('global_accessor: "$name"');
+        final result = parse(
+          'global_translations: true\nglobal_getter: "$name"',
+        );
         expect(result.config, isNull);
         expect(result.codes, ['invalid_config']);
       });
     }
 
     test('the generated names follow class_name', () {
-      final result = parse(
-        'class_name: Strings\nglobal_accessor: initializeStringsFormatting',
-      );
-      expect(result.config, isNull);
       expect(
-        parse('class_name: Strings\nglobal_accessor: t').config,
+        parse(
+          'class_name: Strings\nglobal_translations: true\n'
+          'global_getter: initializeStringsFormatting',
+        ).config,
+        isNull,
+      );
+      expect(
+        parse(
+          'class_name: Strings\nglobal_translations: true\nglobal_getter: t',
+        ).config,
         isNotNull,
       );
     });
   });
 
-  test('a top level key named current collides with the static member', () {
-    for (final key in ['current', 'currentLocale']) {
-      final result = runGenerator({'en.json': '{"$key": "Now"}'});
-      expect(errorsOf(result), ['identifier_collision'], reason: key);
-    }
-  });
+  group('a top level key named after a member', () {
+    const members = [
+      'current',
+      'currentCell',
+      'currentLocale',
+      'resetCurrent',
+      'setCurrentLocale',
+    ];
 
-  test('current below the root is an ordinary key', () {
-    final result = runGenerator({
-      'en.json': '{"plan": {"current": "Current plan"}}',
+    test('collides with the option on', () {
+      for (final key in members) {
+        final result = runGenerator({
+          'en.json': '{"$key": "Now"}',
+        }, configYaml: on);
+        expect(errorsOf(result), ['identifier_collision'], reason: key);
+      }
     });
-    expect(errorsOf(result), isEmpty);
+
+    test('is an ordinary key with it off', () {
+      for (final key in members) {
+        final result = runGenerator({'en.json': '{"$key": "Now"}'});
+        expect(errorsOf(result), isEmpty, reason: key);
+      }
+    });
   });
 }

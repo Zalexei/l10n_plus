@@ -13,3 +13,7 @@ First release. The Flutter edge of `l10n_plus`.
 * `Locale` interop between Flutter and `L10nLocale`.
 * Supports the generated `context.l10n` extension, named by
   `context_extension` in the configuration.
+* `L10nController(current: ...)`: with `global_translations: true` the
+  generated factory passes the cell behind `AppLocalizations.current`, and the
+  controller installs its locale there before notifying and releases it on
+  `dispose`.

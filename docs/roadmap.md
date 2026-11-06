@@ -1411,7 +1411,7 @@ generated one.
     synchronous, because the application does the fetching.
 10. **IDE plugin / hot reload daemon.**
 
-## Milestone 27 — translations without a `BuildContext` (deferred)
+## Milestone 27 — translations without a `BuildContext` (done)
 
 Today a translation is reached three ways: `AppLocalizations.forLocale` and
 `AppLocalizations.of` for a locale you name yourself, and `context.l10n` for
@@ -1420,8 +1420,10 @@ its own — a repository, a use case, a notification builder — has to be hande
 the controller, and the request that keeps coming is the fourth way: an ambient
 `AppLocalizations.current` that is simply the active locale's translations.
 
-Deferred rather than rejected. The design below is settled; what is not settled
-is whether the footgun in it can be made loud enough to be worth shipping.
+Built opt-in, to the design below, with four departures recorded under
+[What was built](#what-was-built). The footgun is still there; what changed is
+that a project has to ask for it by name, and the README section that
+documents it leads with the snapshot, not the convenience.
 
 ### Why it is not in yet
 
@@ -1476,6 +1478,42 @@ That the goldens for every fixture are unchanged with the option off; that
 from the code; and that the double install assert fires. Plus the README
 section saying plainly which of the two readers rebuilds — the one thing a
 reader has to know before choosing between them.
+
+### What was built
+
+A first version went in always on, as a mutable static on the generated
+class kept in step by a listener the factory attached. It changed every
+golden, took `current` away from every project as a top level key, and
+followed whichever of two controllers changed last in silence — each of them a
+point this section had already argued. It was replaced by the design above
+before anything was published:
+
+* **`L10nCurrent<L>`** in `packages/l10n_plus/lib/src/current.dart`, holding a
+  *locale* rather than translations. The plan said `T?`; a deferred locale's
+  translations are the fallback's until its chunk lands, so a captured object
+  would have kept reading as the fallback afterwards.
+* **The controller owns it.** `L10nController(current: cell)` installs on
+  construction and in `_set` — before `notifyListeners`, so a listener reading
+  `current` sees the locale it is told about — and releases on `dispose`. A
+  second live owner fails an assert naming both fixes. An install with no
+  owner (`setCurrentLocale`) always succeeds and takes the cell over.
+* **No `StateError`.** With nothing installed `current` is the fallback
+  locale. Everything else in this library renders something rather than
+  throwing — an unsupported locale, an unloaded chunk — and a throw on the
+  first frame of a test is not louder than the assert, only later.
+* **`global_getter` was built after all**, because it is the shape people ask
+  for, and it is the project that names it. It needs `global_translations`,
+  and a name that would not compile — a reserved word, a generated top level
+  name — is `invalid_config`.
+
+Verified as the plan asked: the goldens of every existing fixture are byte for
+byte what they were (a new `current` fixture holds the option on); the members
+are `identifier_collision`s only with the option on; `setLocale`,
+`useSystemLocale` and a system change move `current`, `dispose` releases it;
+the double install assert fires; and `context.l10n` and `current` agree after
+a switch in a widget test. Not built: the debug assert on reading `current`
+during a build, which still depends on nobody having checked
+`debugBuildingDirtyElements`.
 
 ## Benchmarks
 

@@ -3,8 +3,6 @@
 Type-safe localization for Flutter and Dart. Translations are data at
 development time and a strongly typed Dart API at run time.
 
-> `l10n_plus` is a working name.
-
 ```dart
 Text(context.l10n.auth.login.title);
 Text(context.l10n.auth.login.subtitle(name: user.name));
@@ -73,9 +71,11 @@ extra_keys: error
 # Errors can never be listed here. See "Turning warnings off" below.
 ignore_diagnostics: []
 
-# A top level getter for AppLocalizations.current, for code with no
-# BuildContext. Off by default. See "Without a BuildContext" below.
-# global_accessor: t
+# AppLocalizations.current, for code with no BuildContext, and optionally a
+# short top level getter over it. Off by default; a snapshot, not a
+# subscription. See "Without a BuildContext" below.
+global_translations: false
+# global_getter: t
 
 # The Flutter glue: L10nScope, the controller, context.l10n. On by default,
 # because most projects are Flutter projects. A Dart project turns it off —
@@ -1208,6 +1208,7 @@ and the Flutter glue. An application imports both, and needs
 
 ```dart
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:l10n_plus_flutter/l10n_plus_flutter.dart';
 
 import 'generated/app_localizations.g.dart';
 import 'generated/app_localizations_flutter.g.dart';
@@ -1280,31 +1281,38 @@ final u = AppLocalizations.of(L10nLocale.parse('pt_BR')); // falls back
 ### Without a `BuildContext`
 
 A BLoC, a service or a notification wants the language the screen is in, and
-has no context to read it from:
+has no context to read it from. One line asks for it:
+
+```yaml
+global_translations: true
+```
 
 ```dart
 AppLocalizations.current.errors.network
 ```
 
-`current` reads `AppLocalizations.currentLocale`. The controller made by
-`createAppLocalizationsController` keeps that in step with what it shows — at
-start up, on `setLocale`, on a language changed in system settings. Without a
-controller — a server, a test, a background isolate — set it yourself; until
-then it is the fallback locale, never `null`.
+The controller made by `createAppLocalizationsController` installs the locale
+it shows — at start up, on `setLocale`, on a language changed in system
+settings — and `current` reads it, so `current` and `context.l10n` cannot
+disagree. Before any controller exists, and after it is disposed, `current` is
+the fallback locale, never `null`. Without a controller at all — a server, a
+test, a background isolate — install it yourself:
 
 ```dart
-AppLocalizations.currentLocale = AppLocale.ru;
+AppLocalizations.setCurrentLocale(AppLocale.ru);
+AppLocalizations.resetCurrent();   // back to the fallback locale
 ```
 
-One line names a shorter getter, if the project wants one:
+A shorter name, if the project wants one:
 
 ```yaml
-global_accessor: t   # AppLocalizations get t => AppLocalizations.current;
+global_translations: true
+global_getter: t   # AppLocalizations get t => AppLocalizations.current;
 ```
 
-Off by default, because a one letter name at the top of a library is a
-decision about your namespace (`final t = ...` is a common local, and this
-README writes it).
+Both are off by default. With them off the generated file is byte for byte
+what it was, and `current`, `currentLocale`, `currentCell`, `setCurrentLocale`
+and `resetCurrent` stay ordinary keys you can write at the top level.
 
 **It is a snapshot, not a subscription.** `context.l10n` registers the widget
 for a rebuild; `current` does not, and a string read from it keeps the
@@ -1327,17 +1335,19 @@ Text(state.message(context.l10n))
 or, for a message the server chose, the key enum
 [`dynamic_keys`](#when-the-server-picks-the-message) generates. `current` is
 the right tool for text used once, at the moment it is read: a push
-notification, a log line, an email body, a snackbar shown now.
+notification, a log line, an email body, a snackbar shown now. Inside `build`,
+read `context.l10n`.
 
 Two more things it is not:
 
 * **Not shared between isolates.** A static is per isolate, so inside
   `compute` or a background worker `current` is the fallback locale until that
-  isolate sets `currentLocale` itself.
-* **Not per controller.** With two controllers alive — tests, a second
-  window — the one that changed last wins. Tests that read `current` reset it
-  in `tearDown`:
-  `AppLocalizations.currentLocale = AppLocalizations.fallbackLocale`.
+  isolate calls `setCurrentLocale` itself.
+* **Not shared between controllers.** A second controller created while the
+  first is alive fails an assert in debug builds: `current` would otherwise
+  follow whichever changed last, with no other symptom. Dispose the first —
+  `addTearDown(controller.dispose)` in a test — or call `resetCurrent()` in
+  `tearDown`.
 
 ## build_runner (optional)
 

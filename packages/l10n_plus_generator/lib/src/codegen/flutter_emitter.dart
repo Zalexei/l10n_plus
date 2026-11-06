@@ -48,30 +48,22 @@ typedef $controller = L10nController<$localeEnum, $className>;
 ///
 /// Reading them binds the Flutter engine, so this must be called from `main`
 /// or later — which is where a controller is built anyway.
-///
-/// The controller keeps [$className.currentLocale] on the locale it shows, so
-/// [$className.current] reads the same language as `context.$getter`. With
-/// two controllers alive, the one that changed last wins.
-$controller create${className}Controller({
+${config.globalTranslations ? _currentDoc(className, getter) : ''}$controller create${className}Controller({
   $localeEnum? locale,
   List<Locale>? systemLocales,
 }) {
   final resolvedSystemLocales =
       systemLocales ??
       WidgetsFlutterBinding.ensureInitialized().platformDispatcher.locales;
-  final controller = $controller(
+  return $controller(
     supportedLocales: $className.supportedLocales,
     fallbackLocale: $className.fallbackLocale,
     translationsOf: (locale) => locale.translations,
     initialLocale: locale,
     systemLocales: [
       for (final locale in resolvedSystemLocales) locale.toL10nLocale(),
-    ],
+    ],${config.globalTranslations ? '\n    current: $className.currentCell,' : ''}
   );
-  void follow() => $className.currentLocale = controller.locale;
-  follow();
-  controller.addListener(follow);
-  return controller;
 }
 
 /// Locale list for `MaterialApp.supportedLocales`.
@@ -190,6 +182,12 @@ ${_richExtensions()}''';
         "scriptCode: '$script'"
         "${country == null ? '' : ", countryCode: '$country'"})";
   }
+
+  /// The factory's dartdoc paragraph on `global_translations`.
+  static String _currentDoc(String className, String getter) =>
+      '///\n'
+      '/// [$className.current] reads the locale this controller installs in\n'
+      '/// [$className.currentCell]: the same language as `context.$getter`.\n';
 
   static String _lowerFirst(String value) =>
       value[0].toLowerCase() + value.substring(1);

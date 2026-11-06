@@ -50,7 +50,8 @@ final class L10nPlusConfig {
     this.bidiIsolation = false,
     this.extraKeys = ExtraKeys.error,
     this.ignoreDiagnostics = const {},
-    this.globalAccessor,
+    this.globalTranslations = false,
+    this.globalGetter,
     this.flutter = const FlutterConfig(),
   });
 
@@ -216,13 +217,24 @@ final class L10nPlusConfig {
   /// error, whatever the list says.
   final Set<String> ignoreDiagnostics;
 
+  /// Whether the root class gets `current`, the translations of the active
+  /// locale without a `BuildContext`.
+  ///
+  /// Off by default, and off the output is byte for byte what it was. On, the
+  /// generated controller factory installs its locale in the cell `current`
+  /// reads, so the two cannot disagree. Opt in because it is a snapshot, not a
+  /// subscription: a string read from it and stored keeps the language it was
+  /// read in, which is the class of mistake this library otherwise moves to
+  /// build time.
+  final bool globalTranslations;
+
   /// Name of a top level getter for [className]`.current`, or `null`.
   ///
-  /// Off by default. A one letter name at the top of a library is a decision
-  /// about the project's namespace — `final t = ...` is a common local, and
-  /// this package's own examples write it — so the project names it, if it
-  /// wants one at all. `AppLocalizations.current` is generated either way.
-  final String? globalAccessor;
+  /// Needs [globalTranslations]. A one letter name at the top of a library is
+  /// a decision about the project's namespace — `final t = ...` is a common
+  /// local, and this package's own examples write it — so the project names
+  /// it, if it wants one at all.
+  final String? globalGetter;
 
   /// Flutter options.
   final FlutterConfig flutter;
@@ -288,7 +300,8 @@ final class L10nPlusConfig {
       'bidi_isolation',
       'extra_keys',
       'ignore_diagnostics',
-      'global_accessor',
+      'global_translations',
+      'global_getter',
       'flutter',
     };
     for (final key in document.keys) {
@@ -356,21 +369,37 @@ final class L10nPlusConfig {
       }
     }
 
-    final globalAccessor = _string(document, 'global_accessor', diagnostics);
-    if (globalAccessor != null &&
-        !_isGlobalAccessor(globalAccessor, className)) {
+    final globalTranslations =
+        _bool(document, 'global_translations', diagnostics) ?? false;
+    final globalGetter = _string(document, 'global_getter', diagnostics);
+    if (globalGetter != null && !globalTranslations) {
+      diagnostics.add(
+        Diagnostic.error(
+          code: 'invalid_config',
+          message: '"global_getter" needs "global_translations" as well.',
+          span: document.nodes['global_getter']?.span ?? document.span,
+          details:
+              'The getter reads AppLocalizations.current, which exists only '
+              'with "global_translations" on. Add it:\n'
+              '  global_translations: true\n'
+              '  global_getter: $globalGetter',
+        ),
+      );
+      return null;
+    }
+    if (globalGetter != null && !_isGlobalGetter(globalGetter, className)) {
       diagnostics.add(
         Diagnostic.error(
           code: 'invalid_config',
           message:
-              '"global_accessor" cannot be "$globalAccessor": it must be a '
+              '"global_getter" cannot be "$globalGetter": it must be a '
               'lower camel case Dart name that nothing else generated uses.',
-          span: document.nodes['global_accessor']?.span ?? document.span,
+          span: document.nodes['global_getter']?.span ?? document.span,
           details:
               'It becomes a top level getter, so a reserved word or a name '
               'like "initialize${className}Formatting" would not compile. '
               'For example:\n'
-              '  global_accessor: t',
+              '  global_getter: t',
         ),
       );
       return null;
@@ -424,15 +453,16 @@ final class L10nPlusConfig {
       bidiIsolation: _bool(document, 'bidi_isolation', diagnostics) ?? false,
       extraKeys: _extraKeys(document, diagnostics),
       ignoreDiagnostics: _ignoreDiagnostics(document, diagnostics),
-      globalAccessor: globalAccessor,
+      globalTranslations: globalTranslations,
+      globalGetter: globalGetter,
       flutter: flutter,
     );
   }
 
-  /// Whether [name] can be the `global_accessor` of a library whose class is
+  /// Whether [name] can be the `global_getter` of a library whose class is
   /// [className]: an identifier that survives [DartIdentifiers.lowerCamel]
   /// unchanged, and not one of the top level names the emitters write.
-  static bool _isGlobalAccessor(String name, String className) {
+  static bool _isGlobalGetter(String name, String className) {
     if (name.isEmpty || DartIdentifiers.lowerCamel(name) != name) return false;
     final lowerClass = className.isEmpty
         ? className

@@ -19,3 +19,7 @@ First release. The runtime half of `l10n_plus`, with zero dependencies.
   fraction digits here.
 * `BaseTranslations` and `AppLocaleBase`, the interfaces generated code
   implements.
+* `L10nCurrent`: the cell behind `AppLocalizations.current` with
+  `global_translations: true`. It holds a locale, not translations, so a
+  deferred locale reads as itself once its chunk arrives; one owner at a time,
+  asserted in debug.

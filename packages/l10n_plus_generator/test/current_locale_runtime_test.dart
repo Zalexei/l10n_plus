@@ -3,43 +3,38 @@ library;
 
 import 'package:test/test.dart';
 
-import 'goldens/json/app_localizations.g.dart';
+import 'goldens/current/app_localizations.g.dart';
 
-/// Runs `AppLocalizations.current` in the `json` golden instead of reading it.
+/// Runs `AppLocalizations.current` in the `current` golden instead of
+/// reading it.
 void main() {
-  tearDown(
-    () => AppLocalizations.currentLocale = AppLocalizations.fallbackLocale,
-  );
+  tearDown(AppLocalizations.resetCurrent);
 
-  test('reads the fallback locale until something sets one', () {
+  final enT = AppLocalizations.forLocale(AppLocale.en);
+  final ruT = AppLocalizations.forLocale(AppLocale.ru);
+
+  test('reads the fallback locale until something is installed', () {
+    expect(AppLocalizations.currentCell.locale, isNull);
     expect(AppLocalizations.currentLocale, AppLocalizations.fallbackLocale);
-    expect(
-      AppLocalizations.current.auth.login.title,
-      AppLocalizations.forLocale(
-        AppLocalizations.fallbackLocale,
-      ).auth.login.title,
-    );
+    expect(AppLocalizations.current.auth.login.title, enT.auth.login.title);
   });
 
-  test('follows currentLocale on every read', () {
-    AppLocalizations.currentLocale = AppLocale.ru;
+  test('setCurrentLocale moves it, resetCurrent puts it back', () {
+    AppLocalizations.setCurrentLocale(AppLocale.ru);
     expect(AppLocalizations.current.appLocale, AppLocale.ru);
-    expect(
-      AppLocalizations.current.auth.login.title,
-      AppLocalizations.forLocale(AppLocale.ru).auth.login.title,
-    );
+    expect(t.auth.login.title, ruT.auth.login.title);
 
-    AppLocalizations.currentLocale = AppLocale.en;
-    expect(AppLocalizations.current.appLocale, AppLocale.en);
+    AppLocalizations.resetCurrent();
+    expect(AppLocalizations.currentLocale, AppLocale.en);
   });
 
   test('a string read from it is a snapshot', () {
     // The behaviour the documentation warns about, pinned so that nobody
     // "fixes" it into something that only looks live.
-    AppLocalizations.currentLocale = AppLocale.ru;
-    final stored = AppLocalizations.current.auth.login.title;
-    AppLocalizations.currentLocale = AppLocale.en;
-    expect(stored, AppLocalizations.forLocale(AppLocale.ru).auth.login.title);
-    expect(stored, isNot(AppLocalizations.current.auth.login.title));
+    AppLocalizations.setCurrentLocale(AppLocale.ru);
+    final stored = t.auth.login.title;
+    AppLocalizations.setCurrentLocale(AppLocale.en);
+    expect(stored, ruT.auth.login.title);
+    expect(stored, isNot(t.auth.login.title));
   });
 }

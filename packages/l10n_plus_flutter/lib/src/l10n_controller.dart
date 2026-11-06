@@ -16,15 +16,23 @@ final class L10nController<L extends AppLocaleBase, T extends BaseTranslations>
   ///
   /// [initialLocale] wins when given; otherwise [systemLocales] are resolved
   /// against [supportedLocales], falling back to [fallbackLocale].
+  ///
+  /// [current] is the cell behind `AppLocalizations.current`, passed by the
+  /// generated factory when the project sets `global_translations: true`. The
+  /// controller keeps the locale it shows installed there and releases it on
+  /// [dispose].
   L10nController({
     required this.supportedLocales,
     required this.fallbackLocale,
     required T Function(L locale) translationsOf,
     L? initialLocale,
     List<L10nLocale> systemLocales = const [],
+    L10nCurrent<L>? current,
   }) : _translationsOf = translationsOf,
+       _current = current,
        _followSystem = initialLocale == null {
     _locale = initialLocale ?? _resolveSystem(systemLocales);
+    _current?.install(_locale, owner: this);
     // Subscribed whether or not the project generates override lookups: the
     // store is empty in a project that does not, so this costs one callback
     // that is never called. Subscribing is what makes an override repaint the
@@ -46,6 +54,8 @@ final class L10nController<L extends AppLocaleBase, T extends BaseTranslations>
   final L fallbackLocale;
 
   final T Function(L locale) _translationsOf;
+
+  final L10nCurrent<L>? _current;
 
   late L _locale;
   bool _followSystem;
@@ -181,12 +191,16 @@ final class L10nController<L extends AppLocaleBase, T extends BaseTranslations>
     // exactly when that happens.
     _disposed = true;
     L10nOverrides.removeListener(_handleOverridesChanged);
+    _current?.release(this);
     super.dispose();
   }
 
   void _set(L locale) {
     if (_locale == locale) return;
     _locale = locale;
+    // Before notifying: a listener that reads `AppLocalizations.current` must
+    // see the locale it is being told about.
+    _current?.install(locale, owner: this);
     notifyListeners();
     _load(locale);
   }

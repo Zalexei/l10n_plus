@@ -1341,10 +1341,11 @@ installed — costs 1.8 ns, one `isEmpty` on a static map; with a bundle install
 that does not carry the key, 28.5 ns for two lookups. Measured in
 `example/benchmark/`, not guessed.
 
-**The global store is a considered exception.** Milestone 27 defers an ambient
-`current` accessor over global mutable state, and the objection there is real: a
-widget reading an ambient value creates no dependency, renders once, and then
-keeps the old language after a switch. It does not apply here, because
+**The global store is a considered exception.** Milestone 27 built an ambient
+`current` accessor only behind `global_translations`, because the objection to
+it is real: a widget reading an ambient value creates no dependency, renders
+once, and then keeps the old language after a switch. It does not apply here,
+because
 installing *notifies* — `L10nController` subscribes to the store itself, so
 every reader repaints whoever installed — and because overrides are a property
 of the application rather than of a subtree, so there is no second copy to
