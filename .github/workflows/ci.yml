@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  packages:
+    name: Packages (Flutter ${{ matrix.flutter }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The oldest Flutter `sdk: ^3.9.0` allows, and the latest stable.
+        flutter: ['3.35.0', '3.x']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ matrix.flutter }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Format
+        # The formatter's output is pinned by the version the code was
+        # formatted with; a newer one may reflow it.
+        if: matrix.flutter == '3.35.0'
+        run: dart format --output=none --set-exit-if-changed packages example/lib example/test
+      - run: flutter analyze packages example
+      - run: dart test
+        working-directory: packages/l10n_plus
+      - run: dart test
+        working-directory: packages/l10n_plus_generator
+      - run: dart test
+        working-directory: packages/l10n_plus_builder
+      - run: flutter test
+        working-directory: packages/l10n_plus_flutter
+      - run: flutter test
+        working-directory: example
+      - name: The example's generated code is up to date
+        working-directory: example
+        run: |
+          dart run l10n_plus_generator generate
+          git diff --exit-code -- lib/generated
+      - name: Publish dry run
+        if: matrix.flutter == '3.x'
+        shell: bash
+        run: |
+          set -e
+          for p in l10n_plus l10n_plus_generator l10n_plus_flutter l10n_plus_builder; do
+            echo "::group::$p"
+            (cd "packages/$p" && dart pub publish --dry-run)
+            echo "::endgroup::"
+          done
+
+  evaluation:
+    name: Evaluation projects
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate, check nothing drifted, test
+        shell: bash
+        run: |
+          set -eo pipefail
+          for d in fintech marketplace tms; do
+            echo "::group::$d"
+            (cd "evaluation/$d" && dart pub get && dart run l10n_plus_generator generate && dart test)
+            echo "::endgroup::"
+          done
+          echo "::group::bigapp"
+          (cd evaluation/bigapp && flutter pub get && dart run l10n_plus_generator generate && flutter test)
+          echo "::endgroup::"
+          git diff --exit-code -- evaluation
