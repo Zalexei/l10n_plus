@@ -190,6 +190,23 @@ abstract interface class Statements implements BaseTranslations {
         fallback: fallbackLocale,
       );
 
+  /// The locale [current] reads.
+  ///
+  /// A controller made by the generated factory keeps this
+  /// in step with the locale it shows. Without one — a server,
+  /// a test, a background isolate — set it yourself; until
+  /// then it is [fallbackLocale].
+  static StatementLocale currentLocale = fallbackLocale;
+
+  /// Translations of [currentLocale], without a `BuildContext`.
+  ///
+  /// A snapshot, not a subscription: nothing rebuilds when the
+  /// locale changes, and a string read from this and stored
+  /// keeps the language it was read in. Store a key or a
+  /// `String Function(Statements)` instead, and translate where
+  /// the text is shown.
+  static Statements get current => currentLocale.translations;
+
   /// The locale these translations belong to.
   StatementLocale get appLocale;
 

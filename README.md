@@ -73,6 +73,10 @@ extra_keys: error
 # Errors can never be listed here. See "Turning warnings off" below.
 ignore_diagnostics: []
 
+# A top level getter for AppLocalizations.current, for code with no
+# BuildContext. Off by default. See "Without a BuildContext" below.
+# global_accessor: t
+
 # The Flutter glue: L10nScope, the controller, context.l10n. On by default,
 # because most projects are Flutter projects. A Dart project turns it off —
 # the glue imports package:flutter, so a Dart project that leaves it on gets
@@ -1272,6 +1276,68 @@ is the only one.
 final t = AppLocalizations.forLocale(AppLocale.en);
 final u = AppLocalizations.of(L10nLocale.parse('pt_BR')); // falls back
 ```
+
+### Without a `BuildContext`
+
+A BLoC, a service or a notification wants the language the screen is in, and
+has no context to read it from:
+
+```dart
+AppLocalizations.current.errors.network
+```
+
+`current` reads `AppLocalizations.currentLocale`. The controller made by
+`createAppLocalizationsController` keeps that in step with what it shows — at
+start up, on `setLocale`, on a language changed in system settings. Without a
+controller — a server, a test, a background isolate — set it yourself; until
+then it is the fallback locale, never `null`.
+
+```dart
+AppLocalizations.currentLocale = AppLocale.ru;
+```
+
+One line names a shorter getter, if the project wants one:
+
+```yaml
+global_accessor: t   # AppLocalizations get t => AppLocalizations.current;
+```
+
+Off by default, because a one letter name at the top of a library is a
+decision about your namespace (`final t = ...` is a common local, and this
+README writes it).
+
+**It is a snapshot, not a subscription.** `context.l10n` registers the widget
+for a rebuild; `current` does not, and a string read from it keeps the
+language it was read in:
+
+```dart
+emit(ErrorState(message: t.errors.network));   // "Ошибка сети"
+// the user switches to English: the screen rebuilds, the state does not —
+// it still says "Ошибка сети"
+```
+
+Store what the text *is*, and translate where it is shown:
+
+```dart
+emit(ErrorState(message: (t) => t.errors.network));
+// in build:
+Text(state.message(context.l10n))
+```
+
+or, for a message the server chose, the key enum
+[`dynamic_keys`](#when-the-server-picks-the-message) generates. `current` is
+the right tool for text used once, at the moment it is read: a push
+notification, a log line, an email body, a snackbar shown now.
+
+Two more things it is not:
+
+* **Not shared between isolates.** A static is per isolate, so inside
+  `compute` or a background worker `current` is the fallback locale until that
+  isolate sets `currentLocale` itself.
+* **Not per controller.** With two controllers alive — tests, a second
+  window — the one that changed last wins. Tests that read `current` reset it
+  in `tearDown`:
+  `AppLocalizations.currentLocale = AppLocalizations.fallbackLocale`.
 
 ## build_runner (optional)
 

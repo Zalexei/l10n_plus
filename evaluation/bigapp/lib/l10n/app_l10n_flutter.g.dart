@@ -23,6 +23,10 @@ typedef AppL10nController = L10nController<AppLocale, AppL10n>;
 ///
 /// Reading them binds the Flutter engine, so this must be called from `main`
 /// or later — which is where a controller is built anyway.
+///
+/// The controller keeps [AppL10n.currentLocale] on the locale it shows, so
+/// [AppL10n.current] reads the same language as `context.l10n`. With
+/// two controllers alive, the one that changed last wins.
 AppL10nController createAppL10nController({
   AppLocale? locale,
   List<Locale>? systemLocales,
@@ -30,7 +34,7 @@ AppL10nController createAppL10nController({
   final resolvedSystemLocales =
       systemLocales ??
       WidgetsFlutterBinding.ensureInitialized().platformDispatcher.locales;
-  return AppL10nController(
+  final controller = AppL10nController(
     supportedLocales: AppL10n.supportedLocales,
     fallbackLocale: AppL10n.fallbackLocale,
     translationsOf: (locale) => locale.translations,
@@ -39,6 +43,10 @@ AppL10nController createAppL10nController({
       for (final locale in resolvedSystemLocales) locale.toL10nLocale(),
     ],
   );
+  void follow() => AppL10n.currentLocale = controller.locale;
+  follow();
+  controller.addListener(follow);
+  return controller;
 }
 
 /// Locale list for `MaterialApp.supportedLocales`.

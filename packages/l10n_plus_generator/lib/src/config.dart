@@ -50,6 +50,7 @@ final class L10nPlusConfig {
     this.bidiIsolation = false,
     this.extraKeys = ExtraKeys.error,
     this.ignoreDiagnostics = const {},
+    this.globalAccessor,
     this.flutter = const FlutterConfig(),
   });
 
@@ -215,6 +216,14 @@ final class L10nPlusConfig {
   /// error, whatever the list says.
   final Set<String> ignoreDiagnostics;
 
+  /// Name of a top level getter for [className]`.current`, or `null`.
+  ///
+  /// Off by default. A one letter name at the top of a library is a decision
+  /// about the project's namespace — `final t = ...` is a common local, and
+  /// this package's own examples write it — so the project names it, if it
+  /// wants one at all. `AppLocalizations.current` is generated either way.
+  final String? globalAccessor;
+
   /// Flutter options.
   final FlutterConfig flutter;
 
@@ -279,6 +288,7 @@ final class L10nPlusConfig {
       'bidi_isolation',
       'extra_keys',
       'ignore_diagnostics',
+      'global_accessor',
       'flutter',
     };
     for (final key in document.keys) {
@@ -346,6 +356,26 @@ final class L10nPlusConfig {
       }
     }
 
+    final globalAccessor = _string(document, 'global_accessor', diagnostics);
+    if (globalAccessor != null &&
+        !_isGlobalAccessor(globalAccessor, className)) {
+      diagnostics.add(
+        Diagnostic.error(
+          code: 'invalid_config',
+          message:
+              '"global_accessor" cannot be "$globalAccessor": it must be a '
+              'lower camel case Dart name that nothing else generated uses.',
+          span: document.nodes['global_accessor']?.span ?? document.span,
+          details:
+              'It becomes a top level getter, so a reserved word or a name '
+              'like "initialize${className}Formatting" would not compile. '
+              'For example:\n'
+              '  global_accessor: t',
+        ),
+      );
+      return null;
+    }
+
     final filePerLocale =
         _bool(document, 'file_per_locale', diagnostics) ?? false;
     final deferredLocales =
@@ -394,8 +424,24 @@ final class L10nPlusConfig {
       bidiIsolation: _bool(document, 'bidi_isolation', diagnostics) ?? false,
       extraKeys: _extraKeys(document, diagnostics),
       ignoreDiagnostics: _ignoreDiagnostics(document, diagnostics),
+      globalAccessor: globalAccessor,
       flutter: flutter,
     );
+  }
+
+  /// Whether [name] can be the `global_accessor` of a library whose class is
+  /// [className]: an identifier that survives [DartIdentifiers.lowerCamel]
+  /// unchanged, and not one of the top level names the emitters write.
+  static bool _isGlobalAccessor(String name, String className) {
+    if (name.isEmpty || DartIdentifiers.lowerCamel(name) != name) return false;
+    final lowerClass = className.isEmpty
+        ? className
+        : className[0].toLowerCase() + className.substring(1);
+    return !{
+      'initialize${className}Formatting',
+      'create${className}Controller',
+      '${lowerClass}SupportedLocales',
+    }.contains(name);
   }
 
   /// Reads `dynamic_keys`, dropping entries that cannot be a namespace path.

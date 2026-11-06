@@ -890,6 +890,8 @@ final class ModelBuilder {
     'forLocale': 'a generated static member',
     'of': 'a generated static member',
     'resolve': 'a generated static member',
+    'current': 'a generated static member',
+    'currentLocale': 'a generated static member',
   };
 
   /// Types the generated code refers to by name.

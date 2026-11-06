@@ -1143,6 +1143,29 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
       ..writeln('        fallback: fallbackLocale,')
       ..writeln('      );')
       ..writeln()
+      ..writeln('  /// The locale [current] reads.')
+      ..writeln('  ///')
+      ..writeln('  /// A controller made by the generated factory keeps this')
+      ..writeln(
+        '  /// in step with the locale it shows. Without one — a server,',
+      )
+      ..writeln('  /// a test, a background isolate — set it yourself; until')
+      ..writeln('  /// then it is [fallbackLocale].')
+      ..writeln('  static $localeEnum currentLocale = fallbackLocale;')
+      ..writeln()
+      ..writeln(
+        '  /// Translations of [currentLocale], without a `BuildContext`.',
+      )
+      ..writeln('  ///')
+      ..writeln(
+        '  /// A snapshot, not a subscription: nothing rebuilds when the',
+      )
+      ..writeln('  /// locale changes, and a string read from this and stored')
+      ..writeln('  /// keeps the language it was read in. Store a key or a')
+      ..writeln('  /// `String Function($name)` instead, and translate where')
+      ..writeln('  /// the text is shown.')
+      ..writeln('  static $name get current => currentLocale.translations;')
+      ..writeln()
       ..writeln('  /// The locale these translations belong to.')
       ..writeln('  $localeEnum get appLocale;')
       ..writeln();
@@ -1150,6 +1173,18 @@ DateFormat ${IntlFormatters.dateFormatHelper}(
     buffer
       ..writeln('}')
       ..writeln();
+    final accessor = config.globalAccessor;
+    if (accessor != null) {
+      buffer
+        ..writeln(
+          '/// Shorthand for [$name.current], named by `global_accessor`.',
+        )
+        ..writeln('///')
+        ..writeln('/// The same snapshot: it does not rebuild anything, and a')
+        ..writeln('/// string read from it keeps the language it was read in.')
+        ..writeln('$name get $accessor => $name.current;')
+        ..writeln();
+    }
   }
 
   void _writeInterfaceMembers(StringBuffer buffer, NamespaceModel namespace) {
