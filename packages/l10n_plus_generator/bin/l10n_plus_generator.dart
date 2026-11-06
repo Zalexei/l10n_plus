@@ -840,12 +840,6 @@ Future<void> _watch({
     exit(_exitCodeDiagnostics);
   }
 
-  stdout.writeln('');
-  stdout.writeln(
-    'Watching ${config.inputDirectory}/ and ${p.basename(configPath)}. '
-    'Ctrl-C to stop.',
-  );
-
   // Editors save in bursts — a temporary file, a rename, a truncate — and a
   // save-and-format is two bursts. Waiting for quiet turns each of those into
   // one run instead of four.
@@ -899,6 +893,15 @@ Future<void> _watch({
     // deeper would watch the generated output and rebuild on its own writes.
     Directory(root).watch().listen(onEvent),
   ];
+
+  // Only now: "Watching" is a promise that a save from here on is seen, and
+  // printed before the subscriptions it was a lie on Linux, where an edit made
+  // the moment it appeared reached no watcher at all.
+  stdout.writeln('');
+  stdout.writeln(
+    'Watching ${config.inputDirectory}/ and ${p.basename(configPath)}. '
+    'Ctrl-C to stop.',
+  );
 
   // Nothing completes this; the process runs until it is interrupted.
   await Future.wait(subscriptions.map((s) => s.asFuture<void>()));
