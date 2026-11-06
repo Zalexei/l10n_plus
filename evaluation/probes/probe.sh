@@ -7,6 +7,15 @@
 #
 # The workspace is a real project with path overrides on the local packages.
 set -u
+
+# Diagnostics name files by absolute path, and this output is committed as
+# transcript.txt: run once more through a filter that makes them relative to
+# the repository, so the transcript says nothing about whose machine made it.
+if [[ -z ${L10N_PROBE_FILTERED:-} ]]; then
+  L10N_PROBE_FILTERED=1 "$0" "$@" 2>&1 | sed "s|${0:a:h:h:h}/||g"
+  exit ${pipestatus[1]}
+fi
+
 cd "${0:a:h}/workspace" || exit 1
 only=${1:-}
 

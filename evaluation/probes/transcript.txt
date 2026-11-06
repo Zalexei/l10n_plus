@@ -189,7 +189,7 @@ exit=1
 l10n_plus.yaml:5:17
 warning[unknown_config_key]: Unknown configuration key "file_per_local".
   Did you mean "file_per_locale"?
-  Known keys: base_locale, bidi_isolation, class_name, deferred_locales, dynamic_keys, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, interfaces, locale_enum_name, output_directory, runtime_overrides.
+  Known keys: base_locale, bidi_isolation, class_name, deferred_locales, dynamic_keys, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, global_getter, global_translations, ignore_diagnostics, input_directory, interfaces, locale_enum_name, output_directory, runtime_overrides.
   ╷
 5 │ file_per_local: true
   │                 ^^^^
@@ -208,7 +208,7 @@ exit=1
 l10n_plus.yaml:5:17
 warning[unknown_config_key]: Unknown configuration key "file_per_local".
   Did you mean "file_per_locale"?
-  Known keys: base_locale, bidi_isolation, class_name, deferred_locales, dynamic_keys, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, ignore_diagnostics, input_directory, interfaces, locale_enum_name, output_directory, runtime_overrides.
+  Known keys: base_locale, bidi_isolation, class_name, deferred_locales, dynamic_keys, extra_keys, fallback_locale, file_pattern, file_per_locale, fill_missing_from_base, flutter, format_plural_numbers, global_getter, global_translations, ignore_diagnostics, input_directory, interfaces, locale_enum_name, output_directory, runtime_overrides.
   ╷
 5 │ file_per_local: true
   │                 ^^^^
