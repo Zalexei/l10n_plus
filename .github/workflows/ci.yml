@@ -25,6 +25,10 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
+      - name: pub get changed no tracked file
+        # Newer Flutter writes analyzer excludes into analysis_options.yaml,
+        # and a modified file fails the publish dry run further down.
+        run: git diff --exit-code
       - name: Format
         # The formatter's output is pinned by the version the code was
         # formatted with; a newer one may reflow it.
