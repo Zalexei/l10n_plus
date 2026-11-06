@@ -5,6 +5,7 @@
 
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:l10n_plus/l10n_plus.dart';
+
 import 'app_localizations_de.g.dart' deferred as _l10nDe;
 import 'app_localizations_en.g.dart' as _l10nEn;
 import 'app_localizations_fr.g.dart' deferred as _l10nFr;

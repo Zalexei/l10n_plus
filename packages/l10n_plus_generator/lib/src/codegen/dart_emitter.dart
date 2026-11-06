@@ -305,6 +305,10 @@ final class DartEmitter {
       }
       file
         ..writeln("import 'package:l10n_plus/l10n_plus.dart';")
+        // A blank line between package and relative imports: dart_style 3.1
+        // writes one itself and 3.0 does not, and output that depended on
+        // the formatter the project resolved would not be byte for byte.
+        ..writeln()
         ..writeln("import '$sharedFileName';")
         ..writeln();
       _writeDateFormatHelper(file);
@@ -437,6 +441,9 @@ final class DartEmitter {
       buffer.writeln("import 'package:intl/intl.dart';");
     }
     buffer.writeln("import 'package:l10n_plus/l10n_plus.dart';");
+    // Relative imports in a section of their own, for the reason given where
+    // a locale library writes its header.
+    if (extraImports.isNotEmpty) buffer.writeln();
     for (final import in extraImports) {
       buffer.writeln(import);
     }
